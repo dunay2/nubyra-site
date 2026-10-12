@@ -283,6 +283,12 @@ solicite la nueva versión del archivo. Durante esta instalación, Chrome
 conservaba el estado cerrado tras el primer despliegue de la configuración;
 se añadió `?v=20261012-1` para actualizar ese recurso.
 
+**Despliegue comprobado el 12/10/2026:** Pages terminó correctamente, el
+`config.js` público respondió HTTP 200 y coincidió con el archivo versionado.
+Después del despliegue del parámetro de versión, Chrome mostró **Sin sesión**
+y el botón **Continuar con Google** en `https://nubyra.es/acceso.html`. Esto
+confirma la carga del frontend configurado; no demuestra todavía un login real.
+
 En esta instalación se obtuvo la clave publicable del proyecto correcto y se
 completó `config.js`. Antes de publicar se comprobaron dos peticiones reales a
 la API con esa clave y sin sesión de usuario: tanto la RPC `resolve_my_access`
@@ -339,13 +345,14 @@ privacidad de NUBYRA antes de abrir el servicio al público.
 | Cuenta piloto | Una admisión habilitada, sin rol ni UUID; recuento administrativo verificado |
 | Usuarios Auth / roles asignados | 0 / 0; primer login y decisión de rol pendientes |
 | Email y otros métodos alternativos | Email DISABLED y alternativos integrados desactivados; sin proveedores personalizados ni Third-Party Auth; Passkeys desactivado. Revisión completada |
-| `config.js` | URL del proyecto y clave publicable configuradas; pendiente de comprobar el despliegue actualizado |
+| `config.js` / frontend | Configuración publicada por Pages y comprobada por HTTPS; Chrome muestra Sin sesión y Continuar con Google |
 | API sin sesión | RPC y probe devuelven HTTP 401 / 42501 con la clave publicable real |
 | OAuth real y JWT/RLS | Pendientes |
 | Privacidad, condiciones y apertura pública | Pendientes |
 
-**Siguiente paso:** comprobar el despliegue de `config.js` y realizar el primer
-login con la cuenta admitida, que debe quedar pendiente sin rol. Añadir
+**Siguiente paso:** abrir `https://nubyra.es/acceso.html`, pulsar **Continuar con
+Google** y realizar el primer login con la cuenta admitida. El resultado
+esperado es **Acceso pendiente**, sin rol ni acceso privado. Añadir
 a este registro las nuevas verificaciones a medida que se completen, sin
 incluir correos privados ni credenciales.
 

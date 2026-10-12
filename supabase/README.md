@@ -120,6 +120,9 @@ La configuración pública se completó el 12/10/2026 con la clave publicable
 existente en **Project Settings → API Keys**. Con esa clave y sin sesión,
 las peticiones reales a la RPC y al probe devolvieron HTTP 401 / código 42501:
 denegación esperada. Las comprobaciones OAuth/JWT de usuario siguen pendientes.
+También se verificó el despliegue de Pages y la página HTTPS en Chrome:
+**Sin sesión** y botón **Continuar con Google**. El primer login de la cuenta
+admitida, todavía sin rol, debe producir **Acceso pendiente**.
 
 Antes de abrir el piloto, comprobar con Google real y JWT de usuario: admisión
 de una cuenta aprobada, rechazo de otra cuenta, estado pendiente sin acceso al
