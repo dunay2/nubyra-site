@@ -82,3 +82,15 @@ test('en escritorio la fotografía queda fusionada detrás del titular', () => {
   assert.match(html, /<div class="hero__photo"[^>]*>/);
   assert.match(html, /<div class="hero__shade"[^>]*>/);
 });
+
+test('Hablemos sustituye Contacto en la navegación de escritorio y móvil', () => {
+  const desktop = html.match(/<nav class="desktop-nav"[^>]*>([\s\S]*?)<\/nav>/)?.[1] || '';
+  const mobile = html.match(/<nav class="mobile-nav"[^>]*>([\s\S]*?)<\/nav>/)?.[1] || '';
+  assert.ok(desktop && mobile, 'faltan menús públicos');
+  assert.ok(!desktop.includes('>Contacto</a>'), 'Contacto duplicado en escritorio');
+  assert.ok(!mobile.includes('>Contacto</a>'), 'Contacto duplicado en móvil');
+  assert.match(html, /class="btn btn--small btn--yellow header-contact" href="#contacto">Hablemos<\/a>/);
+  assert.match(mobile, /href="#contacto" class="mobile-nav__cta">Hablemos/);
+  assert.match(html, /<section class="section section--contact" id="contacto"/);
+  assert.equal((html.match(/data-contact="/g) || []).length, 3, 'se mantienen las tres vías de consulta');
+});
