@@ -55,3 +55,10 @@ test('no quedan referencias a imágenes temporales de Figma', () => {
     assert.ok(!content.includes('figma.com/api/mcp/asset/'));
   }
 });
+
+test('en ultrawide la fotografía y el velo usan el mismo lienzo centrado', () => {
+  assert.match(css, /@media\s*\(min-width:\s*1440px\)/);
+  assert.match(css, /\.hero__photo\s*\{\s*right:\s*calc\(\(100% - 1440px\)\s*\/\s*2 \+ 58px\)/);
+  assert.match(css, /\.hero__shade\s*\{[^}]*width:\s*1440px;[^}]*transform:\s*translateX\(-50%\)/s);
+  assert.match(css, /\.hero,\s*\.hero__inner\s*\{\s*min-height:\s*max\(900px,\s*100svh\)/);
+});
