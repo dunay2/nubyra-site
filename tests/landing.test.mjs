@@ -9,20 +9,35 @@ const html = readFileSync(resolve(root, 'index.html'), 'utf8');
 const css = readFileSync(resolve(root, 'landing.css'), 'utf8');
 const js = readFileSync(resolve(root, 'landing.js'), 'utf8');
 const kits = ['oceano','canaria','lava','brisa','cumbre','horizonte'];
+const assetRoot = 'https://vyeebvzuxarekfaisfdy.supabase.co/storage/v1/object/public/nubyra-web/';
+const assetSource = readFileSync(resolve(root, 'public-assets.js'), 'utf8');
+await import('../public-assets.js');
+const assets = globalThis.NUBYRA_ASSETS;
 
-test('los recursos locales referenciados en HTML existen', () => {
-  const paths = [...html.matchAll(/(?:src|href)="(\.\/[^"?#]+)"/g)].map(m=>m[1]);
-  assert.ok(paths.length > 10);
-  for (const path of paths) assert.ok(existsSync(resolve(root,path)), `no existe ${path}`);
+test('todas las imágenes HTML usan Supabase y conservan copia de respaldo local', () => {
+  const imgs = [...html.matchAll(/<img\b[^>]*>/g)].map(m => m[0]);
+  assert.ok(imgs.length >= 15);
+  const paths = [];
+  for (const tag of imgs) {
+    const match = tag.match(/data-nubyra-asset="([^"]+)"/);
+    assert.ok(match, 'falta data-nubyra-asset');
+    const path = match[1];
+    paths.push(path);
+    assert.ok(tag.includes('src="' + assetRoot + path + '"'), 'origen inesperado: ' + path);
+    assert.ok(existsSync(resolve(root, 'assets/nubyra', path)), 'falta respaldo local: ' + path);
+  }
+  assert.ok(new Set(paths).size >= 9);
+  assert.ok(html.includes('href="' + assetRoot + '01_print_recursos/hero-photo.png" as="image"'));
+  assert.ok(html.indexOf('src="./public-assets.js"') < html.indexOf('src="./landing.js"'));
 });
 
-test('los seis modelos de galería reutilizan los assets completos publicados', () => {
+test('los seis diseños del catálogo utilizan el bucket público', () => {
   for (const kit of kits) {
-    const path=`./assets/nubyra/02_catalogo_recursos/equipacion-${kit}.png`;
-    assert.ok(html.includes(path),`falta ${path}`);
-    assert.ok(existsSync(resolve(root,path)),`falta ${path} local`);
+    const path='02_catalogo_recursos/equipacion-'+kit+'.png';
+    assert.ok(html.includes('src="' + assetRoot + path + '"'), 'falta '+path);
+    assert.ok(existsSync(resolve(root,'assets/nubyra',path)), 'falta fallback '+path);
   }
-  assert.ok(!html.includes('01_print_recursos/gallery-'),'sigue referenciando recortes antiguos');
+  assert.ok(!html.includes('01_print_recursos/gallery-'), 'no reutilizar recortes antiguos');
 });
 
 test('la portada refleja el titular vigente en Figma', () => {
@@ -72,4 +87,26 @@ test('en escritorio la fotografía queda fusionada detrás del titular', () => {
   assert.match(css, /mask-image:\s*linear-gradient\(to right,\s*transparent 0%/);
   assert.match(html, /<div class="hero__photo"[^>]*>/);
   assert.match(html, /<div class="hero__shade"[^>]*>/);
+});
+
+test('resolver de imágenes valida rutas y proporciona respaldo sin secretos', () => {
+  assert.equal(assets.publicUrl('01_print_recursos/hero-photo.png'), assetRoot+'01_print_recursos/hero-photo.png');
+  assert.equal(assets.localUrl('02_catalogo_recursos/equipacion-brisa.png'), './assets/nubyra/02_catalogo_recursos/equipacion-brisa.png');
+  assert.throws(() => assets.publicUrl('../config.js'), TypeError);
+  assert.throws(() => assets.publicUrl('other-bucket/foto.png'), TypeError);
+  assert.ok(!/sb_publishable_|service_role|createClient|fetch\(/.test(assetSource));
+  assert.match(js, /assetLoader\.setImage\(photo,relativePath\)/);
+});
+
+test('un error remoto conmuta a GitHub una sola vez y admite cambios de diseño', () => {
+  const img = {tagName:'IMG',src:'',currentSrc:'',dataset:{}};
+  assets.setImage(img,'02_catalogo_recursos/equipacion-lava.png');
+  assert.equal(img.src,assetRoot+'02_catalogo_recursos/equipacion-lava.png');
+  assets.onImageError({target:img});
+  assert.equal(img.src,'./assets/nubyra/02_catalogo_recursos/equipacion-lava.png');
+  assert.equal(img.dataset.nubyraSource,'fallback');
+  assets.onImageError({target:img});
+  assert.equal(img.src,'./assets/nubyra/02_catalogo_recursos/equipacion-lava.png');
+  assets.setImage(img,'02_catalogo_recursos/equipacion-brisa.png');
+  assert.equal(img.src,assetRoot+'02_catalogo_recursos/equipacion-brisa.png');
 });

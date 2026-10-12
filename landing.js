@@ -6,8 +6,7 @@
   const menuToggle = $('#menu-toggle');
   const mobileNav = $('#mobile-navigation');
   const kitLabels = {oceano:'Océano',canaria:'Canaria',lava:'Lava',brisa:'Brisa',cumbre:'Cumbre',horizonte:'Horizonte'};
-  const printBase = './assets/nubyra/01_print_recursos/';
-  const catalogBase = './assets/nubyra/02_catalogo_recursos/';
+  const assetLoader = window.NUBYRA_ASSETS;
   const state = {kit:'oceano',team:'NUBYRA',number:'10',measures:{length:60,chest:92,hip:98}};
   let toastTimeout;
   function toast(message){const el=$('#toast');el.textContent=message;el.classList.add('is-visible');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>el.classList.remove('is-visible'),3300);}
@@ -21,7 +20,10 @@
   function updateKit(){
     $('#builder-design-label').textContent='Diseño '+kitLabels[state.kit];
     $('#builder-sample').textContent=[kitLabels[state.kit],state.team||'Equipo sin nombre',state.number||'—'].join(' · ');
-    const photo=$('#builder-image'); photo.src=state.kit==='oceano'?printBase+'configurador-camiseta-frente.png':catalogBase+'equipacion-'+state.kit+'.png';
+    const photo=$('#builder-image');
+    const relativePath=state.kit==='oceano'?'01_print_recursos/configurador-camiseta-frente.png':'02_catalogo_recursos/equipacion-'+state.kit+'.png';
+    if(assetLoader) assetLoader.setImage(photo,relativePath);
+    else photo.src='./assets/nubyra/'+relativePath;
     photo.alt='Imagen conceptual del diseño '+kitLabels[state.kit]+'; no es una simulación 3D ni actualiza en pantalla las medidas o datos introducidos.';
     $('#builder-view-description').textContent=state.kit==='oceano'?'Camiseta / Vista frontal':'Equipación / Vistas conceptuales';
     $$('[data-kit]', $('#builder')).forEach(button=>{const yes=button.dataset.kit===state.kit;button.classList.toggle('is-selected',yes);button.setAttribute('aria-pressed',String(yes));});
