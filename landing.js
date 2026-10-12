@@ -6,8 +6,8 @@
   const menuToggle = $('#menu-toggle');
   const mobileNav = $('#mobile-navigation');
   const kitLabels = {oceano:'Océano',canaria:'Canaria',lava:'Lava',brisa:'Brisa',cumbre:'Cumbre',horizonte:'Horizonte'};
-  const printBase = './assets/nubyra/01_print_recursos/';
-  const catalogBase = './assets/nubyra/02_catalogo_recursos/';
+  const printBase = 'https://vyeebvzuxarekfaisfdy.supabase.co/storage/v1/object/public/nubyra-web/01_print_recursos/';
+  const catalogBase = 'https://vyeebvzuxarekfaisfdy.supabase.co/storage/v1/object/public/nubyra-web/02_catalogo_recursos/';
   const state = {kit:'oceano',team:'NUBYRA',number:'10',measures:{length:60,chest:92,hip:98}};
   let toastTimeout;
   function toast(message){const el=$('#toast');el.textContent=message;el.classList.add('is-visible');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>el.classList.remove('is-visible'),3300);}
