@@ -227,6 +227,22 @@ vigente en cada solicitud. Eliminar un usuario Auth elimina también su fila
 de permiso por la relación de la migración: revisar esto antes de cualquier
 borrado.
 
+El **12/10/2026**, después de verificar el primer login pendiente, el titular
+eligió **admin** para la cuenta piloto. Se preparó
+[approve_first_pilot_admin.sql](supabase/operations/approve_first_pilot_admin.sql)
+en una consulta administrativa separada. **La preparación no asigna el rol**:
+el titular debe revisar y ejecutar el contenido completo mediante **Run**.
+La operación solo admite el caso inicial de una única fila de permiso,
+habilitada, vinculada a un usuario Google verificado y todavía sin rol; si
+no se cumple, lanza un error y revierte la transacción. No ejecutarla de nuevo
+ni reutilizarla para incorporar administradores posteriores.
+
+Después de ejecutarla, el resultado esperado es **`admins_enabled = 1`**.
+Comprobar el recuento y actualizar la página de acceso en el navegador donde
+existe la sesión: deben aparecer **Acceso autorizado** y **Rol: admin**.
+Si no hay sesión en ese navegador, iniciar Google con la cuenta admitida.
+Las pruebas directas de RLS/revocación siguen siendo necesarias.
+
 Antes del piloto Google, auditar los usuarios existentes y deshabilitar Email
 (contraseña, enlaces y OTP), proveedores alternativos y acceso anónimo. La
 comprobación de una identidad Google vinculada no garantiza por sí sola qué
@@ -363,7 +379,7 @@ privacidad de NUBYRA antes de abrir el servicio al público.
 | Migración y comprobaciones | Instalación real comprobada; 15/15 `true` |
 | Before User Created | **ENABLED**, esquema y función comprobados |
 | Cuenta piloto | Una admisión habilitada, vinculada al UUID tras el primer login y sin rol; recuento verificado |
-| Usuarios Auth / roles asignados | 1 / 0; identidad Google con email_verified=true comprobada; decisión de rol pendiente |
+| Usuarios Auth / roles asignados | 1 / 0 en la última comprobación; identidad Google verificada. Titular eligió admin; asignación preparada, ejecución pendiente |
 | Email y otros métodos alternativos | Email DISABLED y alternativos integrados desactivados; sin proveedores personalizados ni Third-Party Auth; Passkeys desactivado. Revisión completada |
 | `config.js` / frontend | Configuración publicada por Pages y comprobada por HTTPS; Chrome muestra Sin sesión y Continuar con Google |
 | API sin sesión | RPC y probe devuelven HTTP 401 / 42501 con la clave publicable real |
@@ -371,9 +387,9 @@ privacidad de NUBYRA antes de abrir el servicio al público.
 | Pruebas restantes OAuth y JWT/RLS | Rechazo, probe con JWT, rol activo, revocación y cierre de sesión pendientes |
 | Privacidad, condiciones y apertura pública | Pendientes |
 
-**Siguiente paso:** el titular elige el rol de la cuenta piloto (`admin`,
-`editor` o `lector`). Mantener `role = NULL` hasta esa decisión y comprobar
-después el estado activo y las denegaciones/revocación desde la API. Añadir
+**Siguiente paso:** el titular revisa y ejecuta la consulta preparada para
+asignar **admin**, confirma `admins_enabled = 1` y el estado **Acceso autorizado**
+con **Rol: admin**. Comprobar después las denegaciones/revocación desde la API. Añadir
 a este registro las nuevas verificaciones a medida que se completen, sin
 incluir correos privados ni credenciales.
 

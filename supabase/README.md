@@ -129,6 +129,12 @@ el 12/10/2026. La comprobación ampliada de recuentos devolvió una admisión
 vinculada sin rol, un usuario Auth y una identidad Google con correo verificado.
 La decisión de rol y las pruebas API con JWT de usuario siguen pendientes.
 
+Posteriormente el titular eligió **admin**. Se preparó la operación administrativa
+[operations/approve_first_pilot_admin.sql](operations/approve_first_pilot_admin.sql),
+separada de la migración y limitada a la única cuenta inicial vinculada sin rol.
+Su ejecución seguía pendiente: revisar, ejecutar todo con **Run** y comprobar
+`admins_enabled = 1` antes de registrar la asignación como completada.
+
 Antes de abrir el piloto, comprobar con Google real y JWT de usuario: admisión
 de una cuenta aprobada, rechazo de otra cuenta, estado pendiente sin acceso al
 probe, acceso con rol aprobado y denegación inmediata tras `enabled = false`
