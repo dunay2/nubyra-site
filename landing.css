@@ -66,3 +66,23 @@
   .contact-card button{margin-top:24px}
 }
 @media(max-width:390px){.kit-card__art img{height:165px}.kit-card__art{min-height:170px}}
+
+/* Ultrawide: keep the photographic layer and its fade aligned with the same
+   centered 1440px design canvas as the header, copy and bottom signature.
+   Full-bleed navy stays across the viewport; other breakpoints are unchanged. */
+@media (min-width: 1440px) {
+  .hero,
+  .hero__inner {
+    min-height: max(900px, 100svh);
+  }
+  .hero__photo {
+    right: calc((100% - 1440px) / 2 + 58px);
+    height: max(866px, calc(100% - 164px));
+  }
+  .hero__shade {
+    left: 50%;
+    right: auto;
+    width: 1440px;
+    transform: translateX(-50%);
+  }
+}
