@@ -1,99 +1,219 @@
 <!doctype html>
 <html lang="es">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#101726" />
-    <meta name="description" content="Página temporal de NUBYRA." />
-    <title>NUBYRA · Página de prueba</title>
-    <style>
-      :root {
-        color-scheme: dark;
-        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        background: #101726;
-        color: #f7f9fc;
-      }
-
-      * { box-sizing: border-box; }
-
-      body {
-        min-width: 320px;
-        min-height: 100vh;
-        margin: 0;
-        overflow-x: hidden;
-        background:
-          radial-gradient(circle at 83% 18%, rgba(76, 216, 198, .19), transparent 32rem),
-          radial-gradient(circle at 14% 80%, rgba(109, 137, 241, .16), transparent 34rem),
-          #101726;
-      }
-
-      body::before {
-        position: fixed;
-        inset: 0;
-        z-index: -1;
-        background-image: linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
-        background-size: 48px 48px;
-        content: "";
-        mask-image: linear-gradient(to bottom, black, transparent 90%);
-      }
-
-      .shell {
-        width: min(1120px, calc(100% - 48px));
-        min-height: 100vh;
-        margin: auto;
-        display: flex;
-        flex-direction: column;
-      }
-
-      header, footer {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-      }
-
-      header { padding: 34px 0; }
-      .brand { display: flex; align-items: center; gap: 13px; font-size: 1rem; font-weight: 800; letter-spacing: .18em; }
-      .mark { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 12px; background: linear-gradient(145deg, #72f4d2, #6c8cec); color: #102034; font-size: 1.2rem; letter-spacing: 0; }
-      .eyebrow { color: #9eacc3; font-size: .77rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
-
-      main { flex: 1; display: grid; align-content: center; padding: 64px 0 100px; }
-      .pill { display: inline-flex; align-items: center; gap: 9px; width: fit-content; padding: 9px 14px; border: 1px solid #40615f; border-radius: 999px; background: rgba(99, 220, 197, .09); color: #a6f5df; font-size: .8rem; font-weight: 700; }
-      .dot { width: 7px; height: 7px; border-radius: 50%; background: #77eac5; box-shadow: 0 0 12px #77eac5; }
-      h1 { max-width: 830px; margin: 29px 0 20px; font-size: clamp(3.6rem, 9vw, 7.5rem); font-weight: 750; letter-spacing: -.075em; line-height: .98; }
-      h1 span { display: block; background: linear-gradient(90deg, #d7e6ff, #8fe7d1); color: transparent; background-clip: text; }
-      .lead { max-width: 570px; margin: 0; color: #aebbd0; font-size: clamp(1.05rem, 2vw, 1.35rem); line-height: 1.65; }
-      .rule { width: 80px; height: 3px; margin: 42px 0 24px; border-radius: 2px; background: linear-gradient(90deg, #82e9ce, #7d9af6); }
-      .note { max-width: 540px; margin: 0; color: #8290aa; font-size: .9rem; line-height: 1.6; }
-
-      footer { gap: 18px; padding: 26px 0 34px; border-top: 1px solid rgba(190, 207, 234, .13); color: #8190aa; font-size: .78rem; }
-      footer strong { color: #a8b6ca; font-weight: 650; }
-
-      @media (max-width: 600px) {
-        .shell { width: min(100% - 36px, 1120px); }
-        header { padding: 24px 0; }
-        .eyebrow { display: none; }
-        main { padding: 72px 0 90px; }
-        h1 { letter-spacing: -.065em; }
-        footer { align-items: flex-start; flex-direction: column; }
-      }
-    </style>
-  </head>
-  <body>
-    <div class="shell">
-      <header>
-        <div class="brand"><span class="mark" aria-hidden="true">N</span><span>NUBYRA</span></div>
-        <span class="eyebrow">Un nuevo espacio digital</span>
-      </header>
-
-      <main>
-        <span class="pill"><span class="dot" aria-hidden="true"></span>Página de prueba</span>
-        <h1>Algo nuevo<br /><span>está tomando forma.</span></h1>
-        <p class="lead">La web de NUBYRA está en preparación. Esta portada temporal permite comprobar que el dominio llega al sitio correctamente.</p>
-        <div class="rule" aria-hidden="true"></div>
-        <p class="note">Pronto habrá más información aquí.</p>
-      </main>
-
-      <footer><strong>NUBYRA</strong><span>Sitio temporal · nubyra.es</span></footer>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#061727">
+  <meta name="description" content="NUBYRA. Distintas mujeres. Un mismo equipo. Diseño de equipaciones de baloncesto femenino, ajuste adaptable y piloto en desarrollo.">
+  <title>NUBYRA · Distintas mujeres. Un mismo equipo.</title>
+  <meta property="og:title" content="NUBYRA · Distintas mujeres. Un mismo equipo.">
+  <meta property="og:description" content="Equipaciones deportivas para mujeres en movimiento. Diseño y ajuste en desarrollo.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://nubyra.es/assets/nubyra/01_print_recursos/hero-photo.png">
+  <meta name="color-scheme" content="light">
+  <link rel="preload" href="./assets/nubyra/01_print_recursos/hero-photo.png" as="image">
+  <link rel="stylesheet" href="./landing.css">
+  <script src="./landing.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Ir al contenido</a>
+  <header class="site-header" id="cabecera">
+    <div class="site-header__inner container">
+      <a class="brand" href="#inicio" aria-label="NUBYRA, volver al inicio">NUBYRA</a>
+      <nav class="desktop-nav" aria-label="Navegación principal">
+        <a href="#equipaciones">Equipaciones</a>
+        <a href="#configurador">Configurador</a>
+        <a href="#como-funciona">Cómo funciona</a>
+        <a href="#proyecto">Nuestro proyecto</a>
+        <a href="#contacto">Contacto</a>
+      </nav>
+      <div class="site-header__actions">
+        <a class="access-link" href="https://nubyra.es/acceso.html" aria-label="Acceder al área privada de NUBYRA">Acceso <span aria-hidden="true">↗</span></a>
+        <a class="btn btn--small btn--yellow header-contact" href="#contacto">Hablemos</a>
+        <button class="menu-toggle" type="button" aria-label="Abrir menú de navegación" aria-expanded="false" aria-controls="mobile-navigation" id="menu-toggle">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
     </div>
-  </body>
+    <nav class="mobile-nav" id="mobile-navigation" aria-label="Menú móvil" hidden>
+      <a href="#inicio">Inicio</a>
+      <a href="#equipaciones">Equipaciones</a>
+      <a href="#configurador">Configurador</a>
+      <a href="#como-funciona">Cómo funciona</a>
+      <a href="#proyecto">Nuestro proyecto</a>
+      <a href="#contacto">Contacto</a>
+      <a href="https://nubyra.es/acceso.html" class="mobile-nav__access">Acceso privado <span aria-hidden="true">↗</span></a>
+      <a href="#contacto" class="mobile-nav__cta">Hablemos <span aria-hidden="true">→</span></a>
+    </nav>
+  </header>
+
+  <main id="contenido">
+    <section class="hero" id="inicio" aria-labelledby="hero-title">
+      <div class="hero__photo" aria-hidden="true">
+        <img src="./assets/nubyra/01_print_recursos/hero-photo.png" alt="" fetchpriority="high" width="330" height="471">
+      </div>
+      <div class="hero__shade" aria-hidden="true"></div>
+      <div class="hero__inner container">
+        <div class="hero__copy">
+          <p class="eyebrow hero__eyebrow">Equipaciones deportivas para mujeres en movimiento</p>
+          <span class="hero__rule" aria-hidden="true"></span>
+          <h1 id="hero-title">Distintas mujeres.<br>Un mismo equipo.</h1>
+          <p class="hero__description">Equipaciones de baloncesto femenino que se adaptan a tu equipo y a cada jugadora.</p>
+          <div class="hero__cta">
+            <a class="btn btn--yellow" href="#equipaciones">Explorar equipaciones <span aria-hidden="true">→</span></a>
+            <a class="btn btn--outline-white" href="#proyecto">Conoce NUBYRA</a>
+          </div>
+        </div>
+        <div class="hero__bottom">
+          <span class="hero__descriptor">Diseño de equipaciones <span aria-hidden="true">·</span> Ajuste adaptable <span aria-hidden="true">·</span> Fabricación bajo pedido</span>
+          <span class="hero__signature">NUBYRA<br>SPORTSWEAR FOR<br>WOMEN IN MOTION</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section--gallery" id="equipaciones" aria-labelledby="equipaciones-title">
+      <div class="container">
+        <div class="section__heading">
+          <p class="kicker">01 / EQUIPACIONES</p>
+          <h2 id="equipaciones-title">Diseños que inspiran<br> equipos reales</h2>
+          <p class="section__intro">Cada equipación parte de la identidad de un club. Estos modelos sirven como punto de partida visual.</p>
+        </div>
+        <div class="gallery-grid" id="gallery-grid">
+          <button class="kit-card" type="button" data-kit="oceano" aria-label="Explorar diseño Océano">
+            <span class="kit-card__art"><img src="./assets/nubyra/02_catalogo_recursos/equipacion-oceano.png" alt="Equipación conceptual Océano, camiseta y pantalón azul marino con amarillo" loading="lazy" width="169" height="237"></span>
+            <span class="kit-card__name">Océano</span><span class="kit-card__meta">Diseño de referencia <span aria-hidden="true">↗</span></span>
+          </button>
+          <button class="kit-card" type="button" data-kit="canaria" aria-label="Explorar diseño Canaria">
+            <span class="kit-card__art"><img src="./assets/nubyra/02_catalogo_recursos/equipacion-canaria.png" alt="Equipación conceptual Canaria, camiseta y pantalón amarillos y azules" loading="lazy" width="169" height="237"></span>
+            <span class="kit-card__name">Canaria</span><span class="kit-card__meta">Diseño de referencia <span aria-hidden="true">↗</span></span>
+          </button>
+          <button class="kit-card" type="button" data-kit="lava" aria-label="Explorar diseño Lava">
+            <span class="kit-card__art"><img src="./assets/nubyra/02_catalogo_recursos/equipacion-lava.png" alt="Equipación conceptual Lava, camiseta y pantalón negros con detalles cálidos" loading="lazy" width="169" height="237"></span>
+            <span class="kit-card__name">Lava</span><span class="kit-card__meta">Diseño de referencia <span aria-hidden="true">↗</span></span>
+          </button>
+          <button class="kit-card" type="button" data-kit="brisa" aria-label="Explorar diseño Brisa">
+            <span class="kit-card__art"><img src="./assets/nubyra/02_catalogo_recursos/equipacion-brisa.png" alt="Equipación conceptual Brisa, camiseta y pantalón blancos y azules" loading="lazy" width="169" height="237"></span>
+            <span class="kit-card__name">Brisa</span><span class="kit-card__meta">Diseño de referencia <span aria-hidden="true">↗</span></span>
+          </button>
+          <button class="kit-card" type="button" data-kit="cumbre" aria-label="Explorar diseño Cumbre">
+            <span class="kit-card__art"><img src="./assets/nubyra/02_catalogo_recursos/equipacion-cumbre.png" alt="Equipación conceptual Cumbre, camiseta y pantalón azules" loading="lazy" width="169" height="237"></span>
+            <span class="kit-card__name">Cumbre</span><span class="kit-card__meta">Diseño de referencia <span aria-hidden="true">↗</span></span>
+          </button>
+          <button class="kit-card" type="button" data-kit="horizonte" aria-label="Explorar diseño Horizonte">
+            <span class="kit-card__art"><img src="./assets/nubyra/02_catalogo_recursos/equipacion-horizonte.png" alt="Equipación conceptual Horizonte, camiseta y pantalón beige y azules" loading="lazy" width="169" height="237"></span>
+            <span class="kit-card__name">Horizonte</span><span class="kit-card__meta">Diseño de referencia <span aria-hidden="true">↗</span></span>
+          </button>
+        </div>
+        <div class="section__foot">
+          <a href="#configurador" class="btn btn--outline-ink">Explorar modelos <span aria-hidden="true">→</span></a>
+          <p>Visualizaciones conceptuales; los colores y símbolos reales pertenecen a cada club.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section--configurator" id="configurador" aria-labelledby="configurador-title">
+      <div class="container">
+        <div class="section__heading">
+          <p class="kicker">02 / CONFIGURADOR</p>
+          <h2 id="configurador-title">Diseña tu equipación</h2>
+          <p class="section__intro">Explora propuestas, colores y detalles sobre una muestra digital editable.</p>
+        </div>
+        <div class="builder" id="builder">
+          <div class="builder__viewer">
+            <div class="builder__topline"><span class="eyebrow">Vista de referencia</span><span class="builder__demo-pill">DEMO VISUAL</span></div>
+            <div class="builder__art">
+              <img id="builder-image" src="./assets/nubyra/01_print_recursos/configurador-camiseta-frente.png" alt="Camiseta de muestra NUBYRA. No es una simulación de tejido en 3D." width="195" height="228">
+            </div>
+            <div class="builder__bottomline"><span id="builder-view-description">Camiseta / Vista frontal</span><span id="builder-design-label">Diseño Océano</span></div>
+          </div>
+          <div class="builder__controls">
+            <div class="builder__controls-top"><p class="kicker">PERSONALIZACIÓN</p><h3>Propuesta visual del equipo</h3><p>Selecciona una referencia gráfica y ajusta los datos de ejemplo.</p></div>
+            <div class="builder__tabs" role="tablist" aria-label="Opciones de configuración">
+              <button type="button" role="tab" id="tab-design" aria-selected="true" aria-controls="builder-design-panel" tabindex="0">Diseño</button>
+              <button type="button" role="tab" id="tab-proportions" aria-selected="false" aria-controls="builder-proportions-panel" tabindex="-1">Proporciones</button>
+            </div>
+            <div class="builder__tab-panel" id="builder-design-panel" role="tabpanel" aria-labelledby="tab-design">
+              <p class="builder__label">Colores principales <span class="builder__label-muted">(referencias)</span></p>
+              <div class="swatch-list" aria-label="Paletas de ejemplo">
+                <button type="button" class="swatch is-selected" style="--swatch:#092e5e" aria-label="Paleta Océano" aria-pressed="true" data-kit="oceano"></button>
+                <button type="button" class="swatch" style="--swatch:#ffd222" aria-label="Paleta Canaria" aria-pressed="false" data-kit="canaria"></button>
+                <button type="button" class="swatch" style="--swatch:#131313" aria-label="Paleta Lava" aria-pressed="false" data-kit="lava"></button>
+                <button type="button" class="swatch" style="--swatch:#a3d9d3" aria-label="Paleta Brisa" aria-pressed="false" data-kit="brisa"></button>
+                <button type="button" class="swatch" style="--swatch:#ac89ca" aria-label="Paleta Cumbre" aria-pressed="false" data-kit="cumbre"></button>
+                <button type="button" class="swatch" style="--swatch:#f4c6d3" aria-label="Paleta Horizonte" aria-pressed="false" data-kit="horizonte"></button>
+              </div>
+              <p class="builder__label">Estampados y diseños</p>
+              <div class="pattern-list" id="pattern-list" aria-label="Seleccionar diseño">
+                <button type="button" class="pattern is-selected" data-kit="oceano" aria-label="Diseño Océano" aria-pressed="true"><img src="./assets/nubyra/02_catalogo_recursos/equipacion-oceano.png" alt="" loading="lazy"></button>
+                <button type="button" class="pattern" data-kit="canaria" aria-label="Diseño Canaria" aria-pressed="false"><img src="./assets/nubyra/02_catalogo_recursos/equipacion-canaria.png" alt="" loading="lazy"></button>
+                <button type="button" class="pattern" data-kit="lava" aria-label="Diseño Lava" aria-pressed="false"><img src="./assets/nubyra/02_catalogo_recursos/equipacion-lava.png" alt="" loading="lazy"></button>
+                <button type="button" class="pattern" data-kit="brisa" aria-label="Diseño Brisa" aria-pressed="false"><img src="./assets/nubyra/02_catalogo_recursos/equipacion-brisa.png" alt="" loading="lazy"></button>
+                <button type="button" class="pattern" data-kit="cumbre" aria-label="Diseño Cumbre" aria-pressed="false"><img src="./assets/nubyra/02_catalogo_recursos/equipacion-cumbre.png" alt="" loading="lazy"></button>
+                <button type="button" class="pattern" data-kit="horizonte" aria-label="Diseño Horizonte" aria-pressed="false"><img src="./assets/nubyra/02_catalogo_recursos/equipacion-horizonte.png" alt="" loading="lazy"></button>
+              </div>
+              <div class="builder__inputs">
+                <label for="builder-team">Nombre del equipo <input type="text" name="team" id="builder-team" maxlength="24" value="NUBYRA" autocomplete="off"></label>
+                <label for="builder-number">Dorsal de ejemplo <input type="text" name="number" id="builder-number" maxlength="3" value="10" inputmode="numeric" pattern="[0-9]{1,3}" autocomplete="off"></label>
+              </div>
+            </div>
+            <div class="builder__tab-panel" id="builder-proportions-panel" role="tabpanel" aria-labelledby="tab-proportions" hidden>
+              <p class="builder__notice">Exploración conceptual de camiseta. Las medidas no confirman una talla ni un patrón fabricable.</p>
+              <div class="measure-field"><label for="measure-length">Largo de camiseta <output id="value-length" for="measure-length">60 cm</output></label><input id="measure-length" type="range" min="48" max="76" value="60" step="1"></div>
+              <div class="measure-field"><label for="measure-chest">Pecho <output id="value-chest" for="measure-chest">92 cm</output></label><input id="measure-chest" type="range" min="68" max="124" value="92" step="1"></div>
+              <div class="measure-field"><label for="measure-hip">Cadera <output id="value-hip" for="measure-hip">98 cm</output></label><input id="measure-hip" type="range" min="74" max="132" value="98" step="1"></div>
+            </div>
+            <div class="builder__summary" aria-live="polite"><span id="builder-sample">Océano · NUBYRA · 10</span><span class="builder__summary-note">Solo referencia visual</span></div>
+            <button type="button" id="builder-download" class="btn btn--yellow builder__save">Descargar propuesta <span aria-hidden="true">↓</span></button>
+            <p class="builder__disclaimer">Las imágenes no cambian con el nombre, el dorsal ni las medidas: esos datos solo figuran en el archivo descargado. No hay simulación 3D ni patrón validado en esta versión.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section--steps" id="como-funciona" aria-labelledby="como-title">
+      <div class="container">
+        <div class="section__heading"><p class="kicker">03 / CÓMO FUNCIONA</p><h2 id="como-title">Del diseño al ajuste</h2><p class="section__intro">Un proceso sencillo, pensado para tu equipo y para cada jugadora.</p></div>
+        <div class="steps-grid">
+          <article class="step-card"><span class="step-card__number">01</span><h3>Identidad del club</h3><p>Colores, escudo, patrocinadores y preferencias gráficas.</p></article>
+          <article class="step-card"><span class="step-card__number">02</span><h3>Propuestas digitales</h3><p>Variantes visuales para elegir con el equipo.</p></article>
+          <article class="step-card"><span class="step-card__number">03</span><h3>Ajuste y validación</h3><p>Medidas básicas y selección de patrón, sujetos a pruebas reales.</p></article>
+          <article class="step-card"><span class="step-card__number">04</span><h3>Equipación final</h3><p>Pedido consolidado y fabricación bajo demanda, tras validación.</p></article>
+        </div>
+        <div class="team-feature">
+          <img src="./assets/nubyra/01_print_recursos/team-photo.png" alt="Jugadoras de baloncesto reunidas en un corro de equipo" loading="lazy" width="198" height="126">
+          <div><span class="kicker kicker--yellow">NUBYRA FIT</span><h3>Tecnología al servicio<br> del deporte real.</h3><p>Diseño digital, patronaje adaptable y pruebas con jugadoras de base.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section--project" id="proyecto" aria-labelledby="proyecto-title">
+      <div class="container">
+        <div class="section__heading"><p class="kicker">04 / NUESTRO PROYECTO</p><h2 id="proyecto-title">Un proyecto con propósito</h2><p class="section__intro">NUBYRA nace para estudiar cómo ofrecer a cada jugadora una equipación mejor adaptada, sin perder la identidad de su equipo.</p></div>
+        <div class="project-grid">
+          <article class="project-card"><span class="project-card__symbol" aria-hidden="true">◎</span><h3>Piloto infantil femenino</h3><p>Validación prevista con un equipo femenino de baloncesto de base.</p></article>
+          <article class="project-card"><span class="project-card__symbol" aria-hidden="true">↗</span><h3>Sostenibilidad</h3><p>Tejido técnico reciclado y fabricación bajo pedido, pendientes de acreditación.</p></article>
+          <article class="project-card"><span class="project-card__symbol" aria-hidden="true">✦</span><h3>Equipo y colaboración</h3><p>Diseño, tecnología, proveedores y clubes trabajando juntos.</p></article>
+        </div>
+        <div class="manifesto">DISTINTAS MUJERES. UN MISMO EQUIPO. <span aria-hidden="true">↗</span></div>
+      </div>
+    </section>
+
+    <section class="section section--contact" id="contacto" aria-labelledby="contacto-title">
+      <div class="container">
+        <div class="section__heading"><p class="kicker">05 / CONTACTO</p><h2 id="contacto-title">Hablemos de tu equipo</h2><p class="section__intro">Si formas parte de un club, un equipo o una entidad deportiva, queremos conocer tu proyecto.</p></div>
+        <div class="contact-grid">
+          <article class="contact-card"><span class="contact-card__symbol" aria-hidden="true">♧</span><h3>Clubes y equipos</h3><p>Solicita información o participa en el piloto.</p><button type="button" data-contact="Clubes y equipos">Contactar <span aria-hidden="true">→</span></button></article>
+          <article class="contact-card"><span class="contact-card__symbol" aria-hidden="true">◇</span><h3>Colaboraciones</h3><p>Proveedores, instituciones y centros de investigación.</p><button type="button" data-contact="Colaboraciones">Contactar <span aria-hidden="true">→</span></button></article>
+          <article class="contact-card"><span class="contact-card__symbol" aria-hidden="true">✉</span><h3>Otras consultas</h3><p>Cuéntanos tu idea o propuesta.</p><button type="button" data-contact="Otras consultas">Contactar <span aria-hidden="true">→</span></button></article>
+        </div>
+        <div class="contact-manifesto"><p>El ajuste también es equipo.</p><span>NUBYRA · GRAN CANARIA</span></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer"><div class="container footer__inner"><span class="footer__brand">NUBYRA</span><span>Deporte femenino · Diseño y desarrollo en Canarias</span><a href="https://nubyra.es/acceso.html">Acceso al piloto ↗</a></div><p class="footer__legal container">Propuesta de innovación en fase de desarrollo y validación. Las imágenes muestran equipaciones conceptuales; no se anuncian productos disponibles para compra.</p></footer>
+
+  <dialog class="brief-dialog" id="contact-dialog" aria-labelledby="dialog-title"><div class="brief-dialog__head"><strong>NUBYRA</strong><button type="button" id="close-dialog" aria-label="Cerrar" class="brief-dialog__close">×</button></div><form id="contact-form" class="brief-dialog__body"><span class="kicker">CONTACTO · DEMOSTRACIÓN</span><h2 id="dialog-title">Preparar una consulta</h2><p>Este prototipo no dispone todavía de un canal de envío. Puedes descargar un borrador con los datos que escribas.</p><label>Motivo<input type="text" id="contact-subject" name="subject" required maxlength="80" readonly></label><label>Nombre de contacto<input type="text" name="person" required maxlength="120" autocomplete="name"></label><label>Correo de contacto<input type="email" name="email" required maxlength="180" autocomplete="email"></label><label>Mensaje<textarea name="message" rows="4" maxlength="1000" required></textarea></label><button class="btn btn--yellow" type="submit">Descargar borrador <span aria-hidden="true">↓</span></button><p class="brief-dialog__note">No enviamos ni almacenamos tus datos en un servidor.</p></form></dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
 </html>
