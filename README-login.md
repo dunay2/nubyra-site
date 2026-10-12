@@ -20,6 +20,8 @@ El frontend consulta `public.resolve_my_access()` sin argumentos y solo muestra 
 
 ## Construcción y comprobación
 
-Con Node y npm: `npm ci`, `npm run check`, `npm run build`. El paquete fija `@supabase/supabase-js` en `2.117.3` y publica el bundle estático con Pages. `detectSessionInUrl: true` efectúa el canje PKCE automático; el código no ejecuta un segundo canje manual. La build local y el estado cerrado se pueden comprobar sin Supabase.
+Con Node y npm: `npm ci`, `npm run check`, `npm test`, `npm run build`. El paquete fija `@supabase/supabase-js` en `2.117.3` y publica el bundle estático con Pages. `detectSessionInUrl: true` efectúa el canje PKCE automático; el código no ejecuta un segundo canje manual. La build local y el estado cerrado se pueden comprobar sin Supabase.
+
+Los errores OAuth en query y fragmento bloquean la recuperación de una sesión anterior. El cliente también comprueba el resultado de `initialize()` antes de consultar la sesión y elimina los parámetros del callback en ambas partes de la URL. `npm test` cubre estas regresiones, roles, revocación, errores RPC y cierre de sesión con un SDK simulado. Dos casos adicionales usan el SDK real con sesiones sintéticas y transporte HTTP simulado; esas pruebas no sustituyen una prueba OAuth real ni verifican RLS.
 
 Antes de habilitar OAuth, verificar el proyecto Google/Supabase, aplicar y probar la migración y el hook de admisión en entorno aislado, y ejecutar Google real y pruebas de denegación API con tokens de usuario. La asignación de roles piloto requiere decisión humana. La publicación estática por sí sola no demuestra que el login funcione.

@@ -35,9 +35,16 @@ function render(state, { role = null, hasSession = false } = {}) {
 
 function cleanAuthQuery() {
   const url = new URL(window.location.href);
+  const fragment = new URLSearchParams(url.hash.slice(1));
+  let hasAuthFragment = false;
   for (const param of ['code', 'error', 'error_code', 'error_description', 'state', 'sb_flow_id']) {
     url.searchParams.delete(param);
+    if (fragment.has(param)) {
+      hasAuthFragment = true;
+      fragment.delete(param);
+    }
   }
+  if (hasAuthFragment) url.hash = fragment.toString();
   window.history.replaceState(null, '', url.pathname + url.search + url.hash);
 }
 
@@ -68,8 +75,12 @@ if (!validConfig(config)) {
   ui.retry.hidden = true;
   cleanAuthQuery();
 } else {
-  const initialQuery = new URL(window.location.href).searchParams;
-  const hadOAuthError = initialQuery.has('error');
+  const initialUrl = new URL(window.location.href);
+  const initialQuery = initialUrl.searchParams;
+  const initialFragment = new URLSearchParams(initialUrl.hash.slice(1));
+  const hadOAuthError = ['error', 'error_code', 'error_description'].some(
+    (param) => initialQuery.has(param) || initialFragment.has(param)
+  );
   const hadAuthCode = initialQuery.has('code');
   const supabase = createClient(config.supabaseUrl, config.supabasePublishableKey, {
     auth: {
@@ -104,11 +115,16 @@ if (!validConfig(config)) {
     let exchangeConfirmed = !callbackCodePending;
     render('validating');
     try {
+      // El SDK puede conservar una sesión previa incluso si el retorno falla.
+      // getSession() por sí solo no informa de ese error de inicialización.
+      const { error: initializationError } = await supabase.auth.initialize();
+      if (current !== generation) return;
+      if (initializationError) {
+        callbackExchangeFailed = true;
+        blockedByOAuthError = true;
+        throw initializationError;
+      }
       if (callbackCodePending) {
-        // initialize() reutiliza la inicialización automática del SDK y permite
-        // detectar un canje fallido sin llamar a exchangeCodeForSession otra vez.
-        const { error: initializationError } = await supabase.auth.initialize();
-        if (initializationError) throw initializationError;
         // En 2.117.3 el SDK quita `code` solo tras un canje PKCE válido. Si no
         // había verificador, puede recuperar una sesión antigua sin error.
         if (new URL(window.location.href).searchParams.has('code')) {
