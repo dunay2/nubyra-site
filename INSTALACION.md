@@ -277,6 +277,12 @@ Para obtener la configuración pública:
 4. Versionar el cambio, publicar en `main`, esperar Pages y comprobar la página
    real por HTTPS antes de realizar el login.
 
+`acceso.html` referencia `config.js` con un parámetro de versión. Actualizar
+ese parámetro cuando cambie la configuración pública para que el navegador
+solicite la nueva versión del archivo. Durante esta instalación, Chrome
+conservaba el estado cerrado tras el primer despliegue de la configuración;
+se añadió `?v=20261012-1` para actualizar ese recurso.
+
 En esta instalación se obtuvo la clave publicable del proyecto correcto y se
 completó `config.js`. Antes de publicar se comprobaron dos peticiones reales a
 la API con esa clave y sin sesión de usuario: tanto la RPC `resolve_my_access`
