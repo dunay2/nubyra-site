@@ -9,20 +9,29 @@ const html = readFileSync(resolve(root, 'index.html'), 'utf8');
 const css = readFileSync(resolve(root, 'landing.css'), 'utf8');
 const js = readFileSync(resolve(root, 'landing.js'), 'utf8');
 const kits = ['oceano','canaria','lava','brisa','cumbre','horizonte'];
+const storageBase = 'https://vyeebvzuxarekfaisfdy.supabase.co/storage/v1/object/public/nubyra-web/';
 
 test('los recursos locales referenciados en HTML existen', () => {
   const paths = [...html.matchAll(/(?:src|href)="(\.\/[^"?#]+)"/g)].map(m=>m[1]);
-  assert.ok(paths.length > 10);
+  assert.equal(paths.length, 2);
   for (const path of paths) assert.ok(existsSync(resolve(root,path)), `no existe ${path}`);
 });
 
-test('los seis modelos de galería reutilizan los assets completos publicados', () => {
+test('los seis modelos de galería usan el bucket público y conservan copia local', () => {
   for (const kit of kits) {
-    const path=`./assets/nubyra/02_catalogo_recursos/equipacion-${kit}.png`;
-    assert.ok(html.includes(path),`falta ${path}`);
-    assert.ok(existsSync(resolve(root,path)),`falta ${path} local`);
+    const path=`02_catalogo_recursos/equipacion-${kit}.png`;
+    assert.ok(html.includes(storageBase+path),`falta ${path} en Storage`);
+    assert.ok(existsSync(resolve(root,'assets/nubyra',path)),`falta ${path} local`);
   }
   assert.ok(!html.includes('01_print_recursos/gallery-'),'sigue referenciando recortes antiguos');
+});
+
+test('las URLs de imagen usan Storage y mantienen la paleta local', () => {
+  assert.ok(html.includes(storageBase+'01_print_recursos/hero-photo.png'));
+  assert.ok(html.includes(storageBase+'02_catalogo_recursos/equipacion-oceano.png'));
+  assert.ok(js.includes(storageBase+'01_print_recursos/'));
+  assert.ok(js.includes(storageBase+'02_catalogo_recursos/'));
+  assert.ok(css.includes("./assets/nubyra/04_paleta/paleta.css"));
 });
 
 test('la portada refleja el titular vigente en Figma', () => {
