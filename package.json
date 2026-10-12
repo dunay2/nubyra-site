@@ -1,0 +1,16 @@
+{
+  "name": "nubyra-login-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/login.js --bundle --format=esm --target=es2020 --minify --outfile=dist/nubyra-login.js",
+    "check": "node --check src/login.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.117.3"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}

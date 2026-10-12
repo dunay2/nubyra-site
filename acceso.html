@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#101726">
+  <meta name="description" content="Acceso al piloto de NUBYRA.">
+  <link rel="icon" href="data:,">
+  <title>Acceso · NUBYRA</title>
+  <link rel="stylesheet" href="./nubyra-login.css">
+  <script src="./config.js"></script>
+  <script type="module" src="./dist/nubyra-login.js"></script>
+</head>
+<body>
+  <div class="shell">
+    <header class="site-header">
+      <a class="brand" href="./" aria-label="NUBYRA, volver a la portada"><span class="mark" aria-hidden="true">N</span><span>NUBYRA</span></a>
+      <span class="eyebrow">Acceso al piloto</span>
+    </header>
+    <main class="nubyra-auth" data-nubyra-auth>
+      <p class="kicker">Un nuevo espacio digital</p>
+      <h1>Acceso a NUBYRA</h1>
+      <p id="auth-status" role="status" aria-live="polite">Comprobando la sesión…</p>
+      <p id="auth-detail"></p>
+      <p id="auth-role" hidden></p>
+      <div class="nubyra-auth__actions">
+        <button id="auth-login" type="button" hidden>Continuar con Google</button>
+        <button id="auth-retry" type="button" hidden>Reintentar</button>
+        <button id="auth-logout" type="button" hidden>Salir de NUBYRA</button>
+      </div>
+    </main>
+    <footer><strong>NUBYRA</strong><a href="./">Volver a la portada</a></footer>
+  </div>
+</body>
+</html>
