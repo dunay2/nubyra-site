@@ -3,7 +3,7 @@
 El [manual de instalación](INSTALACION.md) reúne los pasos, verificaciones y
 trabajo pendiente de dominio, publicación y autenticación.
 
-`acceso.html` está integrado en `main` del repositorio `dunay2/nubyra-site`, que sirve `https://nubyra.es/` desde GitHub Pages. `index.html`, `.nojekyll` y `CNAME` se conservan sin cambios. La configuración pública de Supabase en `config.js` permanece vacía: la página muestra un estado cerrado y no inicia Google OAuth.
+`acceso.html` está integrado en `main` del repositorio `dunay2/nubyra-site`, que sirve `https://nubyra.es/` desde GitHub Pages. `index.html`, `.nojekyll` y `CNAME` se conservan sin cambios. `config.js` contiene la URL del proyecto NUBYRA y su clave publicable para el piloto Google. La admisión y los roles se deciden en Supabase; la configuración del frontend no concede un rol.
 
 ## URLs exactas
 
@@ -17,7 +17,7 @@ La ruta del repositorio de prueba `https://dunay2.github.io/nubyra-home/acceso.h
 
 ## Configuración y permisos
 
-`config.js` contiene URL y clave publicable vacías a propósito. `config.example.js` muestra las tres propiedades esperadas. Completar solo la URL del proyecto NUBYRA verificado y su clave `sb_publishable_…`; no incluir `service_role`, secretos OAuth, correos piloto ni roles en Git. El cliente exige que la página cargada coincida con el origen y la ruta de `callbackUrl` antes de mostrar el botón Google.
+`config.js` contiene la configuración pública del proyecto `vyeebvzuxarekfaisfdy`. `config.example.js` muestra las tres propiedades esperadas. Para otra instalación, completar solo la URL del proyecto NUBYRA verificado y su clave `sb_publishable_…`; no incluir `service_role`, secretos OAuth, correos piloto ni roles en Git. El cliente exige que la página cargada coincida con el origen y la ruta de `callbackUrl` antes de mostrar el botón Google.
 
 El frontend consulta `public.resolve_my_access()` sin argumentos y solo muestra `active` con rol válido. Esa respuesta no sustituye las políticas RLS: cada petición privada debe comprobar el permiso vigente en Supabase. La página no almacena archivos privados. Al salir de `active` emite `nubyra:clear-private-view` para limpiar vistas privadas futuras.
 

@@ -86,7 +86,8 @@ Supabase Auth real.
    Revisión completada el 12/10/2026: Email y alternativos integrados
    desactivados, sin proveedores personalizados ni Third-Party Auth,
    Passkeys desactivado. Altas activadas, acceso anónimo y vinculación manual
-   desactivados. Google permanecía desactivado, pendiente de habilitar.
+   desactivados. Posteriormente el titular habilitó Google y se verificó
+   **Google ENABLED** en la lista de proveedores el mismo día.
 4. En el proveedor Google de Supabase, introducir el Client ID y el Client
    Secret directamente en la consola. Mantener desactivados **Skip nonce
    checks** y **Allow users without an email**. La habilitación de Google es un
@@ -114,6 +115,11 @@ Completar `config.js` con la URL del proyecto y su clave publicable
 `sb_publishable_…` tras comprobar el destino y los controles. Conservar el
 callback `https://nubyra.es/acceso.html`. Los secretos OAuth, las claves
 administrativas y las direcciones piloto se guardan fuera del repositorio.
+
+La configuración pública se completó el 12/10/2026 con la clave publicable
+existente en **Project Settings → API Keys**. Con esa clave y sin sesión,
+las peticiones reales a la RPC y al probe devolvieron HTTP 401 / código 42501:
+denegación esperada. Las comprobaciones OAuth/JWT de usuario siguen pendientes.
 
 Antes de abrir el piloto, comprobar con Google real y JWT de usuario: admisión
 de una cuenta aprobada, rechazo de otra cuenta, estado pendiente sin acceso al

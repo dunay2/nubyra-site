@@ -241,9 +241,9 @@ Para cerrar el acceso por correo en la consola:
    desactivado.
 
 También se confirmaron las altas activadas, acceso anónimo desactivado y
-vinculación manual desactivada. Google seguía **DISABLED**; su habilitación es
-el siguiente paso y se dejó abierto su formulario. Abrir un formulario no
-guarda ningún cambio.
+vinculación manual desactivada. Después del guardado realizado por el titular,
+se confirmó **Google ENABLED** en la lista de proveedores el 12/10/2026.
+Abrir un formulario no guarda ningún cambio.
 
 ## 9. Conectar el frontend y probar el recorrido real
 
@@ -262,9 +262,27 @@ Para habilitar Google en Supabase:
 4. Mantener **Skip nonce checks** y **Allow users without an email** desactivados.
 5. Pulsar **Save** y confirmar **Google ENABLED** en la lista de proveedores.
 
-El 12/10/2026 se abrió este formulario y se comprobaron el callback y los dos
-controles desactivados. La activación/guardado de Google seguía pendiente. Aun
-habilitado el proveedor, la web permanece cerrada mientras `config.js` esté vacío.
+El 12/10/2026 se comprobaron el callback y los dos controles desactivados; el
+titular activó y guardó Google y después se verificó **Google ENABLED**.
+
+Para obtener la configuración pública:
+
+1. En el proyecto verificado, abrir **Project Settings → API Keys**.
+2. Usar la clave existente de la sección **Publishable key**, con prefijo
+   `sb_publishable_…`; no usar ni revelar las claves de la sección Secret keys.
+3. Completar las tres propiedades de `config.js`: `supabaseUrl`,
+   `supabasePublishableKey` y `callbackUrl`. La URL del proyecto y el callback
+   están en la sección 5. La clave publicable se distribuye con la web; no es
+   la credencial administrativa ni reemplaza los permisos RLS.
+4. Versionar el cambio, publicar en `main`, esperar Pages y comprobar la página
+   real por HTTPS antes de realizar el login.
+
+En esta instalación se obtuvo la clave publicable del proyecto correcto y se
+completó `config.js`. Antes de publicar se comprobaron dos peticiones reales a
+la API con esa clave y sin sesión de usuario: tanto la RPC `resolve_my_access`
+como la lectura de `nubyra_access_probe` devolvieron **HTTP 401**, código Postgres
+**42501**, por falta de permisos. Es la denegación esperada; no conceder permisos
+a `anon` para eliminarla. Las pruebas con JWT de usuario siguen pendientes.
 
 Publicar y comprobar, con cuentas autorizadas por el titular:
 
@@ -309,18 +327,19 @@ privacidad de NUBYRA antes de abrir el servicio al público.
 | Página `acceso.html` | Integrada mediante PR #1 y publicada |
 | Supabase Site URL / Redirect URL | Guardadas y comprobadas |
 | Google: proyecto, cliente, origen, callback y scopes básicos | Configurados y comprobados |
-| Credenciales Google en Supabase | Guardadas por el titular; proveedor desactivado en la última revisión |
+| Google en Supabase | Credenciales guardadas por el titular; **Google ENABLED** comprobado |
 | Migración y comprobaciones | Instalación real comprobada; 15/15 `true` |
 | Before User Created | **ENABLED**, esquema y función comprobados |
 | Cuenta piloto | Una admisión habilitada, sin rol ni UUID; recuento administrativo verificado |
 | Usuarios Auth / roles asignados | 0 / 0; primer login y decisión de rol pendientes |
 | Email y otros métodos alternativos | Email DISABLED y alternativos integrados desactivados; sin proveedores personalizados ni Third-Party Auth; Passkeys desactivado. Revisión completada |
-| `config.js` | URL/clave vacías: acceso cerrado, comprobado en el repositorio |
+| `config.js` | URL del proyecto y clave publicable configuradas; pendiente de comprobar el despliegue actualizado |
+| API sin sesión | RPC y probe devuelven HTTP 401 / 42501 con la clave publicable real |
 | OAuth real y JWT/RLS | Pendientes |
 | Privacidad, condiciones y apertura pública | Pendientes |
 
-**Siguiente paso:** activar y guardar **Enable Sign in with Google**, confirmar
-Google **ENABLED** y después conectar `config.js` según la sección 9. Añadir
+**Siguiente paso:** comprobar el despliegue de `config.js` y realizar el primer
+login con la cuenta admitida, que debe quedar pendiente sin rol. Añadir
 a este registro las nuevas verificaciones a medida que se completen, sin
 incluir correos privados ni credenciales.
 

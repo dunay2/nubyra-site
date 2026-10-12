@@ -1,7 +1,7 @@
-// Configuración cerrada hasta que exista un proyecto Supabase propio de NUBYRA.
-// La página muestra un error de configuración y no inicia OAuth.
+// Configuración pública del proyecto Supabase exclusivo de NUBYRA.
+// La admisión y los roles se comprueban en Supabase; esta clave no es administrativa.
 window.NUBYRA_AUTH_CONFIG = Object.freeze({
-  supabaseUrl: "",
-  supabasePublishableKey: "",
+  supabaseUrl: "https://vyeebvzuxarekfaisfdy.supabase.co",
+  supabasePublishableKey: "sb_publishable_c4Kg53-zfYJrooxnBb21qw_G5UykK7t",
   callbackUrl: "https://nubyra.es/acceso.html"
 });

@@ -7,5 +7,6 @@ Web publicada en [nubyra.es](https://nubyra.es/) mediante GitHub Pages.
 - [Frontend de autenticación y pruebas](README-login.md)
 
 El manual distingue la configuración comprobada y los pasos pendientes. El
-login permanece cerrado hasta completar la admisión, proveedores y pruebas
-reales. Las credenciales y las cuentas piloto se administran fuera de Git.
+frontend está configurado para el piloto Google con admisión privada en Supabase;
+las pruebas de login real y la asignación de roles siguen pendientes. Los secretos
+y las cuentas piloto se administran fuera de Git.
