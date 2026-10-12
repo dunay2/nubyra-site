@@ -1,5 +1,9 @@
 # Instalación del control de acceso de NUBYRA
 
+El [manual general de instalación](../INSTALACION.md) recoge dominio, HTTPS,
+Pages, Google Cloud, el orden completo de configuración y el registro de estado.
+Esta guía detalla la instalación de la base de datos.
+
 Esta carpeta contiene la migración que necesita `acceso.html` para consultar
 `public.resolve_my_access()`. Guardarla en GitHub no la ejecuta en Supabase.
 GitHub Pages publica archivos estáticos; la instalación de la base de datos es
@@ -44,6 +48,10 @@ Todas las filas deben devolver `passed = true`. La consulta es de solo lectura
 y no muestra correos ni credenciales. Estas comprobaciones estructurales no
 sustituyen las pruebas con tokens firmados y el proveedor Google real.
 
+El 12/10/2026 se ejecutó esta consulta en el proyecto Supabase NUBYRA real:
+las **15 comprobaciones devolvieron `true`**. La migración ya está instalada en
+ese proyecto; no repetirla para continuar la configuración.
+
 La versión original de esta migración se probó en un PostgreSQL 16 desechable,
 sin red y con tablas Auth y claims simulados. Pasaron las comprobaciones de
 permisos, admisión/denegación, estado pendiente/activo/suspendido, cambio de
@@ -52,10 +60,14 @@ Supabase Auth real.
 
 ## 4. Configurar admisión y proveedores
 
-1. En **Authentication → Auth Hooks**, configurar **Before User Created** como
-   función Postgres `nubyra_private.before_user_created`. La función ya concede
-   ejecución a `supabase_auth_admin`. Confirmar el esquema y el nombre antes de
-   guardar y activar el hook.
+1. En **Authentication → Auth Hooks → Add hook → Before User Created hook**,
+   activar **Enable Before User Created hook**, seleccionar tipo **Postgres**,
+   esquema **`nubyra_private`** y función **`before_user_created`**. Revisar los
+   permisos mostrados y pulsar **Create hook**. La función ya concede ejecución
+   a `supabase_auth_admin`. Confirmar después la tarjeta con el esquema y la
+   función correctos y estado **ENABLED**. El titular completó este paso y se
+   verificó ese estado el **12/10/2026**. Con la lista de admisión vacía, se
+   rechazan las nuevas altas.
 2. Introducir las direcciones aprobadas únicamente en una sesión administrativa
    privada en `nubyra_private.access_grants`. Normalizar con `lower(btrim(...))`;
    no normalizar alias de Gmail. Mantener `role = NULL` hasta una decisión

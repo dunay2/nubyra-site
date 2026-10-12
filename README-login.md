@@ -1,14 +1,17 @@
 # Acceso NUBYRA para el dominio propio
 
-Esta rama añade `acceso.html` al repositorio `dunay2/nubyra-site`, que sirve `https://nubyra.es/` desde GitHub Pages. `index.html`, `.nojekyll` y `CNAME` se conservan sin cambios. La configuración de Supabase permanece vacía: la página muestra un estado cerrado y no inicia Google OAuth.
+El [manual de instalación](INSTALACION.md) reúne los pasos, verificaciones y
+trabajo pendiente de dominio, publicación y autenticación.
+
+`acceso.html` está integrado en `main` del repositorio `dunay2/nubyra-site`, que sirve `https://nubyra.es/` desde GitHub Pages. `index.html`, `.nojekyll` y `CNAME` se conservan sin cambios. La configuración pública de Supabase en `config.js` permanece vacía: la página muestra un estado cerrado y no inicia Google OAuth.
 
 ## URLs exactas
 
 - Página de inicio y retorno: `https://nubyra.es/acceso.html`.
 - Origen del navegador: `https://nubyra.es`.
-- Supabase Auth Site URL propuesta: `https://nubyra.es/`.
+- Supabase Auth Site URL: `https://nubyra.es/`.
 - Supabase Auth Redirect URL exacta: `https://nubyra.es/acceso.html`.
-- Google OAuth debe volver a `https://<PROJECT_REF_VERIFICADA>.supabase.co/auth/v1/callback`, usando un proyecto exclusivo de NUBYRA. Verificar la referencia en el panel antes de configurarlo.
+- Google OAuth vuelve a `https://vyeebvzuxarekfaisfdy.supabase.co/auth/v1/callback`, del proyecto exclusivo de NUBYRA. Verificar la referencia en el panel antes de cambiar la configuración.
 
 La ruta del repositorio de prueba `https://dunay2.github.io/nubyra-home/acceso.html` usa otro origen y otro almacenamiento PKCE. No usarla como retorno de este sitio ni pasar por una redirección entre orígenes. `www.nubyra.es` redirige al dominio raíz; iniciar el flujo en el dominio raíz para que el canje se haga en el mismo origen.
 
