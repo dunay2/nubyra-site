@@ -109,4 +109,8 @@ test('un error remoto conmuta a GitHub una sola vez y admite cambios de diseño'
   assert.equal(img.src,'./assets/nubyra/02_catalogo_recursos/equipacion-lava.png');
   assets.setImage(img,'02_catalogo_recursos/equipacion-brisa.png');
   assert.equal(img.src,assetRoot+'02_catalogo_recursos/equipacion-brisa.png');
+  // currentSrc may temporarily be stale while a dynamic replacement fails.
+  img.currentSrc='./assets/nubyra/02_catalogo_recursos/equipacion-lava.png';
+  assets.onImageError({target:img});
+  assert.equal(img.src,'./assets/nubyra/02_catalogo_recursos/equipacion-brisa.png');
 });
