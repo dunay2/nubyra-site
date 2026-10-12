@@ -39,7 +39,7 @@
     const relativePath = img.dataset.nubyraAsset;
     if (!relativePath || img.dataset.nubyraSource === 'fallback') return;
     if (!SAFE_IMAGE_PATH.test(relativePath)) return;
-    const requestedSrc = img.currentSrc || img.src || '';
+    const requestedSrc = img.src || '';
     if (!requestedSrc.startsWith(PUBLIC_BASE)) return;
     img.dataset.nubyraSource = 'fallback';
     img.src = localUrl(relativePath);
