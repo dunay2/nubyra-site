@@ -1,0 +1,12 @@
+/* NUBYRA: tokens de color de la preparación Figma. */
+:root {
+  --nubyra-navy: #071D33;
+  --nubyra-navyDeep: #061727;
+  --nubyra-yellow: #FFE044;
+  --nubyra-paper: #FFFFFF;
+  --nubyra-surface: #F2F5F8;
+  --nubyra-line: #DDE4EA;
+  --nubyra-muted: #617386;
+  --nubyra-blue: #207CAF;
+  --nubyra-sand: #EEE8DA;
+}
