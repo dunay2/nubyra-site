@@ -234,14 +234,16 @@ Para cerrar el acceso por correo en la consola:
 4. Conservar **Allow new users to sign up** activado: el hook filtra las altas.
    Mantener acceso anónimo y vinculación manual desactivados.
 5. Revisar proveedores alternativos, Third-Party Auth y Passkeys antes de abrir
-   el piloto. La revisión de la lista confirmó los otros proveedores integrados
-   desactivados y ningún proveedor personalizado; revisar las otras pantallas
-   por separado.
+   el piloto. La revisión del 12/10/2026 confirmó **Email DISABLED**, los otros
+   proveedores integrados desactivados y ningún proveedor personalizado.
+   En las pantallas correspondientes se comprobó que **Third-Party Auth no
+   tenía proveedores configurados** y **Enable Passkey authentication** estaba
+   desactivado.
 
-El 12/10/2026 se comprobó que **Email seguía ENABLED**, **Google DISABLED**,
-altas activadas, acceso anónimo desactivado y vinculación manual desactivada.
-Se dejó abierto el ajuste Email para que el titular lo desactive y guarde.
-La apertura del formulario no cambia la configuración.
+También se confirmaron las altas activadas, acceso anónimo desactivado y
+vinculación manual desactivada. Google seguía **DISABLED**; su habilitación es
+el siguiente paso y se dejó abierto su formulario. Abrir un formulario no
+guarda ningún cambio.
 
 ## 9. Conectar el frontend y probar el recorrido real
 
@@ -250,6 +252,19 @@ completar `config.js` con la URL del proyecto y su clave **publicable**
 `sb_publishable_…`. Conservar `callbackUrl` como
 `https://nubyra.es/acceso.html`. La clave publicable se utiliza en el navegador;
 las claves administrativas y el secreto Google permanecen fuera de Git.
+
+Para habilitar Google en Supabase:
+
+1. **Authentication → Sign In / Providers → Google**.
+2. Confirmar que Client ID y Client Secret están guardados y que el callback
+   mostrado corresponde a `vyeebvzuxarekfaisfdy`.
+3. Activar **Enable Sign in with Google**.
+4. Mantener **Skip nonce checks** y **Allow users without an email** desactivados.
+5. Pulsar **Save** y confirmar **Google ENABLED** en la lista de proveedores.
+
+El 12/10/2026 se abrió este formulario y se comprobaron el callback y los dos
+controles desactivados. La activación/guardado de Google seguía pendiente. Aun
+habilitado el proveedor, la web permanece cerrada mientras `config.js` esté vacío.
 
 Publicar y comprobar, con cuentas autorizadas por el titular:
 
@@ -299,13 +314,13 @@ privacidad de NUBYRA antes de abrir el servicio al público.
 | Before User Created | **ENABLED**, esquema y función comprobados |
 | Cuenta piloto | Una admisión habilitada, sin rol ni UUID; recuento administrativo verificado |
 | Usuarios Auth / roles asignados | 0 / 0; primer login y decisión de rol pendientes |
-| Email y otros métodos alternativos | Email ENABLED: desactivación/guardado pendiente. Integrados alternativos desactivados; revisar también Third-Party Auth y Passkeys |
+| Email y otros métodos alternativos | Email DISABLED y alternativos integrados desactivados; sin proveedores personalizados ni Third-Party Auth; Passkeys desactivado. Revisión completada |
 | `config.js` | URL/clave vacías: acceso cerrado, comprobado en el repositorio |
 | OAuth real y JWT/RLS | Pendientes |
 | Privacidad, condiciones y apertura pública | Pendientes |
 
-**Siguiente paso:** desactivar y guardar el proveedor Email, completar la revisión
-de métodos alternativos y después continuar con la sección 9. Añadir
+**Siguiente paso:** activar y guardar **Enable Sign in with Google**, confirmar
+Google **ENABLED** y después conectar `config.js` según la sección 9. Añadir
 a este registro las nuevas verificaciones a medida que se completen, sin
 incluir correos privados ni credenciales.
 

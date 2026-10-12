@@ -83,10 +83,17 @@ Supabase Auth real.
    provider**, pulsar **Save** y confirmar **DISABLED**. Mantener las altas
    activadas para que el hook pueda admitir nuevas cuentas Google. Revisar
    también las pantallas Third-Party Auth y Passkeys.
+   Revisión completada el 12/10/2026: Email y alternativos integrados
+   desactivados, sin proveedores personalizados ni Third-Party Auth,
+   Passkeys desactivado. Altas activadas, acceso anónimo y vinculación manual
+   desactivados. Google permanecía desactivado, pendiente de habilitar.
 4. En el proveedor Google de Supabase, introducir el Client ID y el Client
    Secret directamente en la consola. Mantener desactivados **Skip nonce
    checks** y **Allow users without an email**. La habilitación de Google es un
    paso separado, después de comprobar los controles.
+   Para ese paso, activar **Enable Sign in with Google**, pulsar **Save** y
+   confirmar **Google ENABLED**. Registrar la comprobación antes de conectar
+   la configuración pública del frontend.
 
 ## 5. Configurar las URLs exactas
 
