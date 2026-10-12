@@ -37,9 +37,12 @@ test('la navegación enlaza exclusivamente anclas existentes', () => {
   for(const anchor of ['inicio','equipaciones','configurador','como-funciona','proyecto','contacto']) assert.ok(ids.has(anchor));
 });
 
-test('el acceso de Google y Supabase se conserva sin duplicar lógica de login', () => {
-  assert.ok(html.includes('https://nubyra.es/acceso.html'));
-  assert.ok(html.includes('class="mobile-nav__access"'));
+test('el acceso privado no se anuncia públicamente y la landing no duplica la autenticación', () => {
+  assert.ok(!html.includes('acceso.html'));
+  assert.ok(!html.includes('access-link'));
+  assert.ok(!html.includes('mobile-nav__access'));
+  assert.ok(!css.includes('.access-link'));
+  assert.ok(!css.includes('.mobile-nav__access'));
   assert.ok(!/supabase-js|service_role|createClient\(/.test(js));
 });
 
@@ -61,4 +64,12 @@ test('en ultrawide la fotografía y el velo usan el mismo lienzo centrado', () =
   assert.match(css, /\.hero__photo\s*\{\s*right:\s*calc\(\(100% - 1440px\)\s*\/\s*2 \+ 58px\)/);
   assert.match(css, /\.hero__shade\s*\{[^}]*width:\s*1440px;[^}]*transform:\s*translateX\(-50%\)/s);
   assert.match(css, /\.hero,\s*\.hero__inner\s*\{\s*min-height:\s*max\(900px,\s*100svh\)/);
+});
+
+test('en escritorio la fotografía queda fusionada detrás del titular', () => {
+  assert.match(css, /@media\s*\(min-width:\s*1001px\)/);
+  assert.match(css, /\.hero__photo\s*\{\s*width:\s*min\(740px,\s*52vw\)/);
+  assert.match(css, /mask-image:\s*linear-gradient\(to right,\s*transparent 0%/);
+  assert.match(html, /<div class="hero__photo"[^>]*>/);
+  assert.match(html, /<div class="hero__shade"[^>]*>/);
 });
