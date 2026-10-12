@@ -196,6 +196,17 @@ insert into nubyra_private.access_grants (email, role, enabled)
 values (lower(btrim('cuenta-aprobada@example.invalid')), null, true);
 ```
 
+Ejecutar una sola vez por cuenta nueva; resultado esperado **Success. No rows
+returned**. Añadir una dirección a la lista no crea todavía un usuario Auth:
+ese usuario se crea durante el primer login admitido.
+
+Para comprobar el avance sin mostrar correos, ejecutar
+[pilot_state.sql](supabase/checks/pilot_state.sql) en una sesión administrativa.
+El **12/10/2026**, después del alta realizada por el titular, se verificó:
+`grants_total = 1`, `pending_unbound = 1`, `assigned_roles = 0`, `auth_users = 0`.
+Esto confirma una admisión habilitada sin rol y sin UUID vinculado; la prueba
+Google real sigue pendiente. La dirección se conserva únicamente en Supabase.
+
 | Estado | Resultado |
 | --- | --- |
 | Cuenta admitida, rol `NULL` | `pending`; sin acceso al recurso de prueba |
@@ -214,6 +225,23 @@ comprobación de una identidad Google vinculada no garantiza por sí sola qué
 método se usó para iniciar cada sesión; por eso se controla también la
 configuración de proveedores. No desactivar globalmente las altas si el piloto
 necesita crear usuarios mediante Google y el hook.
+
+Para cerrar el acceso por correo en la consola:
+
+1. **Authentication → Sign In / Providers → Email**.
+2. Desactivar **Enable email provider** y pulsar **Save**.
+3. Confirmar que Email muestra **DISABLED** en la lista de proveedores.
+4. Conservar **Allow new users to sign up** activado: el hook filtra las altas.
+   Mantener acceso anónimo y vinculación manual desactivados.
+5. Revisar proveedores alternativos, Third-Party Auth y Passkeys antes de abrir
+   el piloto. La revisión de la lista confirmó los otros proveedores integrados
+   desactivados y ningún proveedor personalizado; revisar las otras pantallas
+   por separado.
+
+El 12/10/2026 se comprobó que **Email seguía ENABLED**, **Google DISABLED**,
+altas activadas, acceso anónimo desactivado y vinculación manual desactivada.
+Se dejó abierto el ajuste Email para que el titular lo desactive y guarde.
+La apertura del formulario no cambia la configuración.
 
 ## 9. Conectar el frontend y probar el recorrido real
 
@@ -269,14 +297,15 @@ privacidad de NUBYRA antes de abrir el servicio al público.
 | Credenciales Google en Supabase | Guardadas por el titular; proveedor desactivado en la última revisión |
 | Migración y comprobaciones | Instalación real comprobada; 15/15 `true` |
 | Before User Created | **ENABLED**, esquema y función comprobados |
-| Cuentas piloto y roles | Pendientes de decisión e introducción administrativa |
-| Email y otros métodos alternativos | Auditoría/cierre para el piloto pendiente; Email estaba habilitado en la última revisión |
+| Cuenta piloto | Una admisión habilitada, sin rol ni UUID; recuento administrativo verificado |
+| Usuarios Auth / roles asignados | 0 / 0; primer login y decisión de rol pendientes |
+| Email y otros métodos alternativos | Email ENABLED: desactivación/guardado pendiente. Integrados alternativos desactivados; revisar también Third-Party Auth y Passkeys |
 | `config.js` | URL/clave vacías: acceso cerrado, comprobado en el repositorio |
 | OAuth real y JWT/RLS | Pendientes |
 | Privacidad, condiciones y apertura pública | Pendientes |
 
-**Siguiente paso:** acordar las cuentas piloto y registrarlas como pendientes
-sin rol, revisar los proveedores y después continuar con la sección 9. Añadir
+**Siguiente paso:** desactivar y guardar el proveedor Email, completar la revisión
+de métodos alternativos y después continuar con la sección 9. Añadir
 a este registro las nuevas verificaciones a medida que se completen, sin
 incluir correos privados ni credenciales.
 

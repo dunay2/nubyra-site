@@ -72,9 +72,17 @@ Supabase Auth real.
    privada en `nubyra_private.access_grants`. Normalizar con `lower(btrim(...))`;
    no normalizar alias de Gmail. Mantener `role = NULL` hasta una decisión
    explícita del titular. Ninguna dirección real debe añadirse a Git.
+   Después del alta, [checks/pilot_state.sql](checks/pilot_state.sql) permite
+   comprobar solo los recuentos. El 12/10/2026 se verificó una admisión habilitada,
+   sin rol/UUID vinculado y cero usuarios Auth. El alta en la lista no crea el
+   usuario Auth: el primer login Google admitido lo hará.
 3. Auditar usuarios y métodos de entrada. Para el piloto Google, deshabilitar
    Email (contraseña/enlaces/OTP), proveedores alternativos y acceso anónimo.
    El hook de alta no revoca usuarios que ya existan.
+   Para Email: abrir **Sign In / Providers → Email**, desactivar **Enable email
+   provider**, pulsar **Save** y confirmar **DISABLED**. Mantener las altas
+   activadas para que el hook pueda admitir nuevas cuentas Google. Revisar
+   también las pantallas Third-Party Auth y Passkeys.
 4. En el proveedor Google de Supabase, introducir el Client ID y el Client
    Secret directamente en la consola. Mantener desactivados **Skip nonce
    checks** y **Allow users without an email**. La habilitación de Google es un
