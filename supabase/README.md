@@ -124,6 +124,11 @@ También se verificó el despliegue de Pages y la página HTTPS en Chrome:
 **Sin sesión** y botón **Continuar con Google**. El primer login de la cuenta
 admitida, todavía sin rol, debe producir **Acceso pendiente**.
 
+El titular realizó ese primer login y aportó la captura **Acceso pendiente**
+el 12/10/2026. La comprobación ampliada de recuentos devolvió una admisión
+vinculada sin rol, un usuario Auth y una identidad Google con correo verificado.
+La decisión de rol y las pruebas API con JWT de usuario siguen pendientes.
+
 Antes de abrir el piloto, comprobar con Google real y JWT de usuario: admisión
 de una cuenta aprobada, rechazo de otra cuenta, estado pendiente sin acceso al
 probe, acceso con rol aprobado y denegación inmediata tras `enabled = false`

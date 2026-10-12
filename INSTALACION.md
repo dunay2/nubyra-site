@@ -204,8 +204,16 @@ Para comprobar el avance sin mostrar correos, ejecutar
 [pilot_state.sql](supabase/checks/pilot_state.sql) en una sesión administrativa.
 El **12/10/2026**, después del alta realizada por el titular, se verificó:
 `grants_total = 1`, `pending_unbound = 1`, `assigned_roles = 0`, `auth_users = 0`.
-Esto confirma una admisión habilitada sin rol y sin UUID vinculado; la prueba
-Google real sigue pendiente. La dirección se conserva únicamente en Supabase.
+Esto confirmó una admisión habilitada sin rol y sin UUID vinculado; en ese
+momento la prueba Google real seguía pendiente. La dirección se conserva
+únicamente en Supabase.
+
+Después del primer login Google del titular, el 12/10/2026 se volvió a ejecutar
+la comprobación ampliada: `grants_total = 1`, `pending_unbound = 0`,
+`pending_bound = 1`, `assigned_roles = 0`, `auth_users = 1`,
+`verified_google_users = 1`. La cuenta admitida ya está vinculada a un usuario
+Auth, con identidad Google y `email_verified = true`. La captura aportada por
+el titular mostró **Acceso pendiente**, el resultado previsto sin rol.
 
 | Estado | Resultado |
 | --- | --- |
@@ -312,6 +320,18 @@ pruebas. No pegar tokens en Git, incidencias o capturas. Si falta
 `email_verified` en la identidad Google real, investigar: el control deniega
 acceso por diseño. Cada futuro recurso privado necesita su propia RLS.
 
+**Primer login real registrado el 12/10/2026:** el titular completó Google y
+aportó la captura de **Acceso pendiente**. La consulta administrativa de
+recuentos confirmó el usuario, la identidad Google verificada y la vinculación
+del permiso sin rol. Las pruebas directas del probe con JWT de usuario,
+rechazo de otra cuenta, acceso con rol y revocación siguen pendientes; no
+considerar cerrada la aceptación de seguridad por este primer resultado.
+
+La sesión pertenece al navegador/perfil donde se hizo el login. En la pestaña
+Chrome controlada se actualizó una copia antigua de la página y se observó
+**Sin sesión**; esa pestaña requiere su propio login. No copiar tokens entre
+navegadores para reproducir la prueba.
+
 ## 10. Costes y condiciones de uso
 
 La instalación actual usa el dominio contratado en IONOS, GitHub Pages y el
@@ -342,17 +362,18 @@ privacidad de NUBYRA antes de abrir el servicio al público.
 | Google en Supabase | Credenciales guardadas por el titular; **Google ENABLED** comprobado |
 | Migración y comprobaciones | Instalación real comprobada; 15/15 `true` |
 | Before User Created | **ENABLED**, esquema y función comprobados |
-| Cuenta piloto | Una admisión habilitada, sin rol ni UUID; recuento administrativo verificado |
-| Usuarios Auth / roles asignados | 0 / 0; primer login y decisión de rol pendientes |
+| Cuenta piloto | Una admisión habilitada, vinculada al UUID tras el primer login y sin rol; recuento verificado |
+| Usuarios Auth / roles asignados | 1 / 0; identidad Google con email_verified=true comprobada; decisión de rol pendiente |
 | Email y otros métodos alternativos | Email DISABLED y alternativos integrados desactivados; sin proveedores personalizados ni Third-Party Auth; Passkeys desactivado. Revisión completada |
 | `config.js` / frontend | Configuración publicada por Pages y comprobada por HTTPS; Chrome muestra Sin sesión y Continuar con Google |
 | API sin sesión | RPC y probe devuelven HTTP 401 / 42501 con la clave publicable real |
-| OAuth real y JWT/RLS | Pendientes |
+| Primer login Google | Titular aportó captura Acceso pendiente; identidad real y vinculación confirmadas en Supabase |
+| Pruebas restantes OAuth y JWT/RLS | Rechazo, probe con JWT, rol activo, revocación y cierre de sesión pendientes |
 | Privacidad, condiciones y apertura pública | Pendientes |
 
-**Siguiente paso:** abrir `https://nubyra.es/acceso.html`, pulsar **Continuar con
-Google** y realizar el primer login con la cuenta admitida. El resultado
-esperado es **Acceso pendiente**, sin rol ni acceso privado. Añadir
+**Siguiente paso:** el titular elige el rol de la cuenta piloto (`admin`,
+`editor` o `lector`). Mantener `role = NULL` hasta esa decisión y comprobar
+después el estado activo y las denegaciones/revocación desde la API. Añadir
 a este registro las nuevas verificaciones a medida que se completen, sin
 incluir correos privados ni credenciales.
 
