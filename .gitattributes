@@ -1,0 +1,2 @@
+# El bundle generado contiene cadenas multilinea del SDK con espacios finales.
+dist/*.js -whitespace
