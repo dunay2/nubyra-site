@@ -46,7 +46,13 @@
           <div class="orientation"><label for="model-orientation">Frontal del modelo</label>
             <select id="model-orientation"><option value="0">Original (+Z)</option><option value="180">Invertir 180°</option></select>
           </div>
-        </fieldset>
+          <div class="mesh-selection" id="mesh-selection" hidden aria-live="polite">
+            <p class="mesh-selection__title">Selecciona las superficies de la camiseta</p>
+            <p class="mesh-selection__hint">Revisa las mallas detectadas. No marques pantalón, cuerpo ni accesorios; el modelo original queda intacto.</p>
+            <div class="mesh-selection__items" id="mesh-list" role="group" aria-label="Mallas de tejido"></div>
+            <button type="button" id="apply-meshes" class="mesh-selection__apply">Aplicar marcajes a mallas elegidas</button>
+            <p class="mesh-selection__result" id="mesh-result" role="status">Pendiente de elegir la superficie de tejido.</p>
+          fieldset>
         <div class="notice" id="validation" role="status" aria-live="polite">Composición provisional. La normativa y los tamaños de impresión deben verificarse antes de fabricar.</div>
         <div class="actions"><button id="download-png" type="button" class="primary">Exportar PNG</button><button id="download-json" type="button" class="secondary">Guardar diseño JSON</button></div>
         <p class="disclaimer">Demostración 3D, sin medición corporal ni validación industrial. Los datos no se envían a servidores. El JSON no incluye imágenes.</p>
