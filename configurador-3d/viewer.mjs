@@ -246,6 +246,8 @@ entación, UV industriales y derechos de explotación.'
    view(name){const pos={front:[0,0,5.5],quarter:[3.5,.6,4.3],back:[0,0,-5.5],side:[5.5,0,0]}[name]||[0,0,5.5];
      camera.position.set(...pos);controls.target.set(0,0,0);controls.update();},
    exportPng(){renderer.render(scene,camera);return canvas.toDataURL('image/png');},
+   listGarmentMeshes(){return meshDescriptors.slice();},
+   applyGarmentSelection(ids){return applyGarmentSelection(ids);},
    async importModel(buffer, {rotateDegrees=0}={}) {
      const audit=inspectGlb(buffer);
      const loader=new GLTFLoader();
@@ -267,7 +269,7 @@ entación, UV industriales y derechos de explotación.'
        for(const url of objectURLs.values()) URL.revokeObjectURL(url);
      }
    },
-   destroy(){disposed=true;observer.disconnect();controls.dispose();printFront.tex.dispose();printBack.tex.dispose();atlas.texture.dispose();renderer.dispose();}
+   destroy(){disposed=true;observer.disconnect();controls.dispose();restoreSurfaces();printFront.tex.dispose();printBack.tex.dispose();atlas.texture.dispose();renderer.dispose();}
  };
  controller.update(state);return controller;
 }
