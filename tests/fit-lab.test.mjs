@@ -136,15 +136,15 @@ test('largo solicitado es distinto de largo de la camiseta usada para comparar',
  assert.equal(saved.sizeProposal.suggestedBase,result.base);
  assert.equal(saved.sizeProposal.lateralPosition,null);
  assert.equal(saved.sizeProposal.validatedIndustrialRanges,false);
- assert.match(app,/const target=\{\.\.\.body,garmentLengthCm:state\.desiredLengthCm\}/);
+ assert.match(app,/const preview=getPreviewRecommendation\(\)/);
 });
 test('la propuesta se recalcula pero no se aplica al visor de forma implícita',()=>{
- assert.match(app,/const proposed=getRecommendation\(\),candidate=proposed\.base/);
+ assert.match(app,/const proposed=getRecommendation\(\),preview=getPreviewRecommendation\(\),candidate=preview\.previewBase/);
  assert.match(app,/\$\('use-proposal'\)\.addEventListener\('click'/);
- assert.match(app,/Object\.assign\(state,targets,\{activeBase:candidate\.base\}\)/);
+ assert.match(app,/Object\.assign\(state,stateForConfiguration\(preview\.previewCode\)\)/);
  assert.match(app,/activateTab\('adjust',\{focus:true\}\)/);
- assert.match(app,/button\.disabled=outOfDemo\|\|/);
- assert.match(app,/if\(candidate\.status==='review-outside-demo'\)return/);
+ assert.match(app,/button\.disabled=outOfDemo\|\|state\.activeConfiguration===preview\.previewCode/);
+ assert.match(app,/if\(preview\.status==='review-outside-demo'\)return/);
  assert.equal(suggestPatternFromMeasurements({
   ...DEFAULT_FIT,bodyChestCm:120,bodyHipCm:130,desiredLengthCm:48
  }).status,'review-outside-demo');
@@ -218,4 +218,51 @@ test('el visor permanece siempre visible, cámaras y contorno trasero conservado
  assert.match(app,/viewer\.update\(state\)/);
  assert.match(app,/viewer\?\.setGuideTarget\(mode\)/);
  assert.match(css,/@media\(max-width:640px\)/);
+});
+
+test('producto finito: solo 6 configuraciones de reposo y 2 capas independientes',async()=>{
+ const {GARMENT_CATALOG,DEFAULT_CONFIGURATION,stateForConfiguration,
+  recommendPreviewConfiguration}=await import('../configurador-3d/fit-lab/garment-catalog.mjs');
+ assert.equal(Object.keys(GARMENT_CATALOG).length,6);
+ assert.equal(DEFAULT_CONFIGURATION,'N1-2');
+ const codes=['N1-1','N1-2','N1-3','N2-1','N2-2','N2-3'];
+ assert.deepEqual(Object.keys(GARMENT_CATALOG),codes);
+ assert.equal(stateForConfiguration('N1-1').garmentChestCm,98);
+ assert.equal(stateForConfiguration('N1-2').garmentChestCm,102);
+ assert.equal(stateForConfiguration('N2-3').garmentChestCm,124);
+ assert.equal(new Set(codes.map(c=>GARMENT_CATALOG[c].lengthCm)).size,2);
+ assert.throws(()=>stateForConfiguration('N3-1'),/desconocida/);
+ const proposal=recommendPreviewConfiguration({...DEFAULT_FIT,desiredLengthCm:76,
+  bodyChestCm:111,bodyHipCm:122});
+ assert.equal(proposal.previewCode,'N2-3');
+ assert.equal(proposal.lateralPosition,null);
+ assert.equal(proposal.industrialApproved,false);
+ assert.equal((html.match(/data-rest-option=/g)||[]).length,6);
+ assert.match(html,/id="show-garment"/);
+ assert.match(html,/id="show-body"/);
+ assert.match(app,/garment:garment\.checked/);
+ assert.match(app,/if\(key\.startsWith\('garment'\)\)return/);
+});
+test('diagrama 2D: altura y largo comparten escala vertical, sin antropometría certificada',async()=>{
+ const {createScaleSilhouettes,DIAGRAM_SCALE,SHOULDER_HEIGHT_RATIO}=
+  await import('../configurador-3d/fit-lab/scale-diagram.mjs');
+ assert.equal(DIAGRAM_SCALE,1.26);
+ assert.equal(SHOULDER_HEIGHT_RATIO,.82);
+ const v=createScaleSilhouettes({...DEFAULT_FIT,estimatedFrontHemLiftCm:3});
+ const w=createScaleSilhouettes({...DEFAULT_FIT,estimatedFrontHemLiftCm:0});
+ assert.ok(v.bodyFront.length>100&&v.shirtFront.length>40);
+ assert.equal(v.nominalLengthCm,64);
+ assert.equal(v.bodyHeightCm,160);
+ assert.ok(Math.abs(v.nominalHemY-v.frontHemY-3*DIAGRAM_SCALE)<.01);
+ assert.equal(v.scalePxPerCm,DIAGRAM_SCALE);
+ assert.equal(v.shoulderY,w.shoulderY);
+ assert.ok(v.frontHemY<w.frontHemY);
+ const lateral=createScaleSilhouettes({...DEFAULT_FIT,bodyProfile:'lateral'});
+ assert.notEqual(lateral.bodySide,v.bodySide);
+ for(const id of ['fit-scale-diagram','scale-body-front','scale-body-side',
+  'scale-shirt-front','scale-shirt-side','scale-hem-lift']){
+  assert.match(html,new RegExp('id="'+id+'"'));
+ }
+ assert.match(html,/escala vertical/);
+ assert.match(app,/function updateScaleDiagram\(\)/);
 });
