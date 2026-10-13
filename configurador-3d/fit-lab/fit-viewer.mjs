@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createFreeTestJersey } from '../free-test-jersey.mjs';
-import { createReferenceBody, deformBody, deformGarment, normalizeFit } from './fit-geometry.mjs';
+import { createReferenceBody, applyFitToModels, measureCrossSection } from './fit-geometry.mjs';
 
 export function createFitViewer(canvas,initial){
   if(!canvas || !canvas.parentElement)throw Error('Canvas de laboratorio requerido');
@@ -77,9 +77,8 @@ export function createFitViewer(canvas,initial){
   tick();
   const api={
     update(values){
-      const v=normalizeFit(values);
-      deformBody(mannequin,v);
-      deformGarment(garment,v);
+      // Único controlador común: las etiquetas nunca se pierden en esta frontera.
+      applyFitToModels(mannequin,garment,values);
       return {body:mannequin,garment};
     },
     setVisual(flags){
@@ -91,6 +90,13 @@ export function createFitViewer(canvas,initial){
       camera.position.set(...coords);
       controls.target.set(0,0,0);
       controls.update();
+    },
+    // Cálculo sobre vértices, sin equivalencia antropométrica en centímetros.
+    measureChestSections(){
+      return {
+        body:measureCrossSection(mannequin,.27),
+        garment:measureCrossSection(garment,.27)
+      };
     },
     // Únicamente referencia geométrica. No interpretar como separación de tejido medida en cm.
     geometryDiagnostics(){

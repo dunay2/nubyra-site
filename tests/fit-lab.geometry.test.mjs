@@ -4,7 +4,7 @@ import {resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {createFreeTestJersey} from '../configurador-3d/free-test-jersey.mjs';
 import {
-  DEFAULT_FIT,createReferenceBody,deformBody,deformGarment,getBodyExtentAt
+  DEFAULT_FIT,createReferenceBody,deformBody,deformGarment,getBodyExtentAt,applyFitToModels,measureCrossSection
 } from '../configurador-3d/fit-lab/fit-geometry.mjs';
 
 const home=process.env.THREE_TEST_DIR;
@@ -81,6 +81,80 @@ if(!home){
       if(y>1.08){highest++;assert.ok(Math.abs(diff)<.002)}
     }
     assert.ok(lower>0&&highest>0);
+  });
+
+  test('etiquetas corporales -1/0/+1: cambia volumen 3D sin alterar centímetros ni camiseta',()=>{
+    const body=createReferenceBody(THREE),garment=createFreeTestJersey(THREE);
+    const initialGarment=clone(garment.children[0].geometry);
+    deformBody(body,DEFAULT_FIT);
+    const before=sectionExtent(body,.27);
+    deformBody(body,{...DEFAULT_FIT,bodyChestState:1});
+    const expanded=sectionExtent(body,.27);
+    assert.ok(expanded.x>before.x*1.08,'+1 debe ensanchar pecho');
+    assert.ok(expanded.z>before.z*1.07,'+1 debe incrementar profundidad');
+    deformBody(body,{...DEFAULT_FIT,bodyChestState:-1});
+    const reduced=sectionExtent(body,.27);
+    assert.ok(reduced.x<before.x*.94,'-1 debe reducir pecho');
+    assert.deepEqual(clone(garment.children[0].geometry),initialGarment,'la camiseta no cambia');
+    deformBody(body,{...DEFAULT_FIT,bodyChestState:0});
+    assert.ok(Math.abs(sectionExtent(body,.27).x-before.x)<1e-6);
+  });
+  test('etiquetas de prenda -1/0/+1: pecho, cadera y largo con cuerpo fijo y UV intactas',()=>{
+    const body=createReferenceBody(THREE),garment=createFreeTestJersey(THREE);
+    const originalBody=clone(body.geometry);
+    const front=garment.getObjectByName('NUBYRA_Test_Jersey_Front');
+    const baseUV=uv(front.geometry);
+    deformGarment(garment,DEFAULT_FIT);
+    const baselineChest=sectionExtent(front,.27),baselineHip=sectionExtent(front,-.98);
+    deformGarment(garment,{...DEFAULT_FIT,garmentChestState:1});
+    assert.ok(sectionExtent(front,.27).x>baselineChest.x*1.07);
+    deformGarment(garment,{...DEFAULT_FIT,garmentHipState:1});
+    assert.ok(sectionExtent(front,-.98).x>baselineHip.x*1.07);
+    deformGarment(garment,{...DEFAULT_FIT,garmentLengthState:1});
+    let minimum=Infinity;
+    const position=front.geometry.getAttribute('position');
+    for(let i=0;i<position.count;i++)minimum=Math.min(minimum,position.getY(i));
+    assert.ok(minimum < -1.39,'+1 largo debe desplazar el bajo');
+    assert.deepEqual(clone(body.geometry),originalBody,'el cuerpo permanece fijo');
+    assert.deepEqual(uv(front.geometry),baseUV,'la UV no debe cambiar');
+    deformGarment(garment,DEFAULT_FIT);
+    assert.ok(Math.abs(sectionExtent(front,.27).x-baselineChest.x)<1e-6);
+  });
+  test('regresión real del visor: botones -1/+1 llegan al controlador y modifican las mallas',()=>{
+    const body=createReferenceBody(THREE),garment=createFreeTestJersey(THREE);
+    applyFitToModels(body,garment,DEFAULT_FIT);
+    const initialBody=measureCrossSection(body,.27);
+    const initialGarment=measureCrossSection(garment,.27);
+    const fixedShirt=clone(garment.getObjectByName('NUBYRA_Test_Jersey_Front').geometry);
+    const resolved=applyFitToModels(body,garment,{...DEFAULT_FIT,bodyChestState:1});
+    assert.equal(resolved.bodyChestState,1);
+    const expandedBody=measureCrossSection(body,.27);
+    assert.ok(expandedBody.width>initialBody.width*1.10,'el botón +1 debe ampliar laterales corporales');
+    assert.ok(expandedBody.front>initialBody.front*1.08,'el frente corporal crece');
+    assert.ok(expandedBody.back>initialBody.back*1.08,'la espalda corporal también crece');
+    assert.deepEqual(clone(garment.getObjectByName('NUBYRA_Test_Jersey_Front').geometry),fixedShirt);
+    applyFitToModels(body,garment,{...DEFAULT_FIT,garmentChestState:1});
+    const enlarged=measureCrossSection(garment,.27);
+    assert.ok(enlarged.width>initialGarment.width*1.10,'el botón +1 de prenda debe ampliar laterales');
+    assert.ok(enlarged.front>initialGarment.front*1.09,'debe crecer hacia el frente');
+    assert.ok(enlarged.back>initialGarment.back*1.09,'debe crecer también hacia la espalda');
+    const bodyRestored=measureCrossSection(body,.27);
+    assert.ok(Math.abs(bodyRestored.width-initialBody.width)<1e-6,'el cuerpo queda fijo en modo B');
+    assert.ok(Math.abs(bodyRestored.back-initialBody.back)<1e-6,'la espalda del cuerpo permanece fija');
+  });
+  test('sección medida responde a pecho y mantiene simetría de ancho y profundidad posterior',()=>{
+    const body=createReferenceBody(THREE),garment=createFreeTestJersey(THREE);
+    applyFitToModels(body,garment,DEFAULT_FIT);
+    const base=measureCrossSection(garment,.27);
+    assert.ok(base.vertices>=10);
+    assert.ok(base.width>0.5 && base.front>0 && base.back>0);
+    applyFitToModels(body,garment,{...DEFAULT_FIT,garmentChestCm:130});
+    const enlarged=measureCrossSection(garment,.27);
+    assert.ok(enlarged.width>base.width*1.2,'ajuste continuo de ancho desde slider');
+    assert.ok(enlarged.front>base.front*1.2,'profundidad delantera');
+    assert.ok(enlarged.back>base.back*1.2,'profundidad posterior');
+    assert.throws(()=>measureCrossSection(null,.27),/malla o grupo 3D/);
+    assert.throws(()=>measureCrossSection(garment,12),/No hay vértices/);
   });
   test('restablecimiento determinista: volver al estado base recupera vértices y mantiene UV',()=>{
     const group=createFreeTestJersey(THREE);

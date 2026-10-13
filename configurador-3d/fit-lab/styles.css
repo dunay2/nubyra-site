@@ -60,3 +60,31 @@ footer{font-size:11px;color:#7b8e9e;margin-top:45px;padding:22px 0;border-top:1p
 @media(max-width:1080px){.workspace{grid-template-columns:1fr}.scene{height:560px;min-height:470px}.intro{grid-template-columns:1fr}.intro-tip{max-width:750px}}
 @media(max-width:620px){.topbar{min-height:68px;padding:0 18px}.brand{font-size:24px}.top-subtitle{display:none}.label-beta{margin-left:auto;font-size:8px;max-width:160px;text-align:center}.wrap{padding:25px 16px}.intro h1{font-size:35px}.intro-tip{padding:12px}.scene{height:445px;min-height:360px}.panel-header{padding:18px}.panel-header h2{font-size:14px}.pill{font-size:9px}.editor{padding:20px 16px}.camera-controls button{font-size:11px;padding:8px 13px}.display-options label{font-size:10px}.result-grid strong{font-size:21px}}
 @media(prefers-reduced-motion:reduce){:root{scroll-behavior:auto}}
+
+/* Etiquetas geométricas: estados ilustrativos -1/0/+1, NO clases humanas ni rangos en cm. */
+.discrete-hint{padding:12px 14px;margin:0 0 18px;border:1px solid #cbdde8;border-radius:10px;background:#edf6fb;}
+.discrete-hint strong{font-size:12px;color:#0e4161;}
+.discrete-hint p{font-size:11px;line-height:1.55;color:#536b80;margin-top:6px;}
+.discrete-hint p strong{font-size:inherit;color:#294b64;}
+.discrete-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:9px;}
+.discrete-options button{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:3px;min-width:0;min-height:44px;padding:7px 5px;background:#f5f8fa;color:#37536b;border:1px solid #dbe5ed;border-radius:8px;}
+.discrete-options button span{font-size:14px;line-height:1;font-weight:850;font-variant-numeric:tabular-nums;}
+.discrete-options button small{font-size:10px;color:inherit;line-height:1.2;}
+.discrete-options button[aria-pressed=true]{background:#123753;border-color:#123753;color:white;}
+.discrete-options button:hover:not(:disabled){border-color:#1d769e;}
+.discrete-options button:disabled{cursor:not-allowed;}
+.discrete-status{font-size:11px;line-height:1.5;margin:0 0 14px;padding:10px 12px;border-radius:8px;background:#e7f3f9;color:#345974;}
+.result .discrete-status{margin-top:0;font-size:11px;color:#345974;}
+@media(max-width:620px){.discrete-options button{min-height:48px}.discrete-hint{padding:11px}.discrete-options{gap:5px}}
+
+/* Diagnóstico visible de deformación sobre vértices: anchura, frente y espalda. */
+.geometry-feedback{border-top:1px solid #dce6ed;padding:17px 21px 19px;background:#f3f8fb}
+.geometry-feedback__top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.geometry-feedback__top span{font-size:10px;color:#587388;letter-spacing:.08em;font-weight:850}
+.geometry-feedback__top strong{font-size:11px;color:#124664;border:1px solid #b7d6e5;background:#fff;border-radius:15px;padding:6px 11px;white-space:nowrap}
+.geometry-feedback__stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.geometry-feedback__stats>div{background:#fff;border:1px solid #d6e4ec;border-radius:10px;min-width:0;padding:11px 12px}
+.geometry-feedback__stats small{display:block;color:#597184;font-size:10px;line-height:1.4;min-height:30px}
+.geometry-feedback__stats strong{display:block;color:#123c55;font-size:22px;letter-spacing:-.04em;line-height:1.25;font-variant-numeric:tabular-nums;margin-top:7px}
+.geometry-feedback>p{color:#698293;font-size:10px;line-height:1.55;margin-top:12px}
+@media(max-width:620px){.geometry-feedback{padding:15px 12px}.geometry-feedback__top{flex-wrap:wrap}.geometry-feedback__stats{gap:5px}.geometry-feedback__stats>div{padding:9px 7px}.geometry-feedback__stats small{min-height:43px;font-size:9px}.geometry-feedback__stats strong{font-size:18px}}

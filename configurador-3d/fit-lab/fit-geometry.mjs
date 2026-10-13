@@ -3,7 +3,8 @@
  * Entradas en cm de DEMOSTRACIÓN. Sin calibración antropométrica, sin fitting ni fabricación.
  * El cuerpo es un volumen sintético abstracto, nunca la representación de una jugadora.
  */
-export const FIT_VERSION='nubyra.fit-lab/0.1';
+import { effectFor, normalizeLabels, serializeLabels } from './discrete-states.mjs';
+export const FIT_VERSION='nubyra.fit-lab/0.2';
 export const DEFAULT_FIT=Object.freeze({
   bodyChestCm:88,bodyHipCm:96,bodyHeightCm:160,
   garmentChestCm:102,garmentHipCm:110,garmentLengthCm:64
@@ -26,11 +27,19 @@ export function normalizeFit(values){
   }
   return result;
 }
+/**
+ * Contrato único del visor: conserva medidas y etiquetas independientes.
+ * El visor previo normalizaba SOLO cm, borrando -1/+1 antes del morph.
+ */
+export function normalizeRenderFit(values){
+  return {...normalizeFit(values),...normalizeLabels(values)};
+}
 export function serializeFit(state){
   const values=normalizeFit(state);
   return {
     schema:FIT_VERSION,
     status:'experimental-not-manufacturing-approved',
+    discretization:serializeLabels(state),
     kind:'synthetic-geometry-not-anthropometric',
     body:{chestCm:values.bodyChestCm,hipCm:values.bodyHipCm,heightReferenceCm:values.bodyHeightCm},
     garment:{chestTargetCm:values.garmentChestCm,hipTargetCm:values.garmentHipCm,
@@ -39,7 +48,7 @@ export function serializeFit(state){
       chest:values.garmentChestCm-values.bodyChestCm,
       hip:values.garmentHipCm-values.bodyHipCm
     },
-    note:'Entradas ilustrativas en cm: NO son perímetros medidos sobre la malla, ni holguras útiles certificadas. No se ha evaluado material elástico, fricción, tensión o fabricación.'
+    note:'Entradas numéricas y etiquetas -1/0/+1 ilustrativas e independientes: NO son perímetros medidos sobre la malla, ni holguras útiles certificadas. Las etiquetas no corresponden todavía a intervalos en centímetros. No se ha evaluado material elástico, fricción, tensión o fabricación.'
   };
 }
 export function nominalDifferences(input){
@@ -109,21 +118,25 @@ function changePositions(mesh,transform){
 export function deformBody(mesh,values){
   if(mesh?.userData?.fitRole!=='body')throw Error('Se esperaba la malla corporal');
   const v=normalizeFit(values);
-  const deltaChest=v.bodyChestCm/DEFAULT_FIT.bodyChestCm-1;
-  const deltaHip=v.bodyHipCm/DEFAULT_FIT.bodyHipCm-1;
+  const deltaChest=v.bodyChestCm/DEFAULT_FIT.bodyChestCm-1+effectFor(values,'bodyChestState');
+  const deltaHip=v.bodyHipCm/DEFAULT_FIT.bodyHipCm-1+effectFor(values,'bodyHipState');
   changePositions(mesh,(x,y,z)=>{
     const chest=gauss((y-.28)/.43),hip=gauss((y+.98)/.46);
-    const scale=1+deltaChest*chest+deltaHip*hip;
-    return [x*scale,y,(z+.005)*scale-.005];
+    // Contorno transversal completo: pecho se amplía a ambos lados y en ambos fondos.
+    const lateral=1+1.32*deltaChest*chest+1.04*deltaHip*hip;
+    const depth=1+1.16*deltaChest*chest+1.02*deltaHip*hip;
+    const centered=z+.005,side=Math.sign(centered);
+    const balancedBackAndFront=side*.024*deltaChest*chest;
+    return [x*lateral,y,centered*depth+balancedBackAndFront-.005];
   });
   return mesh;
 }
 export function deformGarment(group,values){
   if(!group?.traverse)throw Error('La prenda debe ser un grupo de mallas independiente');
   const v=normalizeFit(values);
-  const deltaChest=v.garmentChestCm/DEFAULT_FIT.garmentChestCm-1;
-  const deltaHip=v.garmentHipCm/DEFAULT_FIT.garmentHipCm-1;
-  const extraLength=(v.garmentLengthCm-DEFAULT_FIT.garmentLengthCm)/40;
+  const deltaChest=v.garmentChestCm/DEFAULT_FIT.garmentChestCm-1+effectFor(values,'garmentChestState');
+  const deltaHip=v.garmentHipCm/DEFAULT_FIT.garmentHipCm-1+effectFor(values,'garmentHipState');
+  const extraLength=(v.garmentLengthCm-DEFAULT_FIT.garmentLengthCm)/40+effectFor(values,'garmentLengthState');
   let count=0;
   group.traverse(mesh=>{
     if(!mesh.isMesh || !mesh.geometry?.getAttribute('position'))return;
@@ -131,17 +144,30 @@ export function deformGarment(group,values){
     changePositions(mesh,(x,y,z)=>{
       const bustWeight=gauss((y-.27)/.44);
       const hipWeight=gauss((y+1.02)/.48);
-      const radial=1+deltaChest*bustWeight+deltaHip*hipWeight;
-      // Ensanchar y dar profundidad por separado mantiene un volumen real en 3D.
-      const depth=1+1.12*deltaChest*bustWeight+.94*deltaHip*hipWeight;
+      // Apertura transversal: la variación de pecho modifica laterales, frente Y espalda.
+      // Esta es una demostración geométrica, no una correspondencia de perímetros en cm.
+      const lateral=1+1.48*deltaChest*bustWeight+1.10*deltaHip*hipWeight;
+      const depth=1+1.26*deltaChest*bustWeight+1.00*deltaHip*hipWeight;
+      const balancedBackAndFront=Math.sign(z)*.032*deltaChest*bustWeight;
       // El escote y hombros apenas se desplazan; el bajo absorbe el largo.
       const lower=smooth((.53-y)/1.75);
       const shiftedY=y-extraLength*lower;
-      return [x*radial,shiftedY,z*depth];
+      return [x*lateral,shiftedY,z*depth+balancedBackAndFront];
     });
   });
   if(count===0)throw Error('Prenda sin superficies deformables');
   return count;
+}
+/**
+ * Único punto de entrada de la interacción A/B (barras y botones discretos).
+ * Convierte estado de UI en un contrato compartido, no elimina las etiquetas.
+ * Las dos mallas conservan sus propias referencias y posiciones iniciales.
+ */
+export function applyFitToModels(body,garment,state){
+  const v=normalizeRenderFit(state);
+  deformBody(body,v);
+  deformGarment(garment,v);
+  return v;
 }
 // Inspección aproximada, NO holgura verificada ni perímetro real calculado.
 export function getBodyExtentAt(mesh,y,band=.035){
@@ -153,4 +179,38 @@ export function getBodyExtentAt(mesh,y,band=.035){
     maxZ=Math.max(maxZ,Math.abs(p.getZ(i)));
   }
   return {halfWidth:maxX,halfDepth:maxZ};
+}
+
+/**
+ * Diagnóstico derivado directamente de vértices cerca de una altura 3D.
+ * Devuelve anchura y profundidades (frontal y posterior), en unidades del modelo.
+ * No mide perímetro de cinta ni certifica holgura física.
+ */
+export function measureCrossSection(object,atY=.27,band=.060){
+  if(!object?.traverse)throw Error('Se necesita una malla o grupo 3D');
+  if(!Number.isFinite(atY)||!(band>0))throw Error('Sección transversal inválida');
+  let minX=Infinity,maxX=-Infinity,minZ=Infinity,maxZ=-Infinity,count=0;
+  object.traverse(mesh=>{
+    if(!mesh?.isMesh||!mesh.geometry?.getAttribute('position'))return;
+    if(mesh.name?.startsWith('trim-'))return;
+    const a=mesh.geometry.getAttribute('position');
+    for(let i=0;i<a.count;i++){
+      if(Math.abs(a.getY(i)-atY)>band)continue;
+      const x=a.getX(i),z=a.getZ(i);
+      if(!Number.isFinite(x)||!Number.isFinite(z))continue;
+      minX=Math.min(minX,x);maxX=Math.max(maxX,x);
+      minZ=Math.min(minZ,z);maxZ=Math.max(maxZ,z);
+      count++;
+    }
+  });
+  if(count<6||!Number.isFinite(minX)||!Number.isFinite(minZ)){
+    throw Error('No hay vértices suficientes en la sección de ensayo');
+  }
+  return {
+    width:maxX-minX,
+    front:Math.max(0,maxZ),
+    back:Math.max(0,-minZ),
+    depth:maxZ-minZ,
+    vertices:count
+  };
 }
