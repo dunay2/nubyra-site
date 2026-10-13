@@ -183,37 +183,55 @@ export async function initViewer(canvas,state,onWarnings){
  const controls=new OrbitControls(camera,canvas);controls.target.set(0,0,0);controls.enablePan=false;
  controls.minDistance=3.4;controls.maxDistance=8.5;controls.minPolarAngle=.68;controls.maxPolarAngle=2.45;
  controls.enableDamping=true;controls.dampingFactor=.07;controls.update();
- let external=null,disposed=false,safe=false;
+ let external=null,sourceScene=null,meshDescriptors=[],originalSurfaces=new Map(),disposed=false,safe=false;
  const resize=()=>{const parent=canvas.parentElement,w=Math.max(1,parent.clientWidth),h=Math.max(1,parent.clientHeight);
   renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();};
  const observer=new ResizeObserver(resize);observer.observe(canvas.parentElement);resize();
- const frame=()=>{if(disposed)return;controls.update();renderer.render(scene,camera);requestAnimationFrame(frame);};frame();
-
- function installImportedModel(gltf,audit,rotateDegrees=0) {
-   if(![0,180].includes(Number(rotateDegrees))) throw new Error('Orientación no permitida');
-   gltf.scene.rotation.y+=Number(rotateDegrees)*Math.PI/180;
-   gltf.scene.updateMatrixWorld(true);
-   const bounds=new THREE.Box3().setFromObject(gltf.scene);
-   const size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
-   if(!Number.isFinite(size.y)||size.y<=.01)throw new Error('Geometría inválida');
-   // El mapeo frontal/trasero es PROVISIONAL; requiere revisión de la malla comprada.
-   const projected=projectGarment(gltf.scene,atlas);
-   const group=new THREE.Group();
-   group.name='Modelo GLB o glTF externo · importación local';
-   gltf.scene.position.sub(center);
-   group.add(gltf.scene);
-   group.scale.setScalar(2.52/size.y);
-   if(external)pivot.remove(external);
-   if(demo){pivot.remove(demo.group);demo=null;}
-   external=group;
-   pivot.add(group);
-   printFront.mesh.visible=false;
-   printBack.mesh.visible=false;
+ const frame=()=>{if(disposed)return;controls.update();renderer function restoreSurfaces(){
+  for(const [m,original] of originalSurfaces){
+   if(m.geometry!==original.geometry)m.geometry.dispose();
+   if(m.material!==original.material)m.material.dispose();
+   m.geometry=original.geometry;m.material=original.material;
+  }
+  originalSurfaces.clear();
+ }
+ function installImportedModel(gltf,audit,rotateDegrees=0){
+  if(![0,180].includes(Number(rotateDegrees)))throw new Error('Orientación no permitida');
+  gltf.scene.rotation.y+=Number(rotateDegrees)*Math.PI/180;
+  gltf.scene.updateMatrixWorld(true);
+  const bounds=new THREE.Box3().setFromObject(gltf.scene);
+  const size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
+  if(!Number.isFinite(size.y)||size.y<=.01)throw new Error('Geometría inválida');
+  const descriptors=describeGarmentMeshes(gltf.scene);
+  if(!descriptors.length)throw new Error('No hay mallas inspeccionables');
+  const group=new THREE.Group();group.name='Modelo importado local · pendiente de selección de tejido';
+  gltf.scene.position.sub(center);group.add(gltf.scene);group.scale.setScalar(2.52/size.y);
+  restoreSurfaces();
+  if(external)pivot.remove(external);
+  if(demo){pivot.remove(demo.group);demo=null;}
+  sourceScene=gltf.scene;meshDescriptors=descriptors;external=group;pivot.add(group);
+  printFront.mesh.visible=false;printBack.mesh.visible=false;
+  return {meshes:audit.meshes,uvMeshes:audit.uvPrimitives,triangles:audit.triangles,
+    meshCandidates:descriptors,projectedMeshes:0,
+    warning:'Modelo importado sin alterar materiales. Elige las mallas de tejido antes de aplicar los marcajes.'};
+ }
+ function applyGarmentSelection(ids){
+  if(!sourceScene)throw new Error('Importa un modelo antes de seleccionar la camiseta');
+  const selected=validateGarmentMeshChoice(meshDescriptors,ids);
+  restoreSurfaces();
+  sourceScene.traverse(mesh=>{
+   if(mesh.isMesh&&selected.includes(mesh.userData.nubyraMeshId))
+     originalSurfaces.set(mesh,{geometry:mesh.geometry,material:mesh.material});
+  });
+  try{
+   sourceScene.updateMatrixWorld(true);
+   const info=projectGarment(sourceScene,atlas,selected);
    redrawAtlas(atlas,printFront,printBack,state);
-   return {
-     meshes:audit.meshes,uvMeshes:audit.uvPrimitives,triangles:audit.triangles,
-     projectedMeshes:projected.selectedMeshes,meshNames:audit.meshNames,
-     warning:'Modelo externo en memoria local, no publicado. Proyección ilustrativa: revisar selección de tejido, orientación, UV industriales y derechos de explotación.'
+   return {applied:selected.length,projectedMeshes:info.selectedMeshes,
+     warning:'Marcajes aplicados a la selección de tejido. La proyección y medidas siguen sin calibración industrial.'};
+  }catch(error){restoreSurfaces();throw error}
+ }
+entación, UV industriales y derechos de explotación.'
    };
  }
  const controller={
