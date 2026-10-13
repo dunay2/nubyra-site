@@ -129,9 +129,9 @@ async function loadFreeModel(){
    for(const input of $('mesh-list').querySelectorAll('input[type=checkbox]'))input.checked=accepted.has(input.value);
    const result=viewer.applyGarmentSelection([...accepted]);
    viewer.update(state);viewer.view('quarter');
-   modelWarning='Modelo libre de ensayo (CC0): visualización y marcajes provisionales, sin validación industrial.';
+   modelWarning='Modelo propio de ensayo NUBYRA: visualización y marcajes provisionales, sin validación industrial.';
    $('mesh-result').textContent='Camiseta de prueba: '+result.projectedMeshes+' superficies con marcajes.';
-   $('model-caption').textContent='NUBYRA · Prueba femenina CC0 · '+info.triangles.toLocaleString('es-ES')+' triángulos · sin descarga';
+   $('model-caption').textContent='NUBYRA · Prueba femenina NUBYRA · '+info.triangles.toLocaleString('es-ES')+' triángulos · sin descarga';
    $('render-status').textContent='CAMISETA DE PRUEBA 3D';
    validate();
  }catch(error){
