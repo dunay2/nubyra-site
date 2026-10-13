@@ -76,3 +76,15 @@ footer{font-size:11px;color:#7b8e9e;margin-top:45px;padding:22px 0;border-top:1p
 .discrete-status{font-size:11px;line-height:1.5;margin:0 0 14px;padding:10px 12px;border-radius:8px;background:#e7f3f9;color:#345974;}
 .result .discrete-status{margin-top:0;font-size:11px;color:#345974;}
 @media(max-width:620px){.discrete-options button{min-height:48px}.discrete-hint{padding:11px}.discrete-options{gap:5px}}
+
+/* Diagnóstico visible de deformación sobre vértices: anchura, frente y espalda. */
+.geometry-feedback{border-top:1px solid #dce6ed;padding:17px 21px 19px;background:#f3f8fb}
+.geometry-feedback__top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.geometry-feedback__top span{font-size:10px;color:#587388;letter-spacing:.08em;font-weight:850}
+.geometry-feedback__top strong{font-size:11px;color:#124664;border:1px solid #b7d6e5;background:#fff;border-radius:15px;padding:6px 11px;white-space:nowrap}
+.geometry-feedback__stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.geometry-feedback__stats>div{background:#fff;border:1px solid #d6e4ec;border-radius:10px;min-width:0;padding:11px 12px}
+.geometry-feedback__stats small{display:block;color:#597184;font-size:10px;line-height:1.4;min-height:30px}
+.geometry-feedback__stats strong{display:block;color:#123c55;font-size:22px;letter-spacing:-.04em;line-height:1.25;font-variant-numeric:tabular-nums;margin-top:7px}
+.geometry-feedback>p{color:#698293;font-size:10px;line-height:1.55;margin-top:12px}
+@media(max-width:620px){.geometry-feedback{padding:15px 12px}.geometry-feedback__top{flex-wrap:wrap}.geometry-feedback__stats{gap:5px}.geometry-feedback__stats>div{padding:9px 7px}.geometry-feedback__stats small{min-height:43px;font-size:9px}.geometry-feedback__stats strong{font-size:18px}}
