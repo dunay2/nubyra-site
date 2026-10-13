@@ -11,6 +11,25 @@ export const BODY_PROFILES=Object.freeze({
   lateral:Object.freeze({code:'lateral',label:'Distribución lateral',lateral:1.65,front:1.25,back:0}),
   thorax:Object.freeze({code:'thorax',label:'Volumen torácico distribuido',lateral:1.32,front:1.12,back:.58})
 });
+/**
+ * Relieve del busto: variable geométrica independiente del perímetro de pecho.
+ * CERO = ausencia de protrusión local; NUNCA se admiten niveles negativos.
+ * No es una medida antropométrica en cm.
+ */
+export const BUST_PROJECTION_MIN=0;
+export const BUST_PROJECTION_MAX=10;
+export const DEFAULT_BUST_PROJECTION=3;
+export function normalizeBustProjection(value){
+  const n=Number(value);
+  return Number.isFinite(n)?Math.max(BUST_PROJECTION_MIN,
+    Math.min(BUST_PROJECTION_MAX,n)):DEFAULT_BUST_PROJECTION;
+}
+export function bustProtrusionUnits(level,profile='front'){
+  const value=normalizeBustProjection(level);
+  const factor=getBodyProfile(profile).front/BODY_PROFILES.front.front;
+  // En 0 no existe relieve extra ni depresión.
+  return value/10*.24*factor;
+}
 export const DEFAULT_BODY_PROFILE='front';
 export function getBodyProfile(code=DEFAULT_BODY_PROFILE){
   return BODY_PROFILES[code]??BODY_PROFILES[DEFAULT_BODY_PROFILE];
