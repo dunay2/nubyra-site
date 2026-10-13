@@ -169,3 +169,37 @@ export function getBodyExtentAt(mesh,y,band=.035){
   }
   return {halfWidth:maxX,halfDepth:maxZ};
 }
+
+/**
+ * Diagnóstico derivado directamente de vértices cerca de una altura 3D.
+ * Devuelve anchura y profundidades (frontal y posterior), en unidades del modelo.
+ * No mide perímetro de cinta ni certifica holgura física.
+ */
+export function measureCrossSection(object,atY=.27,band=.060){
+  if(!object?.traverse)throw Error('Se necesita una malla o grupo 3D');
+  if(!Number.isFinite(atY)||!(band>0))throw Error('Sección transversal inválida');
+  let minX=Infinity,maxX=-Infinity,minZ=Infinity,maxZ=-Infinity,count=0;
+  object.traverse(mesh=>{
+    if(!mesh?.isMesh||!mesh.geometry?.getAttribute('position'))return;
+    if(mesh.name?.startsWith('trim-'))return;
+    const a=mesh.geometry.getAttribute('position');
+    for(let i=0;i<a.count;i++){
+      if(Math.abs(a.getY(i)-atY)>band)continue;
+      const x=a.getX(i),z=a.getZ(i);
+      if(!Number.isFinite(x)||!Number.isFinite(z))continue;
+      minX=Math.min(minX,x);maxX=Math.max(maxX,x);
+      minZ=Math.min(minZ,z);maxZ=Math.max(maxZ,z);
+      count++;
+    }
+  });
+  if(count<6||!Number.isFinite(minX)||!Number.isFinite(minZ)){
+    throw Error('No hay vértices suficientes en la sección de ensayo');
+  }
+  return {
+    width:maxX-minX,
+    front:Math.max(0,maxZ),
+    back:Math.max(0,-minZ),
+    depth:maxZ-minZ,
+    vertices:count
+  };
+}
