@@ -214,8 +214,10 @@ try{
   $('webgl').hidden=false;
   $('render-status').textContent='3D EN DIRECTO';
   $('render-status').classList.add('is-ready');
-  $('model-caption').textContent='Volumen demostrador (temporal) · importa un GLB para la opción B';
+  $('model-caption').textContent='Cargando camiseta de ensayo NUBYRA v2';
   viewer.update(state);
+  // Abrir el visor directamente con la topología regular v2, no con la antigua malla plana.
+  await loadFreeModel();
 }catch(error){
   flatMode=true;
   $('webgl').hidden=true;
