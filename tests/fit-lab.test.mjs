@@ -5,7 +5,7 @@ import {fileURLToPath} from 'node:url';
 import {dirname,resolve} from 'node:path';
 import {
   FIT_VERSION,DEFAULT_FIT,LIMITS,MODES,
-  normalizeFit,serializeFit,nominalDifferences
+  normalizeFit,normalizeRenderFit,serializeFit,nominalDifferences
 } from '../configurador-3d/fit-lab/fit-geometry.mjs';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..','configurador-3d','fit-lab');
@@ -56,8 +56,8 @@ test('viewer renderiza dos referencias de geometría separadas y nunca reescala 
  assert.match(viewer,/createReferenceBody\(THREE\)/);
  assert.match(viewer,/createFreeTestJersey\(THREE\)/);
  assert.match(viewer,/pivot\.add\(mannequin,garment\)/);
- assert.match(viewer,/deformBody\(mannequin,v\)/);
- assert.match(viewer,/deformGarment\(garment,v\)/);
+ assert.match(viewer,/applyFitToModels\(mannequin,garment,values\)/);
+ assert.match(viewer,/measureChestSections\(\)/);
  assert.match(viewer,/mannequin!==garment/);
  assert.ok(!viewer.includes('MPFB2'),'no hay dependencia de Blender en el navegador');
 });
@@ -113,4 +113,31 @@ test('JSON conserva medidas originales y etiqueta visual independiente sin patr�
  assert.equal(exported.discretization.calibration,'not-calibrated-to-centimeters');
  assert.equal(serializeLabels(original).purpose,'visual-simulation-only');
  assert.match(exported.note,/intervalos en centímetros/);
+});
+
+
+test('regresión: la normalización del visor no descarta los botones -1/+1',()=>{
+ const incoming={...DEFAULT_FIT,
+   bodyChestState:1,bodyHipState:-1,garmentChestState:1,
+   garmentHipState:-1,garmentLengthState:1};
+ const full=normalizeRenderFit(incoming);
+ assert.deepEqual(full,{...DEFAULT_FIT,...incoming});
+ assert.equal(full.bodyChestState,1);
+ assert.equal(full.garmentChestState,1);
+ assert.equal(full.garmentLengthState,1);
+ assert.deepEqual(normalizeRenderFit({bodyChestState:3,garmentChestState:'-1'}),
+   {...DEFAULT_FIT,...DEFAULT_LABELS,garmentChestState:-1});
+ assert.match(viewer,/applyFitToModels\(mannequin,garment,values\)/);
+});
+test('botón seleccionado produce indicador de ancho, frente y espalda tras actualizar la malla',()=>{
+ for(const id of ['mesh-mode-readout','shape-width','shape-front','shape-back']){
+   assert.match(html,new RegExp('id="'+id+'"'));
+ }
+ assert.match(app,/function updateGeometryFeedback\(\)/);
+ assert.match(app,/try\{viewer\.update\(state\);updateGeometryFeedback\(\);\}/);
+ assert.match(app,/referenceSections=viewer\.measureChestSections\(\)/);
+ assert.match(app,/button\.addEventListener\('click'/);
+ assert.match(css,/\.geometry-feedback__stats/);
+ assert.match(viewer,/measureCrossSection\(mannequin,\.27\)/);
+ assert.match(viewer,/measureCrossSection\(garment,\.27\)/);
 });
