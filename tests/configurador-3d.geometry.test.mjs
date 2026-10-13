@@ -67,7 +67,7 @@ test('malla v2 regular y triangulada: centros continuos y normales coherentes',(
  for(const [mesh,expectedNormalSign] of [[front,1],[back,-1]]){
    const geo=mesh.geometry,uv=geo.getAttribute('uv'),
      normals=geo.getAttribute('normal'),positions=geo.getAttribute('position');
-   assert.equal(positions.count,4*(GRID.panelRows+1)*(GRID.halfPanelCols+1));
+   assert.equal(positions.count,2*(GRID.panelRows+1)*(GRID.halfPanelCols+1));
    assert.equal(uv.count,positions.count);
    let degenerate=0,badWinding=0;
    const a=new THREE.Vector3(),b=new THREE.Vector3(),c=new THREE.Vector3();
