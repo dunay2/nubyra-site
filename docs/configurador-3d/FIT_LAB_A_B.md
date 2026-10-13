@@ -92,3 +92,43 @@ La pantalla mantiene un **único visor 3D fijo** (cuerpo sintético y prenda ind
 **Control de regresión:** pestañas accesibles con roles y flechas, visor persistente, estados independientes, campos de largo solicitado/visual distintos, cuerpo A separado de prenda B, calibración expresamente pendiente, JSON con candidato y posición industrial = null.
 
 **No incorporar en nubyra.es** hasta aprobación visual de la preview aislada de Vercel.
+
+
+## 13/10/2026 — Camiseta fija, caída estimada, capas y escala 2D
+
+Decisión funcional: no se genera una nueva talla de camiseta continuamente mientras cambian las medidas del cuerpo. La camiseta corresponde a **una configuración finita**, con dimensiones de reposo definidas, pero una misma configuración puede **caer de manera diferente** sobre distintas formas de cuerpo. Una mayor prominencia del busto puede consumir recorrido delantero de tejido y **elevar el bajo frontal**, sin que la camiseta aumente su cantidad de material ni que la espalda corporal crezca.
+
+### Catálogo de ensayo: seis, no infinitas
+
+Se han modelado seis **maquetas sintéticas y discretas** N1-1, N1-2, N1-3, N2-1, N2-2, N2-3. Todas surgen de los dos patrones base y tres posiciones previstas por la memoria; **las cotas numéricas de las seis maquetas son inventadas exclusivamente para probar el software, no homologadas**. Las posiciones reales 1/2/3 deberán definirse industrialmente; el sufijo elegido en pantalla **no equivale a una orden de fabricación aprobada**.
+
+Las dimensiones de reposo se recuperan de ese catálogo, no de los sliders corporales. Los antiguos controles libres de medida de camiseta son **solo lectura**. El motor propone una de las seis maquetas como simulación de comparación, pero no cambia la camiseta mostrada sin acción explícita. Si la medida queda fuera de referencias sintéticas, se marca revisión manual. No se asigna posición industrial validada.
+
+### Caída del tejido: hipótesis de modelado, NO física certificada
+
+El motor:
+1. Recalcula el cuerpo de referencia según pecho/cadera y el perfil geométrico seleccionado (frontal, lateral o torácico). Un perfil pectoral **frontal** no aumenta artificialmente Z posterior.
+2. Recrea la misma geometría de reposo de una de las seis camisetas, idéntica para dos cuerpos distintos.
+3. Comprueba la sección frontal de pecho y determina el desplazamiento delantero visual necesario a una distancia de referencia *en unidades de la malla*, no en cm.
+4. Aplica ese desplazamiento a la zona frontal con transición a costados y calcula una subida acotada del bajo frontal para preservar **aproximadamente una única trayectoria central del panel delantero**.
+5. Mantiene fijo el reverso geométrico si el único cambio es el busto frontal, conservando UV, y expone diagnósticos: proyección frontal y subida del bajo con equivalencia en cm *solo ilustrativa* según el largo nominal.
+
+No hay simulación de elementos finitos, XPBD validado, gravedad, mecánica de fibras, holgura garantizada, contacto completo, rozamiento, tensión certificada ni fitting industrial. Una sola trayectoria conservada no garantiza conservar todas las longitudes y áreas de panel. Antes de afirmaciones comerciales hace falta patronaje, material real y pruebas.
+
+### Capas 3D y silueta 2D proporcional
+
+- Controles independientes **Cuerpo** / **Camiseta** permiten mostrar ambas capas o solo una. Se evita el estado vacío de ambas apagadas.
+- El visor añade una vista **3/4 posterior** y mantiene frontal, lateral y espalda.
+- Imagen 2D dinámica en **vista frontal y lateral** con altura del cuerpo y longitud nominal de camiseta a la **misma escala vertical** de 1.26 píxeles por cm. Altera la silueta al cambiar medidas y perfil sintético. Permite visualizar caída inferior delantera y trasera de forma proporcional.
+- El anclaje estimado de hombro al **82 % de la altura**, el ancho/depth corporal deducidos mediante una sección elíptica y la estimación de caída son **supuestos gráficos**, no landmarks personales ni proporciones antropométricas verificadas. Escala fiel de longitud vertical no significa reproducción exacta del cuerpo.
+- La altura sigue siendo **auxiliar**; el largo solicitado y la longitud real de la camiseta elegida son datos distintos.
+
+### QA indispensable
+
+- Las seis alternativas son discretas y ninguna variación corporal modifica sus dimensiones de reposo.
+- A igualdad de talla, distintas proyecciones frontales pueden cambiar la caída del delantero sin mover artificialmente la espalda.
+- El perfil torácico explícito es el único que permite proyectar incremento de tórax hacia atrás.
+- Las capas 3D/2D se sincronizan; los campos permanecen accesibles y la navegación por pestañas funciona.
+- La silueta 2D mantiene escala vertical común y no presenta predicciones de calidad o ajuste.
+- La aplicación de una propuesta cambia la **variante de reposo**, no el cuerpo.
+- **nubyra.es no se modifica** antes de revisión visual humana y aprobación de integración.
