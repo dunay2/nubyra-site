@@ -4,6 +4,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { VIEW_ZONES, fitText, normalizeText, normalizeNumber } from './layout.mjs';
 import { inspectGlb, projectedAtlasUV } from './model-audit.mjs';
+import { chooseModelFiles, inspectLocalGltf, resolveLocalResource } from './model-package.mjs';
 
 function textileBump() {
   const canvas = document.createElement('canvas'); canvas.width=128; canvas.height=128;
@@ -186,6 +187,34 @@ export async function initViewer(canvas,state,onWarnings){
   renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();};
  const observer=new ResizeObserver(resize);observer.observe(canvas.parentElement);resize();
  const frame=()=>{if(disposed)return;controls.update();renderer.render(scene,camera);requestAnimationFrame(frame);};frame();
+
+ function installImportedModel(gltf,audit,rotateDegrees=0) {
+   if(![0,180].includes(Number(rotateDegrees))) throw new Error('Orientación no permitida');
+   gltf.scene.rotation.y+=Number(rotateDegrees)*Math.PI/180;
+   gltf.scene.updateMatrixWorld(true);
+   const bounds=new THREE.Box3().setFromObject(gltf.scene);
+   const size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
+   if(!Number.isFinite(size.y)||size.y<=.01)throw new Error('Geometría inválida');
+   // El mapeo frontal/trasero es PROVISIONAL; requiere revisión de la malla comprada.
+   const projected=projectGarment(gltf.scene,atlas);
+   const group=new THREE.Group();
+   group.name='Modelo GLB o glTF externo · importación local';
+   gltf.scene.position.sub(center);
+   group.add(gltf.scene);
+   group.scale.setScalar(2.52/size.y);
+   if(external)pivot.remove(external);
+   if(demo){pivot.remove(demo.group);demo=null;}
+   external=group;
+   pivot.add(group);
+   printFront.mesh.visible=false;
+   printBack.mesh.visible=false;
+   redrawAtlas(atlas,printFront,printBack,state);
+   return {
+     meshes:audit.meshes,uvMeshes:audit.uvPrimitives,triangles:audit.triangles,
+     projectedMeshes:projected.selectedMeshes,meshNames:audit.meshNames,
+     warning:'Modelo externo en memoria local, no publicado. Proyección ilustrativa: revisar selección de tejido, orientación, UV industriales y derechos de explotación.'
+   };
+ }
  const controller={
    update(s){const warnings=[];
     if(demo){demo.fabric.color.set(s.base);demo.accentMat.color.set(s.accent);demo.trimMat.color.set(s.trim);}
@@ -198,28 +227,26 @@ export async function initViewer(canvas,state,onWarnings){
    view(name){const pos={front:[0,0,5.5],quarter:[3.5,.6,4.3],back:[0,0,-5.5],side:[5.5,0,0]}[name]||[0,0,5.5];
      camera.position.set(...pos);controls.target.set(0,0,0);controls.update();},
    exportPng(){renderer.render(scene,camera);return canvas.toDataURL('image/png');},
-   async importModel(buffer){
-     // Gate ANTES de parsear buffers, texturas o materiales del usuario.
+   async importModel(buffer, {rotateDegrees=0}={}) {
      const audit=inspectGlb(buffer);
-     const loader=new GLTFLoader();const gltf=await new Promise((resolve,reject)=>loader.parse(buffer,'',resolve,reject));
-     const bounds=new THREE.Box3().setFromObject(gltf.scene);
-     const size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
-     if(!Number.isFinite(size.y)||size.y<=.01)throw new Error('Geometría inválida');
-     // Calibrar la malla antes de destruir/reemplazar la prenda anterior.
-     const projected=projectGarment(gltf.scene,atlas);
-     const g=new THREE.Group();g.name='Modelo GLB · atlas gráfico provisional';
-     gltf.scene.position.sub(center);g.add(gltf.scene);g.scale.setScalar(2.52/size.y);
-     if(external)pivot.remove(external);
-     if(demo){pivot.remove(demo.group);demo=null;}
-     external=g;pivot.add(g);
-     // La impresión pasa a material, no se superpone como una lámina flotante.
-     printFront.mesh.visible=false;printBack.mesh.visible=false;
-     redrawAtlas(atlas,printFront,printBack,state);
-     return {
-       meshes:audit.meshes,uvMeshes:audit.uvPrimitives,triangles:audit.triangles,
-       projectedMeshes:projected.selectedMeshes,
-       warning:'Textura proyectada sobre el tejido real (no son UV industriales). Confirmar cara +Z, licencia, contorno, posiciones y márgenes con patronista.'
-     };
+     const loader=new GLTFLoader();
+     const gltf=await loader.parseAsync(buffer,'');
+     return installImportedModel(gltf,audit,rotateDegrees);
+   },
+   async importFiles(files, {rotateDegrees=0}={}) {
+     const selected=chooseModelFiles(files);
+     if(selected.format==='glb') return this.importModel(await selected.model.arrayBuffer(),{rotateDegrees});
+     const manifest=inspectLocalGltf(await selected.model.text(),selected.resources);
+     const manager=new THREE.LoadingManager(),objectURLs=new Map();
+     manager.setURLModifier(uri=>resolveLocalResource(uri,selected.resources,objectURLs));
+     try {
+       const loader=new GLTFLoader(manager);
+       const gltf=await loader.parseAsync(JSON.stringify(manifest.document),'');
+       const report=installImportedModel(gltf,manifest.audit,rotateDegrees);
+       return {...report,unusedFiles:manifest.unused};
+     }finally{
+       for(const url of objectURLs.values()) URL.revokeObjectURL(url);
+     }
    },
    destroy(){disposed=true;observer.disconnect();controls.dispose();printFront.tex.dispose();printBack.tex.dispose();atlas.texture.dispose();renderer.dispose();}
  };
