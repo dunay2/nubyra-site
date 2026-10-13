@@ -219,3 +219,23 @@ export function measureCrossSection(object,atY=.27,band=.060){
     vertices:count
   };
 }
+
+/**
+ * Muestras reales del reverso en una sección de pecho.
+ * Se emplean solamente para dibujar la silueta superpuesta en vista espalda.
+ */
+export function backSurfaceProfile(mesh,atY=.27,band=.065){
+  const positions=mesh?.geometry?.getAttribute('position');
+  if(!positions)throw Error('La referencia no tiene geometría de espalda');
+  const bins=new Map();
+  for(let i=0;i<positions.count;i++){
+    const x=positions.getX(i),y=positions.getY(i),z=positions.getZ(i);
+    if(z>=-.02 || Math.abs(y-atY)>band)continue;
+    const key=Math.round(x*46),candidate={x,y:atY,z:z-.038,error:Math.abs(y-atY)};
+    const current=bins.get(key);
+    if(!current||candidate.error<current.error)bins.set(key,candidate);
+  }
+  const points=[...bins.values()].sort((a,b)=>a.x-b.x);
+  if(points.length<8)throw Error('La sección posterior carece de puntos de referencia');
+  return points.map(({x,y,z})=>({x,y,z}));
+}
