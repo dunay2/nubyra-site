@@ -17,10 +17,13 @@ export function jerseySVG(state, side, ctx, showSafe = false){
  const sponsor=front?state.sponsorFront:state.sponsorTop;
  const number=normalizeNumber(state.number)||'12';
  const fill=state.base, accent=state.accent, trim=state.trim, ink=state.text;
- const zones=showSafe?Object.values(z).map(bounding).join(''):'';
- const logo=front?`<text x="${center(z.brand)}" y="${z.brand.y+74}" fill="${trim}" font-size="72" font-weight="900" text-anchor="middle">N</text>`:`<text x="${center(z.brand)}" y="${z.brand.y+73}" fill="${accent}" font-size="68" font-weight="900" text-anchor="middle">N</text>`;
- const crestX=front?center(z.crest):0,crestY=front?z.crest.y+z.crest.height/2:0;
- const crest=front?(state.crestDataUrl?`<image href="${safe(state.crestDataUrl)}" x="${z.crest.x+11}" y="${z.crest.y+6}" width="${z.crest.width-22}" height="${z.crest.height-12}" preserveAspectRatio="xMidYMid meet"/>`:`<g transform="translate(${crestX-48} ${crestY-52})"><path d="M48 1 L84 18 L80 75 L48 98 L16 75 L12 18 Z" fill="none" stroke="${accent}" stroke-width="7"/><text x="48" y="60" font-size="34" fill="${trim}" font-weight="900" text-anchor="middle">NC</text></g>`):'';
+ const zones=showSafe ? Object.entries(z)
+  .filter(([key])=>key!=='brand'&&(key!=='crest'||Boolean(state.crestDataUrl)))
+  .map(([,box])=>bounding(box)).join('') : '';
+ const crest=front && state.crestDataUrl
+  ? `<image href="${safe(state.crestDataUrl)}" x="${z.crest.x+11}" y="${z.crest.y+6}" width="${z.crest.width-22}" height="${z.crest.height-12}" preserveAspectRatio="xMidYMid meet"/>`
+  : '';
+
   const art=front ? [mark(ctx,z.team,normalizeText(state.team),64,25,ink),mark(ctx,z.sponsor,normalizeText(sponsor),51,24,accent),mark(ctx,z.number,number,310,145,ink,900)].join(''):
  [mark(ctx,z.sponsorTop,normalizeText(sponsor),48,22,accent),mark(ctx,z.surname,normalizeText(state.surname),69,24,ink),mark(ctx,z.number,number,350,170,ink,900),mark(ctx,z.sponsorBottom,normalizeText(state.sponsorBottom),46,22,ink)].join('');
  return `<svg class="flat-shirt" role="img" aria-label="Camiseta NUBYRA ${front?'delantera':'espalda'} con personalización" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1536">
@@ -32,7 +35,7 @@ export function jerseySVG(state, side, ctx, showSafe = false){
   <path d="${front?neckFront:neckBack}" fill="none" stroke="${accent}" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
   <path d="M225 160 Q241 405 153 546 M799 160 Q783 405 871 546" fill="none" stroke="${accent}" stroke-width="18" stroke-linecap="round"/>
   <path d="M212 1394 Q512 1463 812 1394" stroke="${trim}" stroke-opacity=".52" fill="none" stroke-width="5"/>
-  ${zones}${logo}${crest}${art}
+  ${zones}${crest}${art}
   </svg>`;
 }
 
