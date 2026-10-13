@@ -5,18 +5,18 @@
 export const DESIGN_SIZE = Object.freeze({ width: 1024, height: 1536 });
 export const VIEW_ZONES = Object.freeze({
   front: Object.freeze({
-    brand: { x: 188, y: 304, width: 170, height: 104 },
-    crest: { x: 706, y: 304, width: 130, height: 120 },
-    team: { x: 145, y: 480, width: 734, height: 125 },
-    sponsor: { x: 148, y: 638, width: 728, height: 112 },
-    number: { x: 275, y: 815, width: 474, height: 360 }
+    brand: { x: 278, y: 307, width: 124, height: 100 },
+    crest: { x: 630, y: 307, width: 126, height: 112 },
+    team: { x: 254, y: 482, width: 516, height: 112 },
+    sponsor: { x: 260, y: 633, width: 504, height: 112 },
+    number: { x: 310, y: 819, width: 404, height: 350 }
   }),
   back: Object.freeze({
     brand: { x: 405, y: 278, width: 214, height: 96 },
-    sponsorTop: { x: 170, y: 418, width: 684, height: 115 },
-    surname: { x: 135, y: 598, width: 754, height: 125 },
-    number: { x: 236, y: 780, width: 552, height: 405 },
-    sponsorBottom: { x: 210, y: 1265, width: 604, height: 104 }
+    sponsorTop: { x: 275, y: 426, width: 474, height: 108 },
+    surname: { x: 274, y: 593, width: 476, height: 120 },
+    number: { x: 305, y: 789, width: 414, height: 380 },
+    sponsorBottom: { x: 306, y: 1265, width: 412, height: 96 }
   })
 });
 
