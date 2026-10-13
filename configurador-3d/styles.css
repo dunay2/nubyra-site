@@ -2,3 +2,14 @@
 
 /* REV03: modelo comercial seleccionado y carga solo desde archivos locales. */
 .selected-model{display:flex;flex-direction:column;gap:7px;margin:0 0 14px;padding:13px;border:1px solid #d6e2ea;border-radius:9px;background:#f5f8fb;font-size:11px;line-height:1.5}.selected-model strong{color:#0a3454}.selected-model a{color:#0b6393;text-decoration:underline;text-underline-offset:2px}.selected-model span{color:#617386}.orientation{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:13px}.orientation label{font-size:11px;font-weight:800;color:#2a4a62}.orientation select{padding:9px;border:1px solid #c4d3e0;border-radius:8px;background:white;color:#071d33;font:inherit;font-size:12px}.orientation select:focus-visible{outline:3px solid #368bc6;outline-offset:2px}.stage-footer #model-caption{overflow-wrap:anywhere}
+
+/* Selección de mallas GLB: confirmar tejido sin sobrescribir otras partes. */
+.mesh-selection{margin-top:16px;padding:14px;border:1px solid #c8dae5;border-radius:12px;background:#eef4f7;}
+.mesh-selection__title{font-size:13px;font-weight:800;color:#071d33;margin:0 0 7px;}
+.mesh-selection__hint,.mesh-selection__result{font-size:11px;line-height:1.5;color:#48637c;margin:6px 0 10px;}
+.mesh-selection__items{display:grid;gap:7px;max-height:240px;overflow-y:auto;}
+.mesh-selection__item{display:flex;align-items:flex-start;gap:9px;padding:9px 10px;border-radius:8px;border:1px solid #d1dfe8;background:#fff;line-height:1.5;font-size:11px;color:#143853;cursor:pointer;}
+.mesh-selection__item.is-suggested{border-color:#719eaa;}
+.mesh-selection__item input{margin-top:2px;accent-color:#0b6083;flex-shrink:0;}
+.mesh-selection__apply{display:block;width:100%;border:0;background:#ffe044;color:#071d33;border-radius:10px;margin-top:12px;min-height:42px;font:inherit;font-size:12px;font-weight:800;cursor:pointer;}
+.mesh-selection__apply:focus-visible{outline:3px solid #238bc2;outline-offset:3px;}
