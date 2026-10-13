@@ -13,3 +13,12 @@
 .mesh-selection__item input{margin-top:2px;accent-color:#0b6083;flex-shrink:0;}
 .mesh-selection__apply{display:block;width:100%;border:0;background:#ffe044;color:#071d33;border-radius:10px;margin-top:12px;min-height:42px;font:inherit;font-size:12px;font-weight:800;cursor:pointer;}
 .mesh-selection__apply:focus-visible{outline:3px solid #238bc2;outline-offset:3px;}
+
+/* Camiseta de prueba local CC0: opción de ensayar sin descargar del proveedor. */
+.trial-model{margin:14px 0 16px;padding:16px;background:#eef5fa;border:1px solid #ccdfe9;border-radius:12px;}
+.trial-model__eyebrow{font-size:10px;letter-spacing:.12em;font-weight:850;color:#335a74;margin-bottom:10px;}
+.trial-model__button{width:100%;min-height:48px;display:flex;align-items:center;justify-content:space-between;gap:14px;border:0;border-radius:9px;background:#102d50;color:white;padding:11px 15px;text-align:left;font:inherit;font-size:12px;font-weight:800;cursor:pointer;}
+.trial-model__button:hover{background:#184365;}
+.trial-model__button:disabled{opacity:.55;cursor:wait;}
+.trial-model__button:focus-visible{outline:3px solid #ffe044;outline-offset:3px;}
+.trial-model>p:last-child{font-size:11px;color:#4f6d84;line-height:1.5;margin:10px 1px 0;}
