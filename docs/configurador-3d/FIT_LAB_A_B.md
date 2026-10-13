@@ -75,3 +75,20 @@ La memoria vigente de subvención estipula **dos patrones base de camiseta y tre
 - [CI #38445862481](https://github.com/dunay2/nubyra-site/actions/runs/38445862481) — 89/89 pruebas completas y 11/11 pruebas geométricas reales correctas.
 - Verificar manualmente el trazado ámbar/azul de la espalda, la actualización bidireccional entre centímetros y etiquetas, las propuestas N1/N2 y la separación cuerpo/camiseta.
 - nubyra.es debe mantenerse sin modificaciones hasta aprobación.
+
+
+## Revisión de interfaz: patrón como resultado, no como entrada
+
+**Decisión de producto 13/10/2026:** el usuario introduce medidas y comprueba el ajuste 3D antes de ver la propuesta técnica. N1/N2 son nombres internos de patrones candidatos y **se muestran únicamente en la última pestaña**; no se exige escoger uno al inicio.
+
+La pantalla mantiene un **único visor 3D fijo** (cuerpo sintético y prenda independientes) y el panel derecho cambia entre tres pestañas sin navegar a páginas nuevas:
+
+1. **Medidas.** Pecho corporal, cadera corporal y **largo solicitado de camiseta**. La altura es auxiliar. Este largo es un campo separado del largo de la camiseta que se observa en el visor, de modo que modificar el requisito no modifica silenciosamente la prenda congelada.
+2. **Ajuste 3D.** Experimento A (cuerpo cambia / prenda fija) y B (prenda cambia / cuerpo fijo) con barras/cajas sincronizadas, etiquetas visuales -1/0/+1 y rotación del mismo visor siempre visible.
+3. **Propuesta.** El recomendador compara **pecho corporal, cadera corporal y largo solicitado** con dos referencias sintéticas N1/N2 usando distancia cuadrática normalizada. Presenta candidato, justificación, estado fuera de cobertura de laboratorio, desglose de medidas y **las seis combinaciones N1-1...N2-3 marcadas como sin validar**. No asigna ninguna posición lateral porque faltan los parámetros industriales y pruebas de patronaje. La camiseta observada solo se sustituye si se pulsa la acción explícita de aplicar; cambiar las medidas solo recalcula la propuesta.
+
+**Prohibición de interpretación industrial:** ni el candidato de patrón ni los intervalos de cm ni la posición lateral son una recomendación validada de talla. Los códigos N1-1...N2-3 representan la arquitectura prevista en la memoria, no seis configuraciones con rangos métricos ya resueltos. El sistema debe permitir «revisión manual» si los valores quedan fuera de las referencias de laboratorio. Los valores de holgura corporal/prenda siguen siendo diferencias **nominales**, no holguras físicas.
+
+**Control de regresión:** pestañas accesibles con roles y flechas, visor persistente, estados independientes, campos de largo solicitado/visual distintos, cuerpo A separado de prenda B, calibración expresamente pendiente, JSON con candidato y posición industrial = null.
+
+**No incorporar en nubyra.es** hasta aprobación visual de la preview aislada de Vercel.
