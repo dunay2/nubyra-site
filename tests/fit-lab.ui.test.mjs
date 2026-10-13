@@ -67,7 +67,8 @@ const documentMock={
   if(data)return nodes.filter(n=>n.attrs['data-fit-key']===data[1]);
   if(selector==='[role="tab"][data-tab]')
    return nodes.filter(n=>n.attrs.role==='tab'&&n.attrs['data-tab']!=null);
-  const supported=['data-go-tab','data-label-key','data-pattern-base','data-view'];
+  const supported=['data-go-tab','data-label-key','data-pattern-base','data-view',
+   'data-rest-option','data-body-profile'];
   for(const name of supported){
    if(selector==='['+name+']')return nodes.filter(n=>n.attrs[name]!=null);
   }
@@ -147,17 +148,20 @@ test('al cambiar las medidas se propone N2 sin modificar la camiseta visible',()
 test('Aplicar cambia solo la prenda, mantiene datos corporales y lleva a Ajuste 3D',()=>{
  node('tab-proposal').dispatch('click');
  node('use-proposal').dispatch('click');
- assert.equal(node('active-base').textContent,'N2');
+ assert.equal(node('active-base').textContent,'N2-3');
  assert.equal(node('panel-adjust').hidden,false);
  assert.equal(node('tab-adjust').getAttribute('aria-selected'),'true');
  assert.equal(node('bodyChestCm-number').value,'111');
  assert.equal(node('bodyHipCm-number').value,'122');
- assert.equal(node('garmentLengthCm-number').value,'76');
+ assert.equal(node('garmentLengthCm-number').value,'72',
+  'la longitud procede de la variante fija N2, no del largo libre solicitado');
  assert.equal(node('mode-garment').getAttribute('aria-pressed'),'true');
  assert.equal(node('body-fields').disabled,false);
  assert.equal(node('adjust-body-fields').disabled,true);
- assert.equal(node('garment-fields').disabled,false);
+ assert.equal(node('garment-fields').disabled,true,
+  'los rangos de reposo solo se muestran en modo lectura');
  assert.equal(node('garment-fields').hidden,false);
+ assert.equal(node('active-base').textContent,'N2-3');
 });
 test('controles duplicados se sincronizan entre pestañas',()=>{
  node('mode-body').dispatch('click');
@@ -169,6 +173,47 @@ test('controles duplicados se sincronizan entre pestañas',()=>{
  node('tab-measures').dispatch('click');
  assert.equal(node('panel-measures').hidden,false);
 });
+
+test('dos capas ocultables y vista de 3/4 posterior disponibles',()=>{
+ assert.equal(node('show-body').checked??true,true);
+ // Las capas se gestionan con el mismo controlador sin crear mallas nuevas.
+ node('show-body').checked=false;
+ node('show-body').dispatch('change');
+ assert.equal(node('show-body').checked,false);
+ assert.equal(node('diagram-body-layer').attrs.display,'none');
+ node('show-garment').checked=false;
+ node('show-garment').dispatch('change');
+ assert.equal(node('show-body').checked,true,'al menos una capa debe quedar visible');
+ assert.equal(node('diagram-body-layer').attrs.display,'inline');
+ assert.ok(nodes.some(n=>n.dataset.view==='rearquarter'));
+});
+test('seis estados de camiseta discretos con medidas de reposo no editables',()=>{
+ const options=nodes.filter(n=>n.dataset.restOption!=null);
+ assert.equal(options.length,6);
+ node('tab-adjust').dispatch('click');
+ const n1=options.find(x=>x.dataset.restOption==='N1-1');
+ n1.dispatch('click');
+ assert.equal(node('active-base').textContent,'N1-1');
+ assert.equal(node('garmentChestCm-number').value,'98');
+ assert.equal(node('garmentHipCm-number').value,'105');
+ assert.equal(node('garmentLengthCm-number').value,'64');
+ node('garmentChestCm-range').value='134';
+ node('garmentChestCm-range').dispatch('input');
+ assert.equal(node('garmentChestCm-number').value,'98',
+  'arrastrar un slider legado no puede fabricar una talla intermedia');
+});
+test('perfil sintético cambia la imagen 2D sin cambiar medidas ni talla de reposo',()=>{
+ node('tab-measures').dispatch('click');
+ const before=node('scale-body-side').attrs.d;
+ const chest=node('bodyChestCm-number').value;
+ const variant=node('active-base').textContent;
+ nodes.find(n=>n.dataset.bodyProfile==='lateral').dispatch('click');
+ assert.equal(node('diagram-body-profile').textContent,'Distribución lateral');
+ assert.notEqual(node('scale-body-side').attrs.d,before);
+ assert.equal(node('bodyChestCm-number').value,chest);
+ assert.equal(node('active-base').textContent,variant);
+});
+
 test.after(()=>{
  globalThis.document=original.document;
  globalThis.requestAnimationFrame=original.requestAnimationFrame;
