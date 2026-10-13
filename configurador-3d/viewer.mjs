@@ -2,6 +2,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+import { createFreeTestJersey, TEST_JERSEY_META } from './free-test-jersey.mjs';
 import { VIEW_ZONES, fitText, normalizeText, normalizeNumber } from './layout.mjs';
 import { inspectGlb, projectedAtlasUV } from './model-audit.mjs';
 import { chooseModelFiles, inspectLocalGltf, resolveLocalResource } from './model-package.mjs';
@@ -247,6 +249,13 @@ const controller={
    exportPng(){renderer.render(scene,camera);return canvas.toDataURL('image/png');},
    listGarmentMeshes(){return meshDescriptors.slice();},
    applyGarmentSelection(ids){return applyGarmentSelection(ids);},
+   async loadFreeTestJersey() {
+     const model=createFreeTestJersey(THREE);
+     const exporter=new GLTFExporter();
+     const glb=await exporter.parseAsync(model,{binary:true,onlyVisible:true});
+     const report=await this.importModel(glb);
+     return {...report, freeTest:true, meta:TEST_JERSEY_META};
+   },
    async importModel(buffer, {rotateDegrees=0}={}) {
      const audit=inspectGlb(buffer);
      const loader=new GLTFLoader();
