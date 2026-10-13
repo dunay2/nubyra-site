@@ -5,7 +5,9 @@ import { pathToFileURL } from 'node:url';
 import {createFreeTestJersey} from '../configurador-3d/free-test-jersey.mjs';
 import {inspectGlb} from '../configurador-3d/model-audit.mjs';
 const base=process.env.THREE_TEST_DIR;
-if(!base)throw Error('THREE_TEST_DIR variable required');
+if(!base){
+  test('ensayo GLB/Three.js opcional', {skip:'Requiere THREE_TEST_DIR: las pruebas normales no descargan Three.js'},()=>{});
+}else{
 const core=pathToFileURL(resolve(base,'node_modules/three/build/three.module.js')).href;
 const exporterPath=pathToFileURL(resolve(base,'node_modules/three/examples/jsm/exporters/GLTFExporter.js')).href;
 const loaderPath=pathToFileURL(resolve(base,'node_modules/three/examples/jsm/loaders/GLTFLoader.js')).href;
@@ -49,3 +51,4 @@ test('exportación GLB 2.0 del modelo de ensayo auditable e importable',async()=
  let front=0,back=0;loaded.scene.traverse(x=>{if(x.isMesh && x.name.includes('Jersey_Front'))front++;if(x.isMesh && x.name.includes('Jersey_Back'))back++});
  assert.equal(front,1);assert.equal(back,1);
 });
+}
