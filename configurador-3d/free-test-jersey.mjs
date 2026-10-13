@@ -56,9 +56,9 @@ function upperY(u){
   return GRID.shoulderTop-GRID.shoulderDrop*Math.pow(clamp01(u),1.28);
 }
 function neckHalfWidth(y,front){
-  const tip=front?.91:1.055, span=GRID.shoulderTop-tip;
+  const tip=front ? .91 : 1.055, span=GRID.shoulderTop-tip;
   const t=clamp01((y-tip)/span);
-  return (front?.225:.235)*Math.pow(t,front?.92:.52);
+  return (front ? .225 : .235)*Math.pow(t,front ? .92 : .52);
 }
 export function torsoDepth(x,y,front=true){
   // Volumen pectoral suave, sin picos en centro o costuras laterales.
@@ -91,7 +91,7 @@ function panelGeometry(T,front){
         const z=torsoDepth(x,y,front);
         positions.push(x,y,z);
         normals.push(...analyticalNormal(x,y,front));
-        const textureU=front?.5*(x+.68)/1.36:.5+.5*(.68-x)/1.36;
+        const textureU=front ? .5*(x+.68)/1.36 : .5+.5*(.68-x)/1.36;
         uv.push(clamp01(textureU),clamp01((y-GRID.bottom)/(GRID.shoulderTop-GRID.bottom)));
       }
     }
@@ -138,7 +138,7 @@ function sideGeometry(T,side){
 }
 function trim(T,coordinates,front,material,name,radius=.015){
   const points=coordinates.map(([x,y])=>
-    new T.Vector3(x,y,torsoDepth(x,y,front)+(front?.008:-.008)));
+    new T.Vector3(x,y,torsoDepth(x,y,front)+(front ? .008 : -.008)));
   const spline=new T.CatmullRomCurve3(points,false,'centripetal');
   const geometry=new T.TubeGeometry(spline,Math.max(18,coordinates.length*2),
     radius,GRID.trimRadialSegments,false);
@@ -147,7 +147,7 @@ function trim(T,coordinates,front,material,name,radius=.015){
   return mesh;
 }
 function neckCoordinates(front){
-  const from=front?.91:1.055,steps=18,points=[];
+  const from=front ? .91 : 1.055,steps=18,points=[];
   for(let i=0;i<=steps;i++){
     const y=lerp(GRID.shoulderTop,from,i/steps);
     points.push([-neckHalfWidth(y,front),y]);
