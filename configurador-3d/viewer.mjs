@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { VIEW_ZONES, fitText, normalizeText, normalizeNumber } from './layout.mjs';
+import { inspectGlb, projectedAtlasUV } from './model-audit.mjs';
 
 function textileBump() {
   const canvas = document.createElement('canvas'); canvas.width=128; canvas.height=128;
@@ -82,6 +83,71 @@ function drawPrint(canvas,side,state,safeAreas,alerts){
  }
  if(safeAreas){ctx.save();ctx.strokeStyle='#d2edf9';ctx.lineWidth=3;ctx.setLineDash([12,10]);for(const b of Object.values(z))ctx.strokeRect(b.x,b.y,b.width,b.height);ctx.restore();}
 }
+/** Atlas de dos caras: el estampado forma parte del MATERIAL de la malla GLB,
+ * sin carteles flotantes ni planos delante de la camiseta. Proyección pendiente
+ * de sustituir por las UV industriales específicas del fabricante. */
+function createAtlas() {
+ const canvas=document.createElement('canvas');canvas.width=2048;canvas.height=1536;
+ const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
+ texture.flipY=true;texture.anisotropy=8;
+ return {canvas,texture};
+}
+function redrawAtlas(atlas,front,back,state){
+ const ctx=atlas.canvas.getContext('2d');
+ ctx.fillStyle=state.base;ctx.fillRect(0,0,2048,1536);
+ for(const offset of [0,1024]){
+  ctx.save();ctx.translate(offset,0);
+  ctx.fillStyle=state.accent;
+  ctx.beginPath();ctx.moveTo(0,650);ctx.bezierCurveTo(140,850,75,1260,135,1536);ctx.lineTo(185,1536);ctx.bezierCurveTo(128,1250,190,820,90,650);ctx.closePath();ctx.fill();
+  ctx.beginPath();ctx.moveTo(1024,650);ctx.bezierCurveTo(884,850,949,1260,889,1536);ctx.lineTo(839,1536);ctx.bezierCurveTo(896,1250,834,820,934,650);ctx.closePath();ctx.fill();
+  ctx.restore();
+ }
+ ctx.drawImage(front.canvas,0,0);ctx.drawImage(back.canvas,1024,0);
+ atlas.texture.needsUpdate=true;
+}
+function projectGarment(model,atlas){
+ model.updateMatrixWorld(true);
+ const meshes=[];model.traverse(o=>{if(o.isMesh&&o.geometry?.attributes?.position)meshes.push(o);});
+ if(!meshes.length)throw new Error('El modelo no contiene mallas compatibles');
+ const box=new THREE.Box3().setFromObject(model);
+ const s=box.getSize(new THREE.Vector3());
+ if(!(s.x>0.05 && s.y>0.05 && s.z>0))throw new Error('Dimensiones no compatibles para camiseta 3D');
+ // Mantener piezas pequeñas de ribetes en su material original.
+ const score=o=>o.geometry.getAttribute('position').count;
+ const largest=Math.max(...meshes.map(score));
+ const selected=meshes.filter(o=>score(o)>=Math.max(100,largest*.20)&&!(/trim|rib|collar|zip|button|label|cord/i).test(o.name));
+ if(!selected.length)throw new Error('No se identificó la superficie principal de tejido');
+ if(selected.some(o=>o.isSkinnedMesh||o.morphTargetInfluences?.length))throw new Error('La malla deformable requiere calibración previa de UV, no se modificará automáticamente');
+ const bounds={minX:box.min.x,maxX:box.max.x,minY:box.min.y,maxY:box.max.y};
+ let remodeled=0,triangles=0;
+ for(const mesh of selected){
+  const orig=mesh.geometry;const geo=orig.index?orig.toNonIndexed():orig.clone();
+  const pos=geo.getAttribute('position');
+  const uv=new Float32Array(pos.count*2);
+  const p=new THREE.Vector3(),sum=new THREE.Vector3();
+  for(let i=0;i<pos.count;i+=3){
+   sum.set(0,0,0);
+   for(let j=0;j<3;j++){p.fromBufferAttribute(pos,i+j).applyMatrix4(mesh.matrixWorld);sum.add(p)}
+   const face=sum.z>=0?'front':'back';
+   for(let j=0;j<3;j++){
+    p.fromBufferAttribute(pos,i+j).applyMatrix4(mesh.matrixWorld);
+    const mapped=projectedAtlasUV(p,bounds,face);
+    uv[(i+j)*2]=mapped[0];uv[(i+j)*2+1]=mapped[1];
+   }
+  }
+  geo.setAttribute('uv',new THREE.BufferAttribute(uv,2));
+  if(!geo.getAttribute('normal'))geo.computeVertexNormals();
+  mesh.geometry=geo;
+  mesh.material=new THREE.MeshPhysicalMaterial({
+    map:atlas.texture,color:'#ffffff',roughness:.90,metalness:0,side:THREE.DoubleSide,
+    clearcoat:0.02,clearcoatRoughness:.90
+  });
+  mesh.castShadow=true;mesh.receiveShadow=true;
+  remodeled++;triangles+=pos.count/3;
+ }
+ return {selectedMeshes:remodeled,projectedTriangles:triangles,allMeshes:meshes.length,originalUvNotReused:true};
+}
+
 function printSurface(side){
  const geom=new THREE.PlaneGeometry(1.34,2.62,36,48);const a=geom.getAttribute('position');
  for(let i=0;i<a.count;i++){const x=a.getX(i);a.setZ(i,-.027*Math.pow(x/.67,2));}
@@ -110,6 +176,7 @@ export async function initViewer(canvas,state,onWarnings){
  const pivot=new THREE.Group();scene.add(pivot);
  let demo=jerseyBody(state);pivot.add(demo.group);
  const printFront=printSurface('front'),printBack=printSurface('back');
+ const atlas=createAtlas();
  pivot.add(printFront.mesh,printBack.mesh);
  const controls=new OrbitControls(camera,canvas);controls.target.set(0,0,0);controls.enablePan=false;
  controls.minDistance=3.4;controls.maxDistance=8.5;controls.minPolarAngle=.68;controls.maxPolarAngle=2.45;
@@ -123,26 +190,38 @@ export async function initViewer(canvas,state,onWarnings){
    update(s){const warnings=[];
     if(demo){demo.fabric.color.set(s.base);demo.accentMat.color.set(s.accent);demo.trimMat.color.set(s.trim);}
     drawPrint(printFront.canvas,'front',s,safe,warnings);drawPrint(printBack.canvas,'back',s,safe,warnings);
-    printFront.tex.needsUpdate=true;printBack.tex.needsUpdate=true;onWarnings([...new Set(warnings)]);
+    printFront.tex.needsUpdate=true;printBack.tex.needsUpdate=true;
+    if(external)redrawAtlas(atlas,printFront,printBack,s);
+    onWarnings([...new Set(warnings)]);
    },
    setSafe(value){safe=Boolean(value);this.update(state);},
    view(name){const pos={front:[0,0,5.5],quarter:[3.5,.6,4.3],back:[0,0,-5.5],side:[5.5,0,0]}[name]||[0,0,5.5];
      camera.position.set(...pos);controls.target.set(0,0,0);controls.update();},
    exportPng(){renderer.render(scene,camera);return canvas.toDataURL('image/png');},
    async importModel(buffer){
-     if(buffer.byteLength>20*1024*1024)throw new Error('El GLB supera el límite de 20 MB');
+     // Gate ANTES de parsear buffers, texturas o materiales del usuario.
+     const audit=inspectGlb(buffer);
      const loader=new GLTFLoader();const gltf=await new Promise((resolve,reject)=>loader.parse(buffer,'',resolve,reject));
-     let numMeshes=0,numUV=0;gltf.scene.traverse(o=>{if(o.isMesh){numMeshes++;if(o.geometry?.attributes?.uv)numUV++;}});
-     if(!numMeshes)throw new Error('El GLB no contiene geometría de malla');
-     const bounds=new THREE.Box3().setFromObject(gltf.scene),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
-     if(!Number.isFinite(size.y)||size.y<=0)throw new Error('Geometría inválida');
-     const g=new THREE.Group();g.name='Modelo externo importado';
+     const bounds=new THREE.Box3().setFromObject(gltf.scene);
+     const size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
+     if(!Number.isFinite(size.y)||size.y<=.01)throw new Error('Geometría inválida');
+     // Calibrar la malla antes de destruir/reemplazar la prenda anterior.
+     const projected=projectGarment(gltf.scene,atlas);
+     const g=new THREE.Group();g.name='Modelo GLB · atlas gráfico provisional';
      gltf.scene.position.sub(center);g.add(gltf.scene);g.scale.setScalar(2.52/size.y);
-     if(external)pivot.remove(external);if(demo){pivot.remove(demo.group);demo=null;}
+     if(external)pivot.remove(external);
+     if(demo){pivot.remove(demo.group);demo=null;}
      external=g;pivot.add(g);
-     return {meshes:numMeshes,uvMeshes:numUV,warning:'Modelo externo: los marcajes son proyección orientativa; revisar orientación, UV, derecho de uso y zonas reales de impresión.'};
+     // La impresión pasa a material, no se superpone como una lámina flotante.
+     printFront.mesh.visible=false;printBack.mesh.visible=false;
+     redrawAtlas(atlas,printFront,printBack,state);
+     return {
+       meshes:audit.meshes,uvMeshes:audit.uvPrimitives,triangles:audit.triangles,
+       projectedMeshes:projected.selectedMeshes,
+       warning:'Textura proyectada sobre el tejido real (no son UV industriales). Confirmar cara +Z, licencia, contorno, posiciones y márgenes con patronista.'
+     };
    },
-   destroy(){disposed=true;observer.disconnect();controls.dispose();printFront.tex.dispose();printBack.tex.dispose();renderer.dispose();}
+   destroy(){disposed=true;observer.disconnect();controls.dispose();printFront.tex.dispose();printBack.tex.dispose();atlas.texture.dispose();renderer.dispose();}
  };
  controller.update(state);return controller;
 }
