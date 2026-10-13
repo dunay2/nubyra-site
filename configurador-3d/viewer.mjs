@@ -70,22 +70,20 @@ function printBlock(ctx,box,text,opts,alerts){
 function drawPrint(canvas,side,state,safeAreas,alerts){
  const ctx=canvas.getContext('2d');ctx.clearRect(0,0,1024,1536);const z=VIEW_ZONES[side];
  if(side==='front'){
-  printBlock(ctx,z.brand,'N',{min:50,max:84,color:state.trim,weight:900},alerts);
   if(state.crest && state.crest.complete && state.crest.naturalWidth){
     const w=state.crest.naturalWidth,h=state.crest.naturalHeight,r=Math.min(z.crest.width/w,z.crest.height/h);
     ctx.drawImage(state.crest,z.crest.x+(z.crest.width-w*r)/2,z.crest.y+(z.crest.height-h*r)/2,w*r,h*r);
-  }else{ctx.save();ctx.lineWidth=7;ctx.strokeStyle=state.accent;ctx.beginPath();ctx.moveTo(739,316);ctx.lineTo(810,316);ctx.lineTo(810,397);ctx.lineTo(773,423);ctx.lineTo(735,397);ctx.closePath();ctx.stroke();ctx.fillStyle=state.trim;ctx.font='700 42px Inter,Arial';ctx.textAlign='center';ctx.fillText('NC',773,379);ctx.restore();}
+  }
   printBlock(ctx,z.team,state.team,{min:23,max:60,color:state.text,weight:850},alerts);
   printBlock(ctx,z.sponsor,state.sponsorFront,{min:21,max:49,color:state.accent,weight:750},alerts);
   printBlock(ctx,z.number,normalizeNumber(state.number),{min:150,max:320,color:state.text,weight:900},alerts);
  }else{
-  printBlock(ctx,z.brand,'N',{min:45,max:78,color:state.accent,weight:900},alerts);
   printBlock(ctx,z.sponsorTop,state.sponsorTop,{min:21,max:43,color:state.accent,weight:750},alerts);
   printBlock(ctx,z.surname,state.surname,{min:24,max:66,color:state.text,weight:850},alerts);
   printBlock(ctx,z.number,normalizeNumber(state.number),{min:180,max:330,color:state.text,weight:900},alerts);
   printBlock(ctx,z.sponsorBottom,state.sponsorBottom,{min:21,max:44,color:state.text,weight:700},alerts);
  }
- if(safeAreas){ctx.save();ctx.strokeStyle='#d2edf9';ctx.lineWidth=3;ctx.setLineDash([12,10]);for(const b of Object.values(z))ctx.strokeRect(b.x,b.y,b.width,b.height);ctx.restore();}
+ if(safeAreas){ctx.save();ctx.strokeStyle='#d2edf9';ctx.lineWidth=3;ctx.setLineDash([12,10]);for(const [key,b] of Object.entries(z)){if(key==='brand'||(key==='crest'&&!state.crest))continue;ctx.strokeRect(b.x,b.y,b.width,b.height)}ctx.restore();}
 }
 /** Atlas de dos caras: el estampado forma parte del MATERIAL de la malla GLB,
  * sin carteles flotantes ni planos delante de la camiseta. Proyección pendiente
