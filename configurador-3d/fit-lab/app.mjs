@@ -3,13 +3,20 @@ import {LABEL_CONFIG,LABEL_VALUES} from './discrete-states.mjs';
 import {
   BASE_SHIRTS,DEFAULT_BASE,BAND_STEPS,STATE_TO_MEASURE,
   classifiedLabels,bandThresholds,representativeCm,
-  demoGarmentTargetsFromBody,suggestPatternFromMeasurements
+  suggestPatternFromMeasurements
 } from './size-classifier.mjs';
+import {
+  DEFAULT_CONFIGURATION,GARMENT_CATALOG,stateForConfiguration,
+  recommendPreviewConfiguration
+} from './garment-catalog.mjs';
+import {DEFAULT_BODY_PROFILE,getBodyProfile} from './fit-drape.mjs';
+import {createScaleSilhouettes} from './scale-diagram.mjs';
 
 const $=id=>document.getElementById(id);
 const TABS=Object.freeze(['measures','adjust','proposal']);
 const state={...DEFAULT_FIT,desiredLengthCm:DEFAULT_FIT.garmentLengthCm,
-  activeBase:DEFAULT_BASE,experimentMode:'body'};
+  activeBase:DEFAULT_BASE,activeConfiguration:DEFAULT_CONFIGURATION,
+  bodyProfile:DEFAULT_BODY_PROFILE,experimentMode:'body'};
 let activeTab='measures',activeMode='body',viewer=null,geometryFrame=0,referenceSections=null;
 const allLimits={...LIMITS,desiredLengthCm:LIMITS.garmentLengthCm};
 const labelNames={
@@ -60,28 +67,35 @@ function updateReadings(){
   $('delta-chest').textContent=formatDelta(differences.chest);
   $('delta-hip').textContent=formatDelta(differences.hip);
 }
-function getDemoTargets(){
-  const body=demoGarmentTargetsFromBody(state);
-  const target={...body,garmentLengthCm:state.desiredLengthCm};
-  for(const [key,value] of Object.entries(target)){
-    const [lower,upper]=LIMITS[key];
-    target[key]=clamp(value,lower,upper);
-  }
-  return target;
+function getPreviewRecommendation(){
+  return recommendPreviewConfiguration(state);
+}
+function selectRestConfiguration(code){
+  const target=stateForConfiguration(code);
+  Object.assign(state,target);
+  redraw();
+}
+function syncFiniteCatalog(){
+  document.querySelectorAll('[data-rest-option]').forEach(button=>{
+    const selected=button.dataset.restOption===state.activeConfiguration;
+    button.setAttribute('aria-pressed',String(selected));
+  });
 }
 function updateProposalUI(){
-  const proposed=getRecommendation(),candidate=proposed.base;
+  const proposed=getRecommendation(),preview=getPreviewRecommendation(),candidate=preview.previewBase;
   $('suggested-base').textContent=candidate;
-  $('active-base').textContent=state.activeBase;
+  $('active-base').textContent=state.activeConfiguration;
+  $('suggested-preview-variant').textContent=preview.previewCode;
+  syncFiniteCatalog();
   $('proposal-input-chest').textContent=cmText(state.bodyChestCm)+' cm';
   $('proposal-input-hip').textContent=cmText(state.bodyHipCm)+' cm';
   $('proposal-input-length').textContent=cmText(state.desiredLengthCm)+' cm';
-  const outOfDemo=proposed.status==='review-outside-demo';
+  const outOfDemo=preview.status==='review-outside-demo';
   $('proposal-status').textContent=outOfDemo
     ?'Fuera de los rangos de referencia de este ensayo: revisión manual'
     :'Candidato de simulación · No aprobado para fabricación';
   $('proposal-status').classList.toggle('is-warning',outOfDemo);
-  $('proposal-explanation').textContent='Comparación de tres datos (pecho corporal, cadera corporal y largo solicitado) frente a las referencias numéricas N1/N2 de este laboratorio. Ninguna holgura ni posición lateral industrial ha sido validada.';
+  $('proposal-explanation').textContent='Selección de la mejor de seis maquetas de geometría de reposo fijo según medidas de pecho, cadera y largo. Ninguna dimensión, holgura, posición lateral ni simulación textil está validada.';
   $('lateral-position-warning').textContent='Patrón base candidato: '+candidate+
     '. Posición lateral 1/2/3: SIN ASIGNAR; faltan reglas y pruebas de patronaje. Las seis opciones mostradas son posibilidades técnicas, no resultados de tallaje.';
   document.querySelectorAll('[data-pattern-base]').forEach(box=>{
@@ -102,15 +116,13 @@ function updateProposalUI(){
       selected.map(([k,v])=>labelNames[k]+' '+(v>0?'+1':'−1')).join(' · ')+
       '. No determinan posición de fabricación.'
     :'Etiquetas derivadas de las medidas: todos los parámetros dentro del grupo 0 de referencia '+candidate+'.';
-  const target=getDemoTargets();
-  const differs=Object.entries(target).some(([key,value])=>Math.abs(state[key]-value)>.001);
   const button=$('use-proposal');
-  button.disabled=outOfDemo||(!differs&&state.activeBase===candidate);
+  button.disabled=outOfDemo||state.activeConfiguration===preview.previewCode;
   button.textContent=outOfDemo
-    ?'Revisión manual necesaria antes de aplicar'
-    :button.disabled?'La camiseta ya coincide con la demostración'
-      :'Aplicar al visor la propuesta '+candidate;
-  return proposed;
+    ?'Fuera del catálogo de ensayo: revisión manual'
+    :button.disabled?'Esta variante de ensayo ya se ve en 3D'
+      :'Probar en el visor '+preview.previewCode;
+  return {...proposed,preview};
 }
 function formatPercent(value,reference){
   if(!(Number.isFinite(value)&&Number.isFinite(reference)&&reference>0))return '—';
@@ -135,6 +147,7 @@ function updateGeometry(){
     try{
       viewer.update(state);
       updateGeometryFeedback();
+      updateScaleDiagram();
     }catch(error){
       $('scene-error').hidden=false;
       $('scene-error').textContent='Error geométrico: '+error.message;
@@ -148,6 +161,7 @@ function redraw(){
   syncDiscreteControls();
   updateReadings();
   updateProposalUI();
+  updateScaleDiagram();
   updateGeometry();
 }
 function changeValue(key,raw){
@@ -155,6 +169,8 @@ function changeValue(key,raw){
   const value=Number(raw);
   if(!Number.isFinite(value))return;
   const [min,max]=allLimits[key];
+  // Las medidas de reposo no son deslizadores libres: se eligen en catálogo.
+  if(key.startsWith('garment'))return;
   state[key]=clamp(value,min,max);
   redraw();
 }
@@ -196,18 +212,30 @@ function enableMode(mode){
   $('adjust-body-fields').hidden=!body;
   $('adjust-body-fields').disabled=!body;
   $('garment-fields').hidden=body;
-  $('garment-fields').disabled=body;
+  $('garment-fields').disabled=true;
   $('garment-fields').classList.toggle('is-locked',body);
   viewer?.setGuideTarget(mode);
   updateGeometryFeedback();
 }
 $('mode-body').addEventListener('click',()=>enableMode('body'));
 $('mode-garment').addEventListener('click',()=>enableMode('garment'));
+document.querySelectorAll('[data-rest-option]').forEach(button=>{
+  button.addEventListener('click',()=>selectRestConfiguration(button.dataset.restOption));
+});
+document.querySelectorAll('[data-body-profile]').forEach(button=>{
+  button.addEventListener('click',()=>{
+    const next=button.dataset.bodyProfile;
+    if(!['front','lateral','thorax'].includes(next))return;
+    state.bodyProfile=next;
+    redraw();
+  });
+});
 document.querySelectorAll('[data-label-key]').forEach(button=>{
   button.addEventListener('click',()=>{
     const {labelKey,labelValue}=button.dataset,config=LABEL_CONFIG[labelKey];
     if(!config)return;
     // En Medidas editamos cuerpo aunque Ajuste 3D se haya quedado en modo B.
+    if(config.target==='garment')return; // no crear tallas intermedias
     if(activeTab==='adjust'&&config.target!==activeMode)return;
     const level=Number(labelValue);
     if(!LABEL_VALUES.includes(level))return;
@@ -235,15 +263,14 @@ $('reset-body').addEventListener('click',()=>{
   redraw();
 });
 $('reset-garment').addEventListener('click',()=>{
-  for(const key of ['garmentChestCm','garmentHipCm','garmentLengthCm']){
-    state[key]=BASE_SHIRTS[state.activeBase][key];
-  }
-  redraw();
+  selectRestConfiguration(DEFAULT_CONFIGURATION);
 });
 $('reset-all').addEventListener('click',()=>{
   Object.assign(state,DEFAULT_FIT,{
     desiredLengthCm:DEFAULT_FIT.garmentLengthCm,
     activeBase:DEFAULT_BASE,
+    activeConfiguration:DEFAULT_CONFIGURATION,
+    bodyProfile:DEFAULT_BODY_PROFILE,
     experimentMode:'body'
   });
   enableMode('body');
@@ -251,10 +278,9 @@ $('reset-all').addEventListener('click',()=>{
   redraw();
 });
 $('use-proposal').addEventListener('click',()=>{
-  const candidate=getRecommendation();
-  if(candidate.status==='review-outside-demo')return;
-  const targets=getDemoTargets();
-  Object.assign(state,targets,{activeBase:candidate.base});
+  const preview=getPreviewRecommendation();
+  if(preview.status==='review-outside-demo')return;
+  Object.assign(state,stateForConfiguration(preview.previewCode));
   enableMode('garment');
   activateTab('adjust',{focus:true});
   redraw();
@@ -280,6 +306,10 @@ $('save-json').addEventListener('click',()=>{
   const documentData={
     ...serializeFit(state),
     requestedGarmentLengthCm:state.desiredLengthCm,
+    restConfiguration:state.activeConfiguration,
+    bodyDistributionProfile:state.bodyProfile,
+    garmentCatalogSize:Object.keys(GARMENT_CATALOG).length,
+    drapeEstimate:viewer?.drapeDiagnostics()??null,
     workflowStep:activeTab,
     experimentMode:activeMode,
     recommendation:getRecommendation()
