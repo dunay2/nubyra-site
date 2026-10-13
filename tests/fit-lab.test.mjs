@@ -61,3 +61,56 @@ test('viewer renderiza dos referencias de geometría separadas y nunca reescala 
  assert.match(viewer,/mannequin!==garment/);
  assert.ok(!viewer.includes('MPFB2'),'no hay dependencia de Blender en el navegador');
 });
+
+
+import {
+  DEFAULT_LABELS,LABEL_CONFIG,LABEL_VALUES,normalizeLabels,
+  normalizeLabel,effectFor,labelKeyForMeasure,serializeLabels
+} from '../configurador-3d/fit-lab/discrete-states.mjs';
+
+test('cinco variables geométricas discretas, tres etiquetas por variable y sin convertir a cm',()=>{
+ assert.deepEqual(LABEL_VALUES,[-1,0,1]);
+ assert.equal(Object.keys(LABEL_CONFIG).length,5);
+ assert.deepEqual(DEFAULT_LABELS,{
+  bodyChestState:0,bodyHipState:0,
+  garmentChestState:0,garmentHipState:0,garmentLengthState:0
+ });
+ assert.equal(normalizeLabel('1'),1);
+ assert.equal(normalizeLabel('invalid'),0);
+ assert.equal(normalizeLabel(2),0);
+ assert.deepEqual(normalizeLabels({bodyChestState:-1,garmentHipState:1,bodyHipState:88}),
+  {...DEFAULT_LABELS,bodyChestState:-1,garmentHipState:1});
+ assert.equal(labelKeyForMeasure('bodyHeightCm'),null);
+ assert.equal(labelKeyForMeasure('bodyChestCm'),'bodyChestState');
+ assert.equal(effectFor({garmentLengthState:-1},'garmentLengthState'),-.18);
+ assert.throws(()=>effectFor({},'invalid'),/desconocida/);
+});
+test('la interfaz incorpora 15 botones discretos: A con 2 variables, B con 3',()=>{
+ const all=[...html.matchAll(/data-label-key="(\w+)" data-label-value="(-?1|0)"/g)];
+ assert.equal(all.length,15);
+ for(const key of Object.keys(LABEL_CONFIG)){
+  const list=all.filter(x=>x[1]===key).map(x=>Number(x[2]));
+  assert.deepEqual(list,[-1,0,1]);
+ }
+ assert.match(html,/No equivalen a intervalos de centímetros/);
+ assert.match(html,/id="discrete-status"/);
+ assert.match(app,/LABEL_CONFIG\[labelKey\]\.target!==activeMode/);
+ assert.match(app,/state\[discreteKey\]=0/);
+ assert.match(app,/button\.setAttribute\('aria-pressed',String\(yes\)\)/);
+ assert.match(css,/\.discrete-options button\[aria-pressed=true\]/);
+});
+test('JSON conserva medidas originales y etiqueta visual independiente sin patrón asignado',()=>{
+ const original={...DEFAULT_FIT,...DEFAULT_LABELS,
+  bodyChestState:1,garmentHipState:-1,garmentLengthState:1};
+ const exported=serializeFit(original);
+ assert.equal(exported.body.chestCm,DEFAULT_FIT.bodyChestCm);
+ assert.equal(exported.garment.hipTargetCm,DEFAULT_FIT.garmentHipCm);
+ assert.equal(exported.differencesNominalCm.chest,14);
+ assert.equal(exported.discretization.levels.bodyChestState,1);
+ assert.equal(exported.discretization.levels.garmentHipState,-1);
+ assert.equal(exported.discretization.levels.garmentLengthState,1);
+ assert.equal(exported.discretization.manufacturingPattern,null);
+ assert.equal(exported.discretization.calibration,'not-calibrated-to-centimeters');
+ assert.equal(serializeLabels(original).purpose,'visual-simulation-only');
+ assert.match(exported.note,/intervalos en centímetros/);
+});
