@@ -23,6 +23,7 @@ class NodeStub {
   this.type=attrs.type||'';
   this.hidden='hidden' in attrs;
   this.disabled='disabled' in attrs;
+  this.checked='checked' in attrs;
   this.tabIndex=attrs.tabindex==null?0:Number(attrs.tabindex);
   this.textContent='';
   this.validity={valid:true};
@@ -126,7 +127,7 @@ test('pestañas: inicia en Medidas, cambia por clic y por teclado',()=>{
 });
 test('al cambiar las medidas se propone N2 sin modificar la camiseta visible',()=>{
  assert.equal(node('suggested-base').textContent,'N1');
- assert.equal(node('active-base').textContent,'N1');
+ assert.equal(node('active-base').textContent,'N1-2');
  assert.equal(node('garmentChestCm-number').value,'102');
  assert.equal(node('garmentLengthCm-number').value,'64');
  node('bodyChestCm-range').value='111';
@@ -143,7 +144,7 @@ test('al cambiar las medidas se propone N2 sin modificar la camiseta visible',()
   'el largo solicitado no debe mutar la camiseta observada');
  assert.equal(node('goalLengthCm-number').value,'76');
  assert.equal(node('use-proposal').disabled,false);
- assert.equal(node('active-base').textContent,'N1');
+ assert.equal(node('active-base').textContent,'N1-2');
 });
 test('Aplicar cambia solo la prenda, mantiene datos corporales y lleva a Ajuste 3D',()=>{
  node('tab-proposal').dispatch('click');
