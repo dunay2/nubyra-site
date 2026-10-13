@@ -96,3 +96,40 @@
     mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,.24) 15%, #000 42%);
   }
 }
+
+/* Configurador 3D REV05 integrado: acceso propio sin duplicar el visor en la landing. */
+.builder--3d-entry .builder__viewer{min-height:552px}
+.builder--3d-entry .builder__art{position:relative;min-height:385px;padding:17px}
+.builder--3d-entry .builder__art img{max-width:76%;height:365px}
+.builder--3d-entry .builder__controls{justify-content:flex-start;padding:39px 36px 33px}
+.builder--3d-entry .builder__controls-top h3{max-width:440px;font-size:29px}
+.builder--3d-entry .builder__controls-top p:last-child{font-size:14px;line-height:1.6;margin-top:14px}
+.builder__features{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:31px 0 24px}
+.builder__features>div{display:flex;flex-direction:column;gap:7px;min-width:0;padding:16px;background:#f3f7fa;border:1px solid #e3ebf2;border-radius:10px}
+.builder__features span{font-weight:850;font-size:11px;letter-spacing:.11em;color:#236d95}
+.builder__features strong{font-size:14px;color:var(--navy)}
+.builder__features small{font-size:11px;line-height:1.5;color:#587084}
+.builder--3d-entry .builder__save{margin-top:auto;justify-content:space-between;gap:12px;min-height:56px;font-size:14px;padding-inline:22px}
+.builder__gallery-feedback{color:#163d57;background:#edf6fa;border-left:3px solid #2a86a7;padding:12px 14px;margin-bottom:14px;font-size:12px;line-height:1.6}
+.builder--3d-entry .builder__disclaimer{line-height:1.6;margin-top:19px}
+@media(max-width:1000px){
+  .builder--3d-entry .builder__controls{padding:28px 22px}
+  .builder__features{gap:8px}
+  .builder__features>div{padding:12px}
+}
+@media(max-width:640px){
+  .builder--3d-entry .builder__viewer{min-height:370px}
+  .builder--3d-entry .builder__art{min-height:280px;padding:10px}
+  .builder--3d-entry .builder__art img{height:278px;max-width:72%}
+  .builder--3d-entry .builder__controls{padding:25px 22px}
+  .builder--3d-entry .builder__controls-top h3{font-size:25px}
+  .builder__features{margin-block:24px 22px}
+  .builder--3d-entry .builder__bottomline{font-size:10px}
+}
+@media(max-width:390px){
+  .builder--3d-entry .builder__controls{padding-inline:17px}
+  .builder__features{grid-template-columns:1fr}
+  .builder--3d-entry .builder__viewer{min-height:334px}
+  .builder--3d-entry .builder__art{min-height:246px}
+  .builder--3d-entry .builder__art img{height:250px}
+}
