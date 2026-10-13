@@ -78,6 +78,38 @@ $('crest-file').addEventListener('change',async e=>{
   finally{URL.revokeObjectURL(url);}
 });
 
+function displayGarmentMeshes(candidates){
+ const container=$('mesh-list');
+ container.replaceChildren();
+ for(const entry of candidates){
+   const label=document.createElement('label');
+   label.className='mesh-selection__item'+(entry.candidate?' is-suggested':'');
+   const checkbox=document.createElement('input');
+   checkbox.type='checkbox';checkbox.value=entry.id;checkbox.checked=entry.candidate;
+   checkbox.setAttribute('aria-label','Seleccionar '+entry.name);
+   const detail=document.createElement('span');
+   detail.textContent=entry.name+' · '+entry.triangles.toLocaleString('es-ES')+' triángulos · '+(entry.uv?'UV':'sin UV')+(entry.excluded?' · revisar: accesorio':'');
+   label.append(checkbox,detail);container.appendChild(label);
+ }
+ $('mesh-selection').hidden=false;
+ $('mesh-result').textContent='Revisa y confirma las piezas de tejido; ningún material ha sido modificado.';
+}
+$('apply-meshes').addEventListener('click',()=>{
+ if(!viewer)return;
+ const ids=Array.from($('mesh-list').querySelectorAll('input[type=checkbox]:checked'),x=>x.value);
+ try{
+   const outcome=viewer.applyGarmentSelection(ids);
+   viewer.update(state);
+   modelWarning=outcome.warning;
+   $('mesh-result').textContent=outcome.projectedMeshes+' mallas con marcajes provisionales.';
+   $('render-status').textContent='MARCADO · SIN CALIBRAR';
+ }catch(error){
+   modelWarning=error.message;
+   $('mesh-result').textContent='No se aplicaron cambios: '+error.message;
+ }
+ validate();
+});
+
 let localModelFiles=null;
 async function importLocalModel(files){
   if(!files?.length)return;
@@ -88,6 +120,7 @@ async function importLocalModel(files){
   try{
     const report=await viewer.importFiles(files,{rotateDegrees:Number(orientation.value)});
     localModelFiles=Array.from(files);
+    displayGarmentMeshes(report.meshCandidates||[]);
     modelWarning=report.warning;
     const names=report.meshNames?.slice(0,3).join(', ');
     $('model-caption').textContent='Modelo local · '+report.meshes+' mallas · '+report.triangles.toLocaleString('es-ES')+
