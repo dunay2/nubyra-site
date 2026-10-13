@@ -242,8 +242,8 @@ test('el importador no altera automáticamente la malla y exige confirmar los ma
 import { TEST_JERSEY_META, createFreeTestJersey } from '../configurador-3d/free-test-jersey.mjs';
 const freeModelSource=readFileSync(resolve(root,'free-test-jersey.mjs'),'utf8');
 
-test('modelo de prueba sin descarga: geometría propia CC0 y separada de ClothingAxis',()=>{
- assert.equal(TEST_JERSEY_META.license,'CC0-1.0');
+test('modelo de prueba sin descarga: geometría propia NUBYRA y separada de ClothingAxis',()=>{
+ assert.equal(TEST_JERSEY_META.license,'NUBYRA-internal-test');
  assert.equal(TEST_JERSEY_META.industrial,false);
  assert.equal(TEST_JERSEY_META.independentFromClothingAxis,true);
  assert.throws(()=>createFreeTestJersey(null),/Three.js/);
