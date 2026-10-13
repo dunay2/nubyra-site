@@ -110,6 +110,38 @@ $('apply-meshes').addEventListener('click',()=>{
  validate();
 });
 
+async function loadFreeModel(){
+ const button=$('try-free-model');
+ if(!viewer){
+   modelWarning='El visor WebGL todavía no está disponible: comprueba Three.js y WebGL.';
+   validate();return;
+ }
+ button.disabled=true;
+ $('render-status').textContent='GENERANDO CAMISETA DE PRUEBA';
+ try{
+   const info=await viewer.loadFreeTestJersey();
+   const selected=info.meshCandidates.filter(m=>m.candidate && /Jersey_(Front|Back)/.test(m.name));
+   if(selected.length!==2)throw new Error('No se pudieron distinguir frontal y espalda de ensayo');
+   localModelFiles=null;
+   $('model-file').value='';
+   displayGarmentMeshes(info.meshCandidates);
+   const accepted=new Set(selected.map(m=>m.id));
+   for(const input of $('mesh-list').querySelectorAll('input[type=checkbox]'))input.checked=accepted.has(input.value);
+   const result=viewer.applyGarmentSelection([...accepted]);
+   viewer.update(state);viewer.view('quarter');
+   modelWarning='Modelo libre de ensayo (CC0): visualización y marcajes provisionales, sin validación industrial.';
+   $('mesh-result').textContent='Camiseta de prueba: '+result.projectedMeshes+' superficies con marcajes.';
+   $('model-caption').textContent='NUBYRA · Prueba femenina CC0 · '+info.triangles.toLocaleString('es-ES')+' triángulos · sin descarga';
+   $('render-status').textContent='CAMISETA DE PRUEBA 3D';
+   validate();
+ }catch(error){
+   modelWarning='No se pudo generar la camiseta de ensayo: '+error.message;
+   $('render-status').textContent='REVISAR MODELO DE PRUEBA';
+   validate();
+ }finally{button.disabled=false}
+}
+$('try-free-model').addEventListener('click',()=>void loadFreeModel());
+
 let localModelFiles=null;
 async function importLocalModel(files){
   if(!files?.length)return;
