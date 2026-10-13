@@ -55,7 +55,7 @@ test('el visor 3D y el editor son reales pero aislados de la landing y login', (
   assert.ok(viewer.includes("from 'three'"));
   assert.ok(viewer.includes('GLTFLoader'));
   assert.ok(viewer.includes('OrbitControls'));
-  assert.ok(app.includes("import('./viewer.mjs')"));
+  assert.match(app,/import\(\'\.\/viewer\.mjs(?:\?[^\']+)?\'\)/);
   assert.ok(markup.includes('id="model-file"'));
   assert.ok(markup.includes('SIN HOMOLOGAR'));
   assert.ok(!/supabase\.co|createClient|service_role|api_key/.test(app + viewer));
@@ -191,7 +191,9 @@ test('marcajes del SVG ajustados al torso y render frontal/trasera sin fallos',(
  const back=jerseySVG(DEFAULT_STATE,'back',ctx);
  assert.ok(front.includes('NUBYRA CANARIAS'));
  assert.ok(back.includes('PÉREZ'));
- assert.ok(front.includes('NC'));
+ assert.doesNotMatch(front,/>NC<\/text>/);
+ assert.doesNotMatch(front,/>N<\/text>/);
+ assert.doesNotMatch(back,/>N<\/text>/);
 });
 
 
@@ -264,4 +266,29 @@ test('camiseta libre de ensayo recorre exportador glTF, importador y mallas sele
  assert.match(markup,/id="try-free-model"/);
  assert.match(markup,/sin descargar archivos/);
  assert.match(style,/\.trial-model__button/);
+});
+
+
+test('el visor 3D y la vista SVG no dibujan logotipos fijos N/NC',()=>{
+ const ctx={font:'',measureText(text){return {width:String(text).length*45*.56}}};
+ const clean={...DEFAULT_STATE,team:'TELDE',surname:'RIOS',number:'10',
+  sponsorFront:'',sponsorTop:'',sponsorBottom:'',crest:null,crestDataUrl:null};
+ const front=jerseySVG(clean,'front',ctx,true),back=jerseySVG(clean,'back',ctx,true);
+ for(const svg of [front,back]){
+   assert.doesNotMatch(svg,/>N<\/text>/);
+   assert.doesNotMatch(svg,/>NC<\/text>/);
+   assert.doesNotMatch(svg,/<g transform=/);
+   assert.doesNotMatch(svg,/x="278" y="307"/);
+ }
+ assert.match(front,/>TELDE<\/text>/);
+ assert.match(back,/>RIOS<\/text>/);
+ assert.match(back,/>10<\/text>/);
+ const uploaded=jerseySVG({...clean,crestDataUrl:'data:image/png;base64,AAAA'},'front',ctx);
+ assert.match(uploaded,/<image href="data:image\/png;base64,AAAA"/);
+ assert.doesNotMatch(uploaded,/>NC<\/text>/);
+ const print=viewer.slice(viewer.indexOf('function drawPrint('),viewer.indexOf('/** Atlas'));
+ assert.doesNotMatch(print,/printBlock\(ctx,z\.brand/);
+ assert.doesNotMatch(print,/fillText\('NC'/);
+ assert.match(print,/ctx\.drawImage\(state\.crest/);
+ assert.match(print,/printBlock\(ctx,z\.number/);
 });
