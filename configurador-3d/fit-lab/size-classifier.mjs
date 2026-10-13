@@ -101,3 +101,52 @@ export function serializeClassifier(values,activeBase=DEFAULT_BASE,mode='body'){
     note:'Rangos, tamaños en cm y cortes de clase ilustrativos. Los dos patrones N1/N2 sí figuran en la memoria, pero ninguna equivalencia métrica aquí ha sido aprobada para fabricación.'
   };
 }
+
+
+/**
+ * RECOMENDADOR DE ENSAYO, NO PATRONAJE: el patrón es la SALIDA
+ * de las medidas corporales y del largo solicitado.
+ * No deducimos la posición lateral 1/2/3 sin fichas técnicas homologadas.
+ */
+export const RECOMMENDATION_FIELDS=Object.freeze([
+  'bodyChestCm','bodyHipCm','desiredLengthCm'
+]);
+const referenceKey=measure=>measure==='desiredLengthCm'?'garmentLengthCm':measure;
+export function suggestPatternFromMeasurements(values){
+  if(!values||typeof values!=='object')throw Error('Medidas requeridas');
+  const parameters=RECOMMENDATION_FIELDS.map(measure=>{
+    // Se permite fallback al largo visual previo para compatibilidad con el
+    // laboratorio antiguo, pero la nueva UI tiene largo solicitado propio.
+    const raw=measure==='desiredLengthCm'
+      ?values.desiredLengthCm??values.garmentLengthCm:values[measure];
+    const value=Number(raw);
+    if(!Number.isFinite(value))throw Error('Medida inválida: '+measure);
+    const source=referenceKey(measure);
+    return {measure,source,value,step:BAND_STEPS[source]};
+  });
+  const candidates=Object.keys(BASE_SHIRTS).map(base=>{
+    const distances=parameters.map(({measure,source,value,step})=>({
+      measure,value,reference:BASE_SHIRTS[base][source],
+      deltaCm:value-BASE_SHIRTS[base][source],
+      normalizedDelta:(value-BASE_SHIRTS[base][source])/step
+    }));
+    return {
+      base,
+      score:distances.reduce((n,p)=>n+p.normalizedDelta**2,0),
+      distances,
+      // Tolerancia EXPERIMENTAL para avisar, no rango de ajuste certificable.
+      withinDemoEnvelope:distances.every(p=>Math.abs(p.normalizedDelta)<=2)
+    };
+  }).sort((a,b)=>a.score-b.score||a.base.localeCompare(b.base));
+  const proposed=candidates[0];
+  return {
+    base:proposed.base,
+    candidateOnly:true,
+    manufacturingApproved:false,
+    lateralPosition:null,
+    status:proposed.withinDemoEnvelope?'demo-candidate':'review-outside-demo',
+    scores:candidates,
+    measuredInputs:Object.fromEntries(parameters.map(p=>[p.measure,p.value])),
+    reason:'Cercanía normalizada de pecho corporal, cadera corporal y largo solicitado a referencias sintéticas de laboratorio. Sin holguras, patrón técnico ni posiciones de ajuste verificadas.'
+  };
+}

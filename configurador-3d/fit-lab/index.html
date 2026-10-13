@@ -5,7 +5,7 @@
  <meta name="viewport" content="width=device-width,initial-scale=1">
  <meta name="theme-color" content="#081f36">
  <meta name="description" content="NUBYRA · Ensayo geométrico de cuerpo y camiseta independientes. Sin validación de tallas ni patronaje.">
- <title>NUBYRA · Laboratorio de ajuste 3D A/B</title>
+ <title>NUBYRA · Medidas, ajuste 3D y propuesta de patrón</title>
  <link rel="stylesheet" href="./styles.css">
  <script type="importmap">{
   "imports":{
@@ -25,8 +25,8 @@
  <main class="wrap" id="lab">
   <div class="intro">
    <div><p class="eyebrow">ESTUDIO 01 · DOS GEOMETRÍAS INDEPENDIENTES</p>
-   <h1>El cuerpo cambia.<br><em>La camiseta decide después.</em></h1>
-   <p class="lead">Comprueba qué ocurre al cambiar el cuerpo y mantener la prenda fija, o al adaptar únicamente la prenda. La camiseta sigue siendo el prototipo geométrico NUBYRA.</p></div>
+   <h1>Primero las medidas.<br><em>El patrón llega al final.</em></h1>
+   <p class="lead">Tres pasos en un mismo espacio: introduce medidas, comprueba el ajuste 3D y recibe una propuesta de patrón. Puedes mantener la camiseta fija al modificar el cuerpo.</p></div>
    <div class="intro-tip">No hay fotos, medidas de jugadoras ni cálculo de tensión textil. Los valores de ejemplo son sintéticos.</div>
   </div>
   <div class="workspace">
@@ -69,47 +69,37 @@
       <p>Variación calculada de los vértices frente a la malla inicial, no centímetros ni ajuste físico certificado. Un botón ±1 debe modificar aquí los porcentajes, además del 3D.</p>
     </section>
    </section>
-   <section class="editor" aria-label="Parámetros del experimento">
-    <div class="editor-head"><p class="panel-overline">PRUEBA CONTROLADA</p><h2>Experimentos A y B</h2>
-    <p>Al elegir un modo, congelamos la geometría que no corresponde. Cada valor cambia solo su propia malla.</p></div>
-    <section class="size-proposal" aria-label="1. Tamaño base de camiseta">
-      <p class="panel-overline">PASO 1 · CAMISETA BASE</p>
-      <h3>Elige el tamaño base</h3>
-      <div class="base-choices" role="group" aria-label="Tamaño base N1 o N2">
-        <button type="button" data-base-id="N1" aria-pressed="true">N1 <small>Patrón base 1</small></button>
-        <button type="button" data-base-id="N2" aria-pressed="false">N2 <small>Patrón base 2</small></button>
-      </div>
-      <p class="base-current">Camiseta visual activa: <strong id="active-base">N1</strong></p>
-      <div class="recommended-box" aria-live="polite">
-        <span>PROPUESTA SEGÚN MEDIDAS</span>
-        <strong id="suggested-base">N1</strong>
-        <p id="proposal-explanation">Se analiza el tamaño más próximo a las medidas del experimento.</p>
-        <button type="button" id="use-proposal" disabled>Aplicar camiseta propuesta</button>
-      </div>
-      <p class="base-disclaimer"><strong>Ensayo, no tabla de tallas:</strong> los anclajes N1/N2 y sus rangos en centímetros son referencias sintéticas configurables. Patronaje todavía no ha validado medidas ni holguras.</p>
-    </section>
-    <div class="mode-switch" role="group" aria-label="Modo de experimento">
-      <button id="mode-body" type="button" aria-pressed="true"><strong>A · Cambiar cuerpo</strong><small>Prenda fija</small></button>
-      <button id="mode-garment" type="button" aria-pressed="false"><strong>B · Adaptar camiseta</strong><small>Cuerpo fijo</small></button>
+
+   <section class="editor" aria-label="Proceso de ajuste de camiseta NUBYRA">
+    <div class="editor-head">
+      <p class="panel-overline">LABORATORIO DE AJUSTE</p>
+      <h2>De las medidas a la propuesta</h2>
+      <p>Introduce las medidas, examina las dos mallas y revisa el patrón recomendado. El visor permanece visible mientras cambias de pestaña.</p>
     </div>
-    <div class="discrete-hint" role="note">
-      <strong>PASO 2 · Ajustes −1 / 0 / +1 vinculados a cm</strong>
-      <p>Cada etiqueta representa un <strong>intervalo de centímetros de ensayo</strong> relativo a la camiseta base N1/N2. Al mover la barra cambia automáticamente la etiqueta. Al pulsar una etiqueta cambia el valor numérico al centro de ese grupo. <strong>Los umbrales todavía no están validados.</strong></p>
+    <div class="editor-tabs" role="tablist" aria-label="Pasos del configurador">
+      <button type="button" id="tab-measures" class="editor-tab" role="tab" aria-controls="panel-measures" aria-selected="true" tabindex="0" data-tab="measures"><span>01</span> Medidas</button>
+      <button type="button" id="tab-adjust" class="editor-tab" role="tab" aria-controls="panel-adjust" aria-selected="false" tabindex="-1" data-tab="adjust"><span>02</span> Ajuste 3D</button>
+      <button type="button" id="tab-proposal" class="editor-tab" role="tab" aria-controls="panel-proposal" aria-selected="false" tabindex="-1" data-tab="proposal"><span>03</span> Propuesta</button>
     </div>
+    <div class="editor-panels">
+      <section class="tab-panel" id="panel-measures" role="tabpanel" aria-labelledby="tab-measures" tabindex="0">
+        <p class="step-eyebrow">PASO 1 · DATOS DE ENTRADA</p>
+        <h3>¿Qué medidas queremos cubrir?</h3>
+        <p class="step-copy">El patrón todavía no se elige. Las medidas y el largo solicitado son las entradas del recomendador; las etiquetas de ajuste se calculan después.</p>
     <fieldset class="param-panel" id="body-fields">
-     <legend><span class="number">01</span> Cuerpo sintético <span class="panel-tag">MALLA A</span></legend>
-     <p class="section-hint">Datos numéricos ilustrativos; no representan a ninguna jugadora.</p>
+     <legend><span class="number">01</span> Medidas del cuerpo <span class="panel-tag">MALLA A</span></legend>
+     <p class="section-hint">Introduce los contornos de referencia. Estos valores son sintéticos y podrán contrastarse con mediciones reales cuando exista protocolo.</p>
      <div class="fit-field">
        <div class="field-top"><label for="bodyChestCm-range">Pecho · referencia</label><div><input aria-label="Pecho del cuerpo en cm" id="bodyChestCm-number" type="number" min="65" max="120" step="1" value="88"><span>cm</span></div></div>
        <input id="bodyChestCm-range" type="range" min="65" max="120" step="1" value="88">
        <div class="discrete-options" role="group" aria-label="Estado visual de pecho del cuerpo"><button type="button" data-label-key="bodyChestState" data-label-value="-1" aria-pressed="false" aria-label="Menor para pecho del cuerpo"><span>-1</span><small>Menor</small></button><button type="button" data-label-key="bodyChestState" data-label-value="0" aria-pressed="true" aria-label="Base para pecho del cuerpo"><span>0</span><small>Base</small></button><button type="button" data-label-key="bodyChestState" data-label-value="1" aria-pressed="false" aria-label="Mayor para pecho del cuerpo"><span>+1</span><small>Mayor</small></button></div>
-       <small class="cm-band" id="cm-band-bodyChestCm">Rangos de ensayo por tamaño N1/N2</small>
+       <small class="cm-band" id="cm-band-bodyChestCm">Intervalo de ensayo calculado desde las medidas</small>
      </div>
      <div class="fit-field">
        <div class="field-top"><label for="bodyHipCm-range">Cadera · referencia</label><div><input aria-label="Cadera del cuerpo en cm" id="bodyHipCm-number" type="number" min="70" max="130" step="1" value="96"><span>cm</span></div></div>
        <input id="bodyHipCm-range" type="range" min="70" max="130" step="1" value="96">
        <div class="discrete-options" role="group" aria-label="Estado visual de cadera del cuerpo"><button type="button" data-label-key="bodyHipState" data-label-value="-1" aria-pressed="false" aria-label="Menor para cadera del cuerpo"><span>-1</span><small>Menor</small></button><button type="button" data-label-key="bodyHipState" data-label-value="0" aria-pressed="true" aria-label="Base para cadera del cuerpo"><span>0</span><small>Base</small></button><button type="button" data-label-key="bodyHipState" data-label-value="1" aria-pressed="false" aria-label="Mayor para cadera del cuerpo"><span>+1</span><small>Mayor</small></button></div>
-       <small class="cm-band" id="cm-band-bodyHipCm">Rangos de ensayo por tamaño N1/N2</small>
+       <small class="cm-band" id="cm-band-bodyHipCm">Intervalo de ensayo calculado desde las medidas</small>
      </div>
      <div class="auxiliary">
        <label for="bodyHeightCm-number">Altura corporal (auxiliar)</label>
@@ -118,40 +108,121 @@
      </div>
      <button class="reset-inline" id="reset-body" type="button">Restablecer cuerpo</button>
     </fieldset>
+        <fieldset class="param-panel" id="length-request">
+          <legend><span class="number">02</span> Largo solicitado <span class="panel-tag">PRENDA</span></legend>
+          <p class="section-hint">Largo objetivo de la camiseta. Es independiente de la altura corporal.</p>
+          <div class="fit-field">
+            <div class="field-top"><label for="goalLengthCm-range">Largo de camiseta</label><div><input type="number" id="goalLengthCm-number" data-fit-key="desiredLengthCm" min="48" max="84" step="1" value="64" aria-label="Largo solicitado de camiseta en cm"><span>cm</span></div></div>
+            <input type="range" id="goalLengthCm-range" data-fit-key="desiredLengthCm" min="48" max="84" step="1" value="64">
+          </div>
+          <p class="hint">Los valores de centímetros y sus intervalos son de ensayo, no una tabla de tallas industriales.</p>
+        </fieldset>
+        <div class="tab-actions"><button type="button" data-go-tab="adjust" class="step-primary">Continuar al ajuste 3D <span aria-hidden="true">→</span></button></div>
+      </section>
+      <section class="tab-panel" id="panel-adjust" role="tabpanel" aria-labelledby="tab-adjust" tabindex="0" hidden>
+        <p class="step-eyebrow">PASO 2 · MALLAS INDEPENDIENTES</p>
+        <h3>Compara el volumen en 3D</h3>
+        <p class="step-copy">En A modificas el cuerpo y la camiseta permanece fija; en B modificas la camiseta mientras el cuerpo se mantiene fijo. La malla del visor no desaparece al cambiar de pestaña.</p>
+        <div class="mode-switch" role="group" aria-label="Modo de experimento A o B">
+          <button id="mode-body" type="button" aria-pressed="true"><strong>A · Cambiar cuerpo</strong><small>Prenda fija</small></button>
+          <button id="mode-garment" type="button" aria-pressed="false"><strong>B · Adaptar camiseta</strong><small>Cuerpo fijo</small></button>
+        </div>
+        <div class="discrete-hint" role="note">
+          <strong>Grupos −1 / 0 / +1 vinculados a centímetros</strong>
+          <p>Las clases son relativas a referencias numéricas de ensayo; no representan posiciones de ajuste industrial ni etiquetas corporales.</p>
+        </div>
+        <fieldset class="param-panel" id="adjust-body-fields">
+          <legend><span class="number">A</span> Modificar cuerpo <span class="panel-tag">PRENDA FIJA</span></legend>
+          <p class="section-hint">Los valores se sincronizan con la pestaña Medidas.</p>
+          <div class="fit-field">
+   <div class="field-top"><label for="adjust-bodyChestCm-range">Pecho corporal</label><div><input type="number" data-fit-key="bodyChestCm" id="adjust-bodyChestCm-number" aria-label="Pecho corporal en cm durante ajuste 3D" min="65" max="120" step="1" value="88"><span>cm</span></div></div>
+   <input type="range" data-fit-key="bodyChestCm" id="adjust-bodyChestCm-range" min="65" max="120" step="1" value="88">
+  </div>
+          <div class="fit-field">
+   <div class="field-top"><label for="adjust-bodyHipCm-range">Cadera corporal</label><div><input type="number" data-fit-key="bodyHipCm" id="adjust-bodyHipCm-number" aria-label="Cadera corporal en cm durante ajuste 3D" min="70" max="130" step="1" value="96"><span>cm</span></div></div>
+   <input type="range" data-fit-key="bodyHipCm" id="adjust-bodyHipCm-range" min="70" max="130" step="1" value="96">
+  </div>
+        </fieldset>
     <fieldset class="param-panel is-locked" id="garment-fields" disabled>
      <legend><span class="number">02</span> Camiseta <span class="panel-tag">MALLA B</span></legend>
-     <p class="section-hint">Valores objetivo para la deformación visual; pendientes de calibración en cm.</p>
+     <p class="section-hint">Ajusta la camiseta de comparación. No modifica el cuerpo ni acepta automáticamente el patrón recomendado.</p>
      <div class="fit-field">
       <div class="field-top"><label for="garmentChestCm-range">Volumen del pecho</label><div><input aria-label="Pecho objetivo de la camiseta en cm" id="garmentChestCm-number" type="number" min="75" max="135" step="1" value="102"><span>cm</span></div></div>
       <input id="garmentChestCm-range" type="range" min="75" max="135" step="1" value="102">
        <div class="discrete-options" role="group" aria-label="Estado visual de volumen de pecho de la camiseta"><button type="button" data-label-key="garmentChestState" data-label-value="-1" aria-pressed="false" aria-label="Menor para volumen de pecho de la camiseta"><span>-1</span><small>Menor</small></button><button type="button" data-label-key="garmentChestState" data-label-value="0" aria-pressed="true" aria-label="Base para volumen de pecho de la camiseta"><span>0</span><small>Base</small></button><button type="button" data-label-key="garmentChestState" data-label-value="1" aria-pressed="false" aria-label="Mayor para volumen de pecho de la camiseta"><span>+1</span><small>Mayor</small></button></div>
-       <small class="cm-band" id="cm-band-garmentChestCm">Rangos de ensayo por tamaño N1/N2</small>
+       <small class="cm-band" id="cm-band-garmentChestCm">Intervalo de ensayo calculado desde las medidas</small>
      </div>
      <div class="fit-field">
       <div class="field-top"><label for="garmentHipCm-range">Volumen de cadera</label><div><input aria-label="Cadera objetivo de la camiseta en cm" id="garmentHipCm-number" type="number" min="80" max="145" step="1" value="110"><span>cm</span></div></div>
       <input id="garmentHipCm-range" type="range" min="80" max="145" step="1" value="110">
        <div class="discrete-options" role="group" aria-label="Estado visual de volumen de cadera de la camiseta"><button type="button" data-label-key="garmentHipState" data-label-value="-1" aria-pressed="false" aria-label="Menor para volumen de cadera de la camiseta"><span>-1</span><small>Menor</small></button><button type="button" data-label-key="garmentHipState" data-label-value="0" aria-pressed="true" aria-label="Base para volumen de cadera de la camiseta"><span>0</span><small>Base</small></button><button type="button" data-label-key="garmentHipState" data-label-value="1" aria-pressed="false" aria-label="Mayor para volumen de cadera de la camiseta"><span>+1</span><small>Mayor</small></button></div>
-       <small class="cm-band" id="cm-band-garmentHipCm">Rangos de ensayo por tamaño N1/N2</small>
+       <small class="cm-band" id="cm-band-garmentHipCm">Intervalo de ensayo calculado desde las medidas</small>
      </div>
      <div class="fit-field">
       <div class="field-top"><label for="garmentLengthCm-range">Largo de prenda</label><div><input aria-label="Largo objetivo de la camiseta en cm" id="garmentLengthCm-number" type="number" min="48" max="84" step="1" value="64"><span>cm</span></div></div>
       <input id="garmentLengthCm-range" type="range" min="48" max="84" step="1" value="64">
        <div class="discrete-options" role="group" aria-label="Estado visual de largo de la camiseta"><button type="button" data-label-key="garmentLengthState" data-label-value="-1" aria-pressed="false" aria-label="Corto para largo de la camiseta"><span>-1</span><small>Corto</small></button><button type="button" data-label-key="garmentLengthState" data-label-value="0" aria-pressed="true" aria-label="Base para largo de la camiseta"><span>0</span><small>Base</small></button><button type="button" data-label-key="garmentLengthState" data-label-value="1" aria-pressed="false" aria-label="Largo para largo de la camiseta"><span>+1</span><small>Largo</small></button></div>
-       <small class="cm-band" id="cm-band-garmentLengthCm">Rangos de ensayo por tamaño N1/N2</small>
+       <small class="cm-band" id="cm-band-garmentLengthCm">Intervalo de ensayo calculado desde las medidas</small>
      </div>
      <button class="reset-inline" id="reset-garment" type="button">Restablecer camiseta</button>
     </fieldset>
-    <div class="result">
-      <h3>Comparación nominal de entradas</h3>
-      <p class="discrete-status" id="discrete-status" aria-live="polite">Grupos de medida: todos los parámetros en el rango base (0).</p>
-      <div class="result-grid">
-        <p><small>Prenda − cuerpo · pecho</small><strong id="delta-chest">+14 cm</strong></p>
-        <p><small>Prenda − cuerpo · cadera</small><strong id="delta-hip">+14 cm</strong></p>
-      </div>
-      <p>Estas diferencias entre números <strong>no equivalen</strong> a holgura, contacto, tensión ni ajuste físico real: las secciones 3D todavía no están calibradas.</p>
+        <div class="tab-actions tab-actions--between">
+          <button type="button" data-go-tab="measures" class="step-secondary">← Medidas</button>
+          <button type="button" data-go-tab="proposal" class="step-primary">Ver propuesta <span aria-hidden="true">→</span></button>
+        </div>
+      </section>
+      <section class="tab-panel" id="panel-proposal" role="tabpanel" aria-labelledby="tab-proposal" tabindex="0" hidden>
+        <p class="step-eyebrow">PASO 3 · SALIDA DEL MODELO</p>
+        <h3>Patrón de camiseta propuesto</h3>
+        <p class="step-copy">El sistema compara las medidas introducidas con las referencias del catálogo de ensayo. No necesitas elegir N1 o N2 al principio.</p>
+        <div class="recommended-box proposed-result" aria-live="polite">
+          <span>PATRÓN BASE CANDIDATO</span>
+          <strong id="suggested-base">—</strong>
+          <p class="proposal-status" id="proposal-status">Calculando recomendación…</p>
+          <p id="proposal-explanation">Propuesta ilustrativa; pendientes las holguras, límites y condiciones de fabricación.</p>
+        </div>
+        <div class="proposed-inputs">
+          <div><small>Pecho corporal</small><strong id="proposal-input-chest">88 cm</strong></div>
+          <div><small>Cadera corporal</small><strong id="proposal-input-hip">96 cm</strong></div>
+          <div><small>Largo solicitado</small><strong id="proposal-input-length">64 cm</strong></div>
+        </div>
+        <p id="proposal-bands" class="proposal-bands" aria-live="polite">Clasificación por región aún no calculada.</p>
+        <div class="configuration">
+          <div class="configuration__heading"><strong>Seis configuraciones previstas</strong><span>2 patrones × 3 posiciones</span></div>
+          <div class="pattern-grid" id="pattern-grid" aria-label="Patrones técnicos y posiciones pendientes de validación">
+            <div data-pattern-base="N1"><strong>N1-1</strong><small>sin validar</small></div>
+            <div data-pattern-base="N1"><strong>N1-2</strong><small>sin validar</small></div>
+            <div data-pattern-base="N1"><strong>N1-3</strong><small>sin validar</small></div>
+            <div data-pattern-base="N2"><strong>N2-1</strong><small>sin validar</small></div>
+            <div data-pattern-base="N2"><strong>N2-2</strong><small>sin validar</small></div>
+            <div data-pattern-base="N2"><strong>N2-3</strong><small>sin validar</small></div>
+          </div>
+          <p id="lateral-position-warning" class="configuration__note">La posición lateral industrial 1/2/3 todavía no puede asignarse sin las reglas de patronaje.</p>
+        </div>
+        <div class="shirt-comparison">
+          <p>Camiseta visible ahora: <strong id="active-base">N1</strong> <span>(referencia de ensayo)</span></p>
+          <button type="button" class="step-primary" id="use-proposal" disabled>Aplicar propuesta al visor 3D</button>
+          <p>La recomendación se actualiza al cambiar las medidas, pero no cambia la camiseta que estás comparando hasta que la apliques.</p>
+        </div>
+        <div class="result">
+          <h3>Comparación nominal cuerpo / camiseta visible</h3>
+          <p class="discrete-status" id="discrete-status" aria-live="polite">Grupos de medida en evaluación.</p>
+          <div class="result-grid">
+            <p><small>Prenda − cuerpo · pecho</small><strong id="delta-chest">+14 cm</strong></p>
+            <p><small>Prenda − cuerpo · cadera</small><strong id="delta-hip">+14 cm</strong></p>
+          </div>
+          <p>La diferencia aritmética de entradas no demuestra holgura, contacto ni comodidad física. Las secciones 3D no están calibradas en centímetros.</p>
+        </div>
+        <div class="actions">
+          <button type="button" id="reset-all">Restablecer experimento</button>
+          <button type="button" id="save-json">Exportar datos JSON</button>
+        </div>
+        <div class="tab-actions tab-actions--between">
+          <button type="button" data-go-tab="adjust" class="step-secondary">← Revisar ajuste</button>
+        </div>
+        <p class="disclaimer">Simulación geométrica. Ningún resultado permite aprobar una orden de producción, talla o patrón industrial. No enviamos medidas a servidores.</p>
+      </section>
     </div>
-    <div class="actions"><button type="button" id="reset-all">Restablecer experimento</button><button type="button" id="save-json">Exportar datos JSON</button></div>
-    <p class="disclaimer">Simulación geométrica de investigación. Ningún resultado permite aprobar una orden de producción, talla o patrón industrial. El editor funciona en tu navegador y no envía medidas a un servidor.</p>
    </section>
   </div>
   <footer>© NUBYRA · Laboratorio de investigación morfológica · Separación cuerpo / prenda</footer>
