@@ -1,5 +1,5 @@
 import { DEFAULT_STATE, PRESETS, normalizeText, normalizeNumber, validNumber, serializeProposal } from './layout.mjs';
-import { jerseySVG, renderFallback } from './flat.mjs';
+import { jerseySVG, renderFallback } from './flat.mjs?v=sin-logos-fijos-20261013';
 
 const $ = id => document.getElementById(id);
 const state = { ...DEFAULT_STATE, crestDataUrl: null };
@@ -207,7 +207,7 @@ $('download-png').addEventListener('click',async()=>{
 render();
 // La personalización 2D permanece usable aunque el CDN de Three.js esté inaccesible.
 try{
-  const {initViewer}=await import('./viewer.mjs');
+  const {initViewer}=await import('./viewer.mjs?v=sin-logos-fijos-20261013');
   viewer=await initViewer($('webgl'),state,warnings=>{viewerWarnings=warnings;validate();});
   flatMode=false;
   $('flat-preview').hidden=true;
