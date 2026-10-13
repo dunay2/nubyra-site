@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createFreeTestJersey } from '../free-test-jersey.mjs';
-import { createReferenceBody, applyFitToModels, measureCrossSection } from './fit-geometry.mjs';
+import { createReferenceBody, applyFitToModels, measureCrossSection, backSurfaceProfile } from './fit-geometry.mjs';
 
 export function createFitViewer(canvas,initial){
   if(!canvas || !canvas.parentElement)throw Error('Canvas de laboratorio requerido');
@@ -24,6 +24,34 @@ export function createFitViewer(canvas,initial){
   mannequin.name='BodyMesh · sintético (independiente)';
   garment.name='GarmentMesh · camiseta NUBYRA (independiente)';
   pivot.add(mannequin,garment);
+  const backPanel=garment.getObjectByName('NUBYRA_Test_Jersey_Back');
+  if(!backPanel)throw Error('Se necesita el panel trasero para comparar el volumen');
+  const guides=new THREE.Group();
+  guides.name='Comparación de sección posterior original vs actual';
+  pivot.add(guides);
+  const outlineGeometry=points=>new THREE.BufferGeometry().setFromPoints(
+    points.map(({x,y,z})=>new THREE.Vector3(x,y,z))
+  );
+  const originalProfiles={
+    body:backSurfaceProfile(mannequin),
+    garment:backSurfaceProfile(backPanel)
+  };
+  let guideTarget='body',viewName='quarter';
+  const originalLine=new THREE.Line(outlineGeometry(originalProfiles.body),
+    new THREE.LineBasicMaterial({color:0xc38712,depthTest:false,transparent:true,opacity:.95}));
+  originalLine.renderOrder=99;
+  const currentLine=new THREE.Line(outlineGeometry(originalProfiles.body),
+    new THREE.LineBasicMaterial({color:0x127da9,depthTest:false,transparent:true,opacity:1}));
+  currentLine.renderOrder=100;
+  guides.add(originalLine,currentLine);
+  guides.visible=false;
+  function refreshRearGuide(){
+    originalLine.geometry.dispose();
+    currentLine.geometry.dispose();
+    originalLine.geometry=outlineGeometry(originalProfiles[guideTarget]);
+    currentLine.geometry=outlineGeometry(backSurfaceProfile(guideTarget==='body'?mannequin:backPanel));
+    guides.visible=viewName==='back';
+  }
   const camera=new THREE.PerspectiveCamera(33,1,.1,50);
   camera.position.set(3.2,.24,4.9);
   const controls=new OrbitControls(camera,canvas);
@@ -79,6 +107,7 @@ export function createFitViewer(canvas,initial){
     update(values){
       // Único controlador común: las etiquetas nunca se pierden en esta frontera.
       applyFitToModels(mannequin,garment,values);
+      refreshRearGuide();
       return {body:mannequin,garment};
     },
     setVisual(flags){
@@ -86,10 +115,17 @@ export function createFitViewer(canvas,initial){
       applyMaterialMode();
     },
     view(name){
-      const coords=viewAngles[name]||viewAngles.quarter;
+      viewName=name in viewAngles?name:'quarter';
+      const coords=viewAngles[viewName];
       camera.position.set(...coords);
       controls.target.set(0,0,0);
       controls.update();
+      guides.visible=viewName==='back';
+    },
+    setGuideTarget(mode){
+      if(!['body','garment'].includes(mode))return;
+      guideTarget=mode;
+      refreshRearGuide();
     },
     // Cálculo sobre vértices, sin equivalencia antropométrica en centímetros.
     measureChestSections(){
@@ -112,6 +148,8 @@ export function createFitViewer(canvas,initial){
       disposed=true;cancelAnimationFrame(frameId);
       observer.disconnect();controls.dispose();
       mannequin.geometry.dispose();mannequin.material.dispose();
+      originalLine.geometry.dispose();originalLine.material.dispose();
+      currentLine.geometry.dispose();currentLine.material.dispose();
       garment.traverse(x=>{
         if(x.isMesh){
           x.geometry.dispose();
