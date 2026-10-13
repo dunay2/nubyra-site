@@ -36,7 +36,7 @@ export function createFitViewer(canvas,initial){
     body:backSurfaceProfile(mannequin),
     garment:backSurfaceProfile(backPanel)
   };
-  let guideTarget='body',viewName='quarter';
+  let guideTarget='body',viewName='quarter',lastFit=null;
   const originalLine=new THREE.Line(outlineGeometry(originalProfiles.body),
     new THREE.LineBasicMaterial({color:0xc38712,depthTest:false,transparent:true,opacity:.95}));
   originalLine.renderOrder=99;
@@ -50,7 +50,7 @@ export function createFitViewer(canvas,initial){
     currentLine.geometry.dispose();
     originalLine.geometry=outlineGeometry(originalProfiles[guideTarget]);
     currentLine.geometry=outlineGeometry(backSurfaceProfile(guideTarget==='body'?mannequin:backPanel));
-    guides.visible=viewName==='back';
+    guides.visible=['back','rearquarter','side'].includes(viewName);
   }
   const camera=new THREE.PerspectiveCamera(33,1,.1,50);
   camera.position.set(3.2,.24,4.9);
@@ -64,9 +64,9 @@ export function createFitViewer(canvas,initial){
   controls.minPolarAngle=.58;
   controls.maxPolarAngle=2.60;
   controls.update();
-  const visual={body:true,transparent:true,wire:false};
+  const visual={body:true,garment:true,transparent:true,wire:false};
   const viewAngles={
-    front:[0,.10,5.8],side:[5.8,.14,0],quarter:[3.4,.18,4.9],back:[0,.12,-5.8]
+    front:[0,.10,5.8],side:[5.8,.14,0],quarter:[3.4,.18,4.9],back:[0,.12,-5.8],rearquarter:[3.5,.2,-4.9]
   };
   let disposed=false,frameId=0;
   const updateSize=()=>{
@@ -80,6 +80,7 @@ export function createFitViewer(canvas,initial){
   observer.observe(canvas.parentElement);updateSize();
   function applyMaterialMode(){
     mannequin.visible=visual.body;
+    garment.visible=visual.garment;
     mannequin.material.opacity=.83;
     garment.traverse(obj=>{
       if(!obj.isMesh)return;
@@ -106,7 +107,7 @@ export function createFitViewer(canvas,initial){
   const api={
     update(values){
       // Único controlador común: las etiquetas nunca se pierden en esta frontera.
-      applyFitToModels(mannequin,garment,values);
+      lastFit=applyFitToModels(mannequin,garment,values);
       refreshRearGuide();
       return {body:mannequin,garment};
     },
@@ -120,12 +121,19 @@ export function createFitViewer(canvas,initial){
       camera.position.set(...coords);
       controls.target.set(0,0,0);
       controls.update();
-      guides.visible=viewName==='back';
+      guides.visible=['back','rearquarter','side'].includes(viewName);
     },
     setGuideTarget(mode){
       if(!['body','garment'].includes(mode))return;
       guideTarget=mode;
       refreshRearGuide();
+    },
+    // Estimador geométrico, no medición de gravedad, fricción ni elasticidad real.
+    drapeDiagnostics(){
+      return lastFit?.drape??null;
+    },
+    currentRestConfiguration(){
+      return lastFit?.restConfiguration??null;
     },
     // Cálculo sobre vértices, sin equivalencia antropométrica en centímetros.
     measureChestSections(){
