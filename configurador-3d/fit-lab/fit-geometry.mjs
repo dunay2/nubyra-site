@@ -3,7 +3,7 @@
  * Entradas en cm de DEMOSTRACIÓN. Sin calibración antropométrica, sin fitting ni fabricación.
  * El cuerpo es un volumen sintético abstracto, nunca la representación de una jugadora.
  */
-import { effectFor, serializeLabels } from './discrete-states.mjs';
+import { effectFor, normalizeLabels, serializeLabels } from './discrete-states.mjs';
 export const FIT_VERSION='nubyra.fit-lab/0.2';
 export const DEFAULT_FIT=Object.freeze({
   bodyChestCm:88,bodyHipCm:96,bodyHeightCm:160,
@@ -26,6 +26,13 @@ export function normalizeFit(values){
     result[key]=Number.isFinite(v)?clamp(v,min,max):DEFAULT_FIT[key];
   }
   return result;
+}
+/**
+ * Contrato único del visor: conserva medidas y etiquetas independientes.
+ * El visor previo normalizaba SOLO cm, borrando -1/+1 antes del morph.
+ */
+export function normalizeRenderFit(values){
+  return {...normalizeFit(values),...normalizeLabels(values)};
 }
 export function serializeFit(state){
   const values=normalizeFit(state);
@@ -115,8 +122,12 @@ export function deformBody(mesh,values){
   const deltaHip=v.bodyHipCm/DEFAULT_FIT.bodyHipCm-1+effectFor(values,'bodyHipState');
   changePositions(mesh,(x,y,z)=>{
     const chest=gauss((y-.28)/.43),hip=gauss((y+.98)/.46);
-    const scale=1+deltaChest*chest+deltaHip*hip;
-    return [x*scale,y,(z+.005)*scale-.005];
+    // Contorno transversal completo: pecho se amplía a ambos lados y en ambos fondos.
+    const lateral=1+1.32*deltaChest*chest+1.04*deltaHip*hip;
+    const depth=1+1.16*deltaChest*chest+1.02*deltaHip*hip;
+    const centered=z+.005,side=Math.sign(centered);
+    const balancedBackAndFront=side*.024*deltaChest*chest;
+    return [x*lateral,y,centered*depth+balancedBackAndFront-.005];
   });
   return mesh;
 }
@@ -133,13 +144,15 @@ export function deformGarment(group,values){
     changePositions(mesh,(x,y,z)=>{
       const bustWeight=gauss((y-.27)/.44);
       const hipWeight=gauss((y+1.02)/.48);
-      const radial=1+deltaChest*bustWeight+deltaHip*hipWeight;
-      // Ensanchar y dar profundidad por separado mantiene un volumen real en 3D.
-      const depth=1+1.12*deltaChest*bustWeight+.94*deltaHip*hipWeight;
+      // Apertura transversal: la variación de pecho modifica laterales, frente Y espalda.
+      // Esta es una demostración geométrica, no una correspondencia de perímetros en cm.
+      const lateral=1+1.48*deltaChest*bustWeight+1.10*deltaHip*hipWeight;
+      const depth=1+1.26*deltaChest*bustWeight+1.00*deltaHip*hipWeight;
+      const balancedBackAndFront=Math.sign(z)*.032*deltaChest*bustWeight;
       // El escote y hombros apenas se desplazan; el bajo absorbe el largo.
       const lower=smooth((.53-y)/1.75);
       const shiftedY=y-extraLength*lower;
-      return [x*radial,shiftedY,z*depth];
+      return [x*lateral,shiftedY,z*depth+balancedBackAndFront];
     });
   });
   if(count===0)throw Error('Prenda sin superficies deformables');
