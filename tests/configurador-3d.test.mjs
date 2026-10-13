@@ -292,3 +292,23 @@ test('el visor 3D y la vista SVG no dibujan logotipos fijos N/NC',()=>{
  assert.match(print,/ctx\.drawImage\(state\.crest/);
  assert.match(print,/printBlock\(ctx,z\.number/);
 });
+
+
+test('la paleta sigue modificando ribetes y paneles de la nueva malla, no los GLB de terceros',()=>{
+  assert.match(viewer,/function updateFreeTestMaterials\(colors\)/);
+  assert.match(viewer,/if\(!sourceIsFreeTest\|\|!sourceScene\)return/);
+  assert.match(viewer,/material\.color\.set\(nextColor\)/);
+  assert.match(viewer,/sourceIsFreeTest=true/);
+  assert.match(viewer,/sourceIsFreeTest=false/);
+  assert.match(viewer,/updateFreeTestMaterials\(s\)/);
+});
+
+
+test('el configurador inicia con la malla NUBYRA v2 en lugar del volumen temporal',()=>{
+ const startup=app.indexOf('viewer=await initViewer(');
+ const autoload=app.indexOf('await loadFreeModel();',startup);
+ assert.ok(startup>0&&autoload>startup,'el visor debe cargar la malla v2 automáticamente');
+ assert.ok(autoload<app.indexOf('}catch(error){',startup),'la carga debe estar dentro del bloque de inicio');
+ assert.doesNotMatch(app.slice(startup),/Volumen demostrador \(temporal\)/);
+ assert.match(app,/Cargando camiseta de ensayo NUBYRA v2/);
+});

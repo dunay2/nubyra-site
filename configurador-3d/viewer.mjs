@@ -188,7 +188,7 @@ export async function initViewer(canvas,state,onWarnings){
  const controls=new OrbitControls(camera,canvas);controls.target.set(0,0,0);controls.enablePan=false;
  controls.minDistance=3.4;controls.maxDistance=8.5;controls.minPolarAngle=.68;controls.maxPolarAngle=2.45;
  controls.enableDamping=true;controls.dampingFactor=.07;controls.update();
- let external=null,sourceScene=null,meshDescriptors=[],originalSurfaces=new Map(),disposed=false,safe=false;
+ let external=null,sourceScene=null,meshDescriptors=[],originalSurfaces=new Map(),sourceIsFreeTest=false,disposed=false,safe=false;
  const resize=()=>{const parent=canvas.parentElement,w=Math.max(1,parent.clientWidth),h=Math.max(1,parent.clientHeight);
   renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();};
  const observer=new ResizeObserver(resize);observer.observe(canvas.parentElement);resize();
@@ -214,6 +214,7 @@ export async function initViewer(canvas,state,onWarnings){
   const group=new THREE.Group();group.name='Modelo importado local · pendiente de selección de tejido';
   gltf.scene.position.sub(center);group.add(gltf.scene);group.scale.setScalar(2.52/size.y);
   restoreSurfaces();
+  sourceIsFreeTest=false;
   if(external)pivot.remove(external);
   if(demo){pivot.remove(demo.group);demo=null;}
   sourceScene=gltf.scene;meshDescriptors=descriptors;external=group;pivot.add(group);
@@ -238,12 +239,26 @@ export async function initViewer(canvas,state,onWarnings){
      warning:'Marcajes aplicados a la selección de tejido. La proyección y medidas siguen sin calibración industrial.'};
   }catch(error){restoreSurfaces();throw error}
  }
-const controller={
+function updateFreeTestMaterials(colors){
+  // No colorear los modelos importados por el club o por proveedores externos.
+  if(!sourceIsFreeTest||!sourceScene)return;
+  sourceScene.traverse(object=>{
+    if(!object.isMesh)return;
+    const isSide=/^NUBYRA_Test_Side_/.test(object.name);
+    const isBinding=/^trim-/.test(object.name);
+    if(!isSide&&!isBinding)return;
+    const nextColor=object.name.endsWith('-hem')?colors.trim:colors.accent;
+    const materials=Array.isArray(object.material)?object.material:[object.material];
+    for(const material of materials)if(material?.color)material.color.set(nextColor);
+  });
+}
+ const controller={
    update(s){const warnings=[];
     if(demo){demo.fabric.color.set(s.base);demo.accentMat.color.set(s.accent);demo.trimMat.color.set(s.trim);}
     drawPrint(printFront.canvas,'front',s,safe,warnings);drawPrint(printBack.canvas,'back',s,safe,warnings);
     printFront.tex.needsUpdate=true;printBack.tex.needsUpdate=true;
     if(external)redrawAtlas(atlas,printFront,printBack,s);
+    updateFreeTestMaterials(s);
     onWarnings([...new Set(warnings)]);
    },
    setSafe(value){safe=Boolean(value);this.update(state);},
@@ -257,6 +272,8 @@ const controller={
      const exporter=new GLTFExporter();
      const glb=await exporter.parseAsync(model,{binary:true,onlyVisible:true});
      const report=await this.importModel(glb);
+     sourceIsFreeTest=true;
+     this.update(state);
      return {...report, freeTest:true, meta:TEST_JERSEY_META};
    },
    async importModel(buffer, {rotateDegrees=0}={}) {
