@@ -82,6 +82,44 @@ if(!home){
     }
     assert.ok(lower>0&&highest>0);
   });
+
+  test('etiquetas corporales -1/0/+1: cambia volumen 3D sin alterar centímetros ni camiseta',()=>{
+    const body=createReferenceBody(THREE),garment=createFreeTestJersey(THREE);
+    const initialGarment=clone(garment.children[0].geometry);
+    deformBody(body,DEFAULT_FIT);
+    const before=sectionExtent(body,.27);
+    deformBody(body,{...DEFAULT_FIT,bodyChestState:1});
+    const expanded=sectionExtent(body,.27);
+    assert.ok(expanded.x>before.x*1.08,'+1 debe ensanchar pecho');
+    assert.ok(expanded.z>before.z*1.07,'+1 debe incrementar profundidad');
+    deformBody(body,{...DEFAULT_FIT,bodyChestState:-1});
+    const reduced=sectionExtent(body,.27);
+    assert.ok(reduced.x<before.x*.94,'-1 debe reducir pecho');
+    assert.deepEqual(clone(garment.children[0].geometry),initialGarment,'la camiseta no cambia');
+    deformBody(body,{...DEFAULT_FIT,bodyChestState:0});
+    assert.ok(Math.abs(sectionExtent(body,.27).x-before.x)<1e-6);
+  });
+  test('etiquetas de prenda -1/0/+1: pecho, cadera y largo con cuerpo fijo y UV intactas',()=>{
+    const body=createReferenceBody(THREE),garment=createFreeTestJersey(THREE);
+    const originalBody=clone(body.geometry);
+    const front=garment.getObjectByName('NUBYRA_Test_Jersey_Front');
+    const baseUV=uv(front.geometry);
+    deformGarment(garment,DEFAULT_FIT);
+    const baselineChest=sectionExtent(front,.27),baselineHip=sectionExtent(front,-.98);
+    deformGarment(garment,{...DEFAULT_FIT,garmentChestState:1});
+    assert.ok(sectionExtent(front,.27).x>baselineChest.x*1.07);
+    deformGarment(garment,{...DEFAULT_FIT,garmentHipState:1});
+    assert.ok(sectionExtent(front,-.98).x>baselineHip.x*1.07);
+    deformGarment(garment,{...DEFAULT_FIT,garmentLengthState:1});
+    let minimum=Infinity;
+    const position=front.geometry.getAttribute('position');
+    for(let i=0;i<position.count;i++)minimum=Math.min(minimum,position.getY(i));
+    assert.ok(minimum < -1.39,'+1 largo debe desplazar el bajo');
+    assert.deepEqual(clone(body.geometry),originalBody,'el cuerpo permanece fijo');
+    assert.deepEqual(uv(front.geometry),baseUV,'la UV no debe cambiar');
+    deformGarment(garment,DEFAULT_FIT);
+    assert.ok(Math.abs(sectionExtent(front,.27).x-baselineChest.x)<1e-6);
+  });
   test('restablecimiento determinista: volver al estado base recupera vértices y mantiene UV',()=>{
     const group=createFreeTestJersey(THREE);
     const front=group.getObjectByName('NUBYRA_Test_Jersey_Front');
