@@ -3,8 +3,9 @@
  * Entradas en cm de DEMOSTRACIÓN. Sin calibración antropométrica, sin fitting ni fabricación.
  * El cuerpo es un volumen sintético abstracto, nunca la representación de una jugadora.
  */
-import { effectFor, normalizeLabels, serializeLabels } from './discrete-states.mjs';
-export const FIT_VERSION='nubyra.fit-lab/0.2';
+import { serializeLabels } from './discrete-states.mjs';
+import { classifiedLabels,serializeClassifier } from './size-classifier.mjs';
+export const FIT_VERSION='nubyra.fit-lab/0.3';
 export const DEFAULT_FIT=Object.freeze({
   bodyChestCm:88,bodyHipCm:96,bodyHeightCm:160,
   garmentChestCm:102,garmentHipCm:110,garmentLengthCm:64
@@ -32,14 +33,16 @@ export function normalizeFit(values){
  * El visor previo normalizaba SOLO cm, borrando -1/+1 antes del morph.
  */
 export function normalizeRenderFit(values){
-  return {...normalizeFit(values),...normalizeLabels(values)};
+  const cm=normalizeFit(values);
+  return {...cm,...classifiedLabels(cm,values?.activeBase)};
 }
 export function serializeFit(state){
   const values=normalizeFit(state);
   return {
     schema:FIT_VERSION,
     status:'experimental-not-manufacturing-approved',
-    discretization:serializeLabels(state),
+    discretization:serializeLabels(classifiedLabels(values,state.activeBase)),
+    sizeProposal:serializeClassifier(values,state.activeBase,state.experimentMode||'body'),
     kind:'synthetic-geometry-not-anthropometric',
     body:{chestCm:values.bodyChestCm,hipCm:values.bodyHipCm,heightReferenceCm:values.bodyHeightCm},
     garment:{chestTargetCm:values.garmentChestCm,hipTargetCm:values.garmentHipCm,
@@ -48,7 +51,7 @@ export function serializeFit(state){
       chest:values.garmentChestCm-values.bodyChestCm,
       hip:values.garmentHipCm-values.bodyHipCm
     },
-    note:'Entradas numéricas y etiquetas -1/0/+1 ilustrativas e independientes: NO son perímetros medidos sobre la malla, ni holguras útiles certificadas. Las etiquetas no corresponden todavía a intervalos en centímetros. No se ha evaluado material elástico, fricción, tensión o fabricación.'
+    note:'Las etiquetas -1/0/+1 se derivan de rangos demo en centímetros relativos a una base N1/N2. Las referencias, umbrales y tallas no han sido calibradas. NO son perímetros medidos sobre las mallas, ni holguras útiles certificadas. No hay validación industrial.'
   };
 }
 export function nominalDifferences(input){
@@ -118,25 +121,26 @@ function changePositions(mesh,transform){
 export function deformBody(mesh,values){
   if(mesh?.userData?.fitRole!=='body')throw Error('Se esperaba la malla corporal');
   const v=normalizeFit(values);
-  const deltaChest=v.bodyChestCm/DEFAULT_FIT.bodyChestCm-1+effectFor(values,'bodyChestState');
-  const deltaHip=v.bodyHipCm/DEFAULT_FIT.bodyHipCm-1+effectFor(values,'bodyHipState');
+  const deltaChest=v.bodyChestCm/DEFAULT_FIT.bodyChestCm-1;
+  const deltaHip=v.bodyHipCm/DEFAULT_FIT.bodyHipCm-1;
   changePositions(mesh,(x,y,z)=>{
     const chest=gauss((y-.28)/.43),hip=gauss((y+.98)/.46);
-    // Contorno transversal completo: pecho se amplía a ambos lados y en ambos fondos.
-    const lateral=1+1.32*deltaChest*chest+1.04*deltaHip*hip;
-    const depth=1+1.16*deltaChest*chest+1.02*deltaHip*hip;
-    const centered=z+.005,side=Math.sign(centered);
-    const balancedBackAndFront=side*.024*deltaChest*chest;
-    return [x*lateral,y,centered*depth+balancedBackAndFront-.005];
+    // Ensayo: mayor expansión en Z negativo para que la espalda realmente se desplace.
+    // La prenda debe poder seguir fija mientras este volumen corporal crece.
+    const lateral=1+1.48*deltaChest*chest+1.04*deltaHip*hip;
+    const centered=z+.005,isBack=centered<0;
+    const depth=1+(isBack?1.85:1.18)*deltaChest*chest+1.06*deltaHip*hip;
+    const offset=(isBack?-.09:.035)*deltaChest*chest;
+    return [x*lateral,y,centered*depth+offset-.005];
   });
   return mesh;
 }
 export function deformGarment(group,values){
   if(!group?.traverse)throw Error('La prenda debe ser un grupo de mallas independiente');
   const v=normalizeFit(values);
-  const deltaChest=v.garmentChestCm/DEFAULT_FIT.garmentChestCm-1+effectFor(values,'garmentChestState');
-  const deltaHip=v.garmentHipCm/DEFAULT_FIT.garmentHipCm-1+effectFor(values,'garmentHipState');
-  const extraLength=(v.garmentLengthCm-DEFAULT_FIT.garmentLengthCm)/40+effectFor(values,'garmentLengthState');
+  const deltaChest=v.garmentChestCm/DEFAULT_FIT.garmentChestCm-1;
+  const deltaHip=v.garmentHipCm/DEFAULT_FIT.garmentHipCm-1;
+  const extraLength=(v.garmentLengthCm-DEFAULT_FIT.garmentLengthCm)/40;
   let count=0;
   group.traverse(mesh=>{
     if(!mesh.isMesh || !mesh.geometry?.getAttribute('position'))return;
@@ -144,15 +148,16 @@ export function deformGarment(group,values){
     changePositions(mesh,(x,y,z)=>{
       const bustWeight=gauss((y-.27)/.44);
       const hipWeight=gauss((y+1.02)/.48);
-      // Apertura transversal: la variación de pecho modifica laterales, frente Y espalda.
-      // Esta es una demostración geométrica, no una correspondencia de perímetros en cm.
-      const lateral=1+1.48*deltaChest*bustWeight+1.10*deltaHip*hipWeight;
-      const depth=1+1.26*deltaChest*bustWeight+1.00*deltaHip*hipWeight;
-      const balancedBackAndFront=Math.sign(z)*.032*deltaChest*bustWeight;
+      // Ensayo geométrico: deformar los dos laterales y desplazar explícitamente
+      // el panel trasero en -Z, no solo proyectar volumen por delante.
+      const lateral=1+1.46*deltaChest*bustWeight+1.10*deltaHip*hipWeight;
+      const isBack=z<0;
+      const depth=1+(isBack?1.95:1.16)*deltaChest*bustWeight+1.01*deltaHip*hipWeight;
+      const offset=(isBack?-.12:.035)*deltaChest*bustWeight;
       // El escote y hombros apenas se desplazan; el bajo absorbe el largo.
       const lower=smooth((.53-y)/1.75);
       const shiftedY=y-extraLength*lower;
-      return [x*lateral,shiftedY,z*depth+balancedBackAndFront];
+      return [x*lateral,shiftedY,z*depth+offset];
     });
   });
   if(count===0)throw Error('Prenda sin superficies deformables');
