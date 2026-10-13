@@ -59,7 +59,7 @@ export function createFitViewer(canvas,initial){
       for(const mat of materials){
         if(!mat)continue;
         mat.transparent=visual.transparent;
-        mat.opacity=visual.transparent?.43:1;
+        mat.opacity=visual.transparent ? 0.43 : 1;
         mat.depthWrite=!visual.transparent;
         mat.side=THREE.DoubleSide;
         mat.wireframe=visual.wire;
