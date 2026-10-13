@@ -14,6 +14,7 @@ on:
       - 'tests/configurador-3d.geometry.test.mjs'
       - 'tests/fit-lab.test.mjs'
       - 'tests/fit-lab.geometry.test.mjs'
+      - 'tests/fit-lab.ui.test.mjs'
       - '.github/workflows/validate-configurador-3d.yml'
   workflow_dispatch:
 
@@ -36,7 +37,7 @@ jobs:
           for source in configurador-3d/fit-lab/*.mjs; do node --check "$source"; done
           node --check landing.js
       - name: Ejecutar pruebas 3D y geometría
-        run: node --test tests/configurador-3d.test.mjs tests/fit-lab.test.mjs
+        run: node --test tests/configurador-3d.test.mjs tests/fit-lab.test.mjs tests/fit-lab.ui.test.mjs
 
       - name: Preparar Three.js temporalmente para ensayo geométrico real
         run: npm install --prefix "$RUNNER_TEMP/nubyra-three" --no-save --no-package-lock --ignore-scripts --no-audit --no-fund three@0.180.0
