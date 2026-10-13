@@ -22,8 +22,8 @@ const torsoHalfWidth=y=>{
 };
 const depthAt=(x,y,front)=>{
   const bulge=Math.pow(Math.max(.06,1-(x/.82)**2),.72);
-  return front ? .14+(.15+.05*Math.exp(-((y-.43)/.4)**2))*bulge:
-    -.13-(.11+.02*Math.exp(-((y+.14)/.5)**2))*bulge;
+  return front ? .14+(.15+.05*Math.exp(-Math.pow((y-.43)/.4,2)))*bulge:
+    -.13-(.11+.02*Math.exp(-Math.pow((y+.14)/.5,2)))*bulge;
 };
 function outline(T,front){
   const s=new T.Shape();s.moveTo(-.59,-1.20);
