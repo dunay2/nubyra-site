@@ -238,3 +238,30 @@ test('el importador no altera automáticamente la malla y exige confirmar los ma
  assert.match(markup,/id="mesh-list"/);
  assert.match(markup,/id="apply-meshes"/);
 });
+
+import { TEST_JERSEY_META, createFreeTestJersey } from '../configurador-3d/free-test-jersey.mjs';
+const freeModelSource=readFileSync(resolve(root,'free-test-jersey.mjs'),'utf8');
+
+test('modelo de prueba sin descarga: geometría propia CC0 y separada de ClothingAxis',()=>{
+ assert.equal(TEST_JERSEY_META.license,'CC0-1.0');
+ assert.equal(TEST_JERSEY_META.industrial,false);
+ assert.equal(TEST_JERSEY_META.independentFromClothingAxis,true);
+ assert.throws(()=>createFreeTestJersey(null),/Three.js/);
+ assert.match(freeModelSource,/NUBYRA_Test_Jersey_Front/);
+ assert.match(freeModelSource,/NUBYRA_Test_Jersey_Back/);
+ assert.match(freeModelSource,/NUBYRA_Test_Side_Left/);
+ assert.match(freeModelSource,/trim-front-neck/);
+ assert.match(freeModelSource,/createFreeTestJersey/);
+});
+
+test('camiseta libre de ensayo recorre exportador glTF, importador y mallas seleccionadas',()=>{
+ assert.match(viewer,/GLTFExporter/);
+ assert.match(viewer,/async loadFreeTestJersey\(\)/);
+ assert.match(viewer,/this\.importModel\(glb\)/);
+ assert.match(app,/viewer\.loadFreeTestJersey\(\)/);
+ assert.match(app,/filter\(m=>m\.candidate && \/Jersey_\(Front\|Back\)\/\.test\(m\.name\)\)/);
+ assert.match(app,/viewer\.applyGarmentSelection\(\[\.\.\.accepted\]\)/);
+ assert.match(markup,/id="try-free-model"/);
+ assert.match(markup,/sin descargar archivos/);
+ assert.match(style,/\.trial-model__button/);
+});
