@@ -5,6 +5,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { VIEW_ZONES, fitText, normalizeText, normalizeNumber } from './layout.mjs';
 import { inspectGlb, projectedAtlasUV } from './model-audit.mjs';
 import { chooseModelFiles, inspectLocalGltf, resolveLocalResource } from './model-package.mjs';
+import { describeGarmentMeshes, validateGarmentMeshChoice } from './mesh-selection.mjs';
 
 function textileBump() {
   const canvas = document.createElement('canvas'); canvas.width=128; canvas.height=128;
