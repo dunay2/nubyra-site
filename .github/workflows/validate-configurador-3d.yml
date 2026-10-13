@@ -8,6 +8,8 @@ on:
       - 'landing.js'
       - 'landing.css'
       - 'tests/landing.test.mjs'
+      - 'README.md'
+      - 'docs/configurador-3d/**'
       - 'tests/configurador-3d.test.mjs'
       - 'tests/configurador-3d.geometry.test.mjs'
       - '.github/workflows/validate-configurador-3d.yml'
