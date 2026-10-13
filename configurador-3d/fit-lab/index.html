@@ -45,10 +45,12 @@
      <button type="button" data-view="front" aria-pressed="false">Frontal</button>
      <button type="button" data-view="side" aria-pressed="false">Lateral</button>
      <button type="button" data-view="back" aria-pressed="false">Espalda</button>
+     <button type="button" data-view="rearquarter" aria-pressed="false">3/4 posterior</button>
     </div>
-    <p class="rear-guide-help"><strong>Verificación de espalda:</strong> pulsa <b>Espalda</b>. La línea <span class="guide-base">ámbar</span> marca el contorno posterior inicial; la <span class="guide-live">azul</span>, el contorno realmente deformado. La línea azul debe desplazarse hacia fuera al aumentar el pecho.</p>
+    <p class="rear-guide-help"><strong>Verificación de espalda:</strong> pulsa <b>Espalda</b>. La línea <span class="guide-base">ámbar</span> marca el contorno posterior inicial; la <span class="guide-live">azul</span>, el contorno realmente deformado. En las vistas Lateral y 3/4 posterior puedes observar la caída, sin hacer crecer artificialmente la espalda.</p>
     <div class="display-options" aria-label="Capas de visualización">
      <label><input type="checkbox" id="show-body" checked> Ver cuerpo</label>
+     <label><input type="checkbox" id="show-garment" checked> Ver camiseta</label>
      <label><input type="checkbox" id="transparent-garment" checked> Camiseta translúcida</label>
      <label><input type="checkbox" id="wireframe"> Ver triángulos</label>
     </div>
@@ -85,6 +87,15 @@
       <section class="tab-panel" id="panel-measures" role="tabpanel" aria-labelledby="tab-measures" tabindex="0">
         <p class="step-eyebrow">PASO 1 · DATOS DE ENTRADA</p>
         <h3>¿Qué medidas queremos cubrir?</h3>
+        <div class="profile-picker" role="group" aria-label="Distribución geométrica sintética">
+          <strong>Perfil geométrico de ensayo</strong>
+          <div class="profile-picker__buttons">
+            <button type="button" data-body-profile="front" aria-pressed="true">Frontal</button>
+            <button type="button" data-body-profile="lateral" aria-pressed="false">Lateral</button>
+            <button type="button" data-body-profile="thorax" aria-pressed="false">Torácico</button>
+          </div>
+          <small>No son clases de personas. La distribución del volumen no puede deducirse solo del perímetro de pecho.</small>
+        </div>
         <p class="step-copy">El patrón todavía no se elige. Las medidas y el largo solicitado son las entradas del recomendador; las etiquetas de ajuste se calculan después.</p>
     <fieldset class="param-panel" id="body-fields">
      <legend><span class="number">01</span> Medidas del cuerpo <span class="panel-tag">MALLA A</span></legend>
@@ -122,11 +133,24 @@
       <section class="tab-panel" id="panel-adjust" role="tabpanel" aria-labelledby="tab-adjust" tabindex="0" hidden>
         <p class="step-eyebrow">PASO 2 · MALLAS INDEPENDIENTES</p>
         <h3>Compara el volumen en 3D</h3>
-        <p class="step-copy">En A modificas el cuerpo y la camiseta permanece fija; en B modificas la camiseta mientras el cuerpo se mantiene fijo. La malla del visor no desaparece al cambiar de pestaña.</p>
+        <p class="step-copy">En A cambia el cuerpo y se conserva la configuración de camiseta, pero su caída se adapta. En B seleccionas entre seis variantes sintéticas de reposo fijo.</p>
         <div class="mode-switch" role="group" aria-label="Modo de experimento A o B">
-          <button id="mode-body" type="button" aria-pressed="true"><strong>A · Cambiar cuerpo</strong><small>Prenda fija</small></button>
-          <button id="mode-garment" type="button" aria-pressed="false"><strong>B · Adaptar camiseta</strong><small>Cuerpo fijo</small></button>
+          <button id="mode-body" type="button" aria-pressed="true"><strong>A · Cambiar cuerpo</strong><small>Misma prenda, cae sobre el cuerpo</small></button>
+          <button id="mode-garment" type="button" aria-pressed="false"><strong>B · Elegir camiseta</strong><small>Solo variantes disponibles</small></button>
         </div>
+        <section class="catalog-picker" aria-label="Camisetas de ensayo con reposo fijo">
+          <div class="catalog-picker__top"><h4>Elegir configuración de la camiseta</h4><span>6 estados limitados</span></div>
+          <p>Su forma de reposo es fija; la caída puede cambiar al colocarse sobre el cuerpo.</p>
+          <div class="catalog-picker__grid" id="catalog-options" role="group" aria-label="Seis variantes de ensayo">
+            <button type="button" data-rest-option="N1-1" aria-pressed="false">N1-1</button>
+            <button type="button" data-rest-option="N1-2" aria-pressed="true">N1-2</button>
+            <button type="button" data-rest-option="N1-3" aria-pressed="false">N1-3</button>
+            <button type="button" data-rest-option="N2-1" aria-pressed="false">N2-1</button>
+            <button type="button" data-rest-option="N2-2" aria-pressed="false">N2-2</button>
+            <button type="button" data-rest-option="N2-3" aria-pressed="false">N2-3</button>
+          </div>
+          <small>Seis <strong>maquetas sintéticas</strong>; no corresponden a opciones industriales homologadas.</small>
+        </section>
         <div class="discrete-hint" role="note">
           <strong>Grupos −1 / 0 / +1 vinculados a centímetros</strong>
           <p>Las clases son relativas a referencias numéricas de ensayo; no representan posiciones de ajuste industrial ni etiquetas corporales.</p>
@@ -145,7 +169,7 @@
         </fieldset>
     <fieldset class="param-panel is-locked" id="garment-fields" disabled>
      <legend><span class="number">02</span> Camiseta <span class="panel-tag">MALLA B</span></legend>
-     <p class="section-hint">Ajusta la camiseta de comparación. No modifica el cuerpo ni acepta automáticamente el patrón recomendado.</p>
+     <p class="section-hint">Valores de reposo de la camiseta seleccionada; solo lectura. No existe crecimiento continuo de la talla.</p>
      <div class="fit-field">
       <div class="field-top"><label for="garmentChestCm-range">Volumen del pecho</label><div><input aria-label="Pecho objetivo de la camiseta en cm" id="garmentChestCm-number" type="number" min="75" max="135" step="1" value="102"><span>cm</span></div></div>
       <input id="garmentChestCm-range" type="range" min="75" max="135" step="1" value="102">
@@ -180,6 +204,7 @@
           <strong id="suggested-base">—</strong>
           <p class="proposal-status" id="proposal-status">Calculando recomendación…</p>
           <p id="proposal-explanation">Propuesta ilustrativa; pendientes las holguras, límites y condiciones de fabricación.</p>
+          <p>Variante de prueba: <strong id="suggested-preview-variant">N1-2</strong></p>
         </div>
         <div class="proposed-inputs">
           <div><small>Pecho corporal</small><strong id="proposal-input-chest">88 cm</strong></div>
@@ -200,9 +225,9 @@
           <p id="lateral-position-warning" class="configuration__note">La posición lateral industrial 1/2/3 todavía no puede asignarse sin las reglas de patronaje.</p>
         </div>
         <div class="shirt-comparison">
-          <p>Camiseta visible ahora: <strong id="active-base">N1</strong> <span>(referencia de ensayo)</span></p>
+          <p>Camiseta visible ahora: <strong id="active-base">N1-2</strong> <span>(variante de ensayo)</span></p>
           <button type="button" class="step-primary" id="use-proposal" disabled>Aplicar propuesta al visor 3D</button>
-          <p>La recomendación se actualiza al cambiar las medidas, pero no cambia la camiseta que estás comparando hasta que la apliques.</p>
+          <p>La propuesta cambia con las medidas, pero la configuración de reposo solo cambia cuando la aceptas. La caída puede cambiar al variar el cuerpo.</p>
         </div>
         <div class="result">
           <h3>Comparación nominal cuerpo / camiseta visible</h3>
