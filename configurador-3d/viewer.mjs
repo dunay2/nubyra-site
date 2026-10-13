@@ -233,10 +233,7 @@ export async function initViewer(canvas,state,onWarnings){
      warning:'Marcajes aplicados a la selección de tejido. La proyección y medidas siguen sin calibración industrial.'};
   }catch(error){restoreSurfaces();throw error}
  }
-entación, UV industriales y derechos de explotación.'
-   };
- }
- const controller={
+const controller={
    update(s){const warnings=[];
     if(demo){demo.fabric.color.set(s.base);demo.accentMat.color.set(s.accent);demo.trimMat.color.set(s.trim);}
     drawPrint(printFront.canvas,'front',s,safe,warnings);drawPrint(printBack.canvas,'back',s,safe,warnings);
