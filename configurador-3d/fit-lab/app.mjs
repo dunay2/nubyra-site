@@ -1,92 +1,130 @@
-import { DEFAULT_FIT, LIMITS, MODES, normalizeFit, nominalDifferences, serializeFit } from './fit-geometry.mjs';
-import { LABEL_CONFIG, LABEL_VALUES } from './discrete-states.mjs';
+import {DEFAULT_FIT,LIMITS,MODES,nominalDifferences,serializeFit} from './fit-geometry.mjs';
+import {LABEL_CONFIG,LABEL_VALUES} from './discrete-states.mjs';
 import {
-  BASE_SHIRTS, DEFAULT_BASE, BAND_STEPS,STATE_TO_MEASURE,
-  classifiedLabels,bandThresholds,representativeCm,nearestBase,
-  demoGarmentTargetsFromBody,normalizeBase
+  BASE_SHIRTS,DEFAULT_BASE,BAND_STEPS,STATE_TO_MEASURE,
+  classifiedLabels,bandThresholds,representativeCm,
+  demoGarmentTargetsFromBody,suggestPatternFromMeasurements
 } from './size-classifier.mjs';
 
 const $=id=>document.getElementById(id);
-const fields=Object.keys(LIMITS);
-const state={...DEFAULT_FIT,activeBase:DEFAULT_BASE,experimentMode:'body'};
-let activeMode='body',viewer=null,geometryFrame=0,referenceSections=null;
-function formatDelta(value){return (value>=0?'+':'')+String(value)+' cm';}
-function syncInputs(){
-  for(const key of fields){
-    const number=$(key+'-number');
-    const range=$(key+'-range');
-    if(number && document.activeElement!==number)number.value=String(state[key]);
-    if(range)range.value=String(state[key]);
-  }
-}
+const TABS=Object.freeze(['measures','adjust','proposal']);
+const state={...DEFAULT_FIT,desiredLengthCm:DEFAULT_FIT.garmentLengthCm,
+  activeBase:DEFAULT_BASE,experimentMode:'body'};
+let activeTab='measures',activeMode='body',viewer=null,geometryFrame=0,referenceSections=null;
+const allLimits={...LIMITS,desiredLengthCm:LIMITS.garmentLengthCm};
 const labelNames={
   bodyChestState:'Pecho corporal',bodyHipState:'Cadera corporal',
-  garmentChestState:'Pecho prenda',garmentHipState:'Cadera prenda',garmentLengthState:'Largo prenda'
+  garmentChestState:'Pecho prenda',garmentHipState:'Cadera prenda',
+  garmentLengthState:'Largo prenda'
 };
-const cmText=value=>Number(value).toLocaleString('es-ES',{maximumFractionDigits:1});
+const cmText=v=>Number(v).toLocaleString('es-ES',{maximumFractionDigits:1});
+const formatDelta=v=>(v>=0?'+':'')+cmText(v)+' cm';
+const clamp=(value,low,high)=>Math.max(low,Math.min(high,value));
+
+function measureControls(key){
+  const standard=[$(key+'-number'),$(key+'-range')];
+  return [...new Set([...standard,...document.querySelectorAll('[data-fit-key="'+key+'"]')])]
+    .filter(Boolean);
+}
+function syncInputs(){
+  for(const key of Object.keys(allLimits)){
+    for(const input of measureControls(key)){
+      if(input.type==='number'&&document.activeElement===input)continue;
+      input.value=String(state[key]);
+    }
+  }
+}
+function getRecommendation(){
+  return suggestPatternFromMeasurements(state);
+}
 function syncDiscreteControls(){
-  const labels=classifiedLabels(state,state.activeBase);
+  // La clasificación se deriva de medidas, no asigna la familia industrial.
+  const base=getRecommendation().base;
+  const labels=classifiedLabels(state,base);
   document.querySelectorAll('[data-label-key]').forEach(button=>{
-    const {labelKey,labelValue}=button.dataset;
-    const yes=labels[labelKey]===Number(labelValue);
+    const yes=labels[button.dataset.labelKey]===Number(button.dataset.labelValue);
     button.setAttribute('aria-pressed',String(yes));
     button.classList.toggle('active',yes);
   });
-  for(const measure of Object.keys(BAND_STEPS)){
-    const b=bandThresholds(measure,state.activeBase),value=Number(state[measure]);
-    const indicator=$('cm-band-'+measure);
-    indicator.textContent='−1: menos de '+cmText(b.lower)+' cm · 0: '+cmText(b.lower)+
-     ' a '+cmText(b.upper)+' cm · +1: más de '+cmText(b.upper)+' cm'+
-     ' · actual '+cmText(value)+' cm';
+  for(const key of Object.keys(BAND_STEPS)){
+    const indicator=$('cm-band-'+key);
+    if(!indicator)continue;
+    const b=bandThresholds(key,base);
+    indicator.textContent='−1: menos de '+cmText(b.lower)+' cm · 0: '+
+      cmText(b.lower)+' a '+cmText(b.upper)+' cm · +1: más de '+
+      cmText(b.upper)+' cm · actual '+cmText(state[key])+' cm (referencia de ensayo)';
   }
 }
-function updateDiscreteStatus(){
-  const labels=classifiedLabels(state,state.activeBase);
-  const selected=Object.entries(labels).filter(([,value])=>value!==0);
-  $('discrete-status').textContent=selected.length
-    ?'Grupos calculados para '+state.activeBase+': '+selected.map(([key,value])=>
-      labelNames[key]+' '+(value===1?'+1':'−1')).join(' · ')+
-      '. Cada etiqueta procede de los centímetros.'
-    :'Grupos calculados para '+state.activeBase+
-      ': todos los parámetros en el rango base (0).';
+function updateReadings(){
+  const differences=nominalDifferences(state);
+  $('delta-chest').textContent=formatDelta(differences.chest);
+  $('delta-hip').textContent=formatDelta(differences.hip);
+}
+function getDemoTargets(){
+  const body=demoGarmentTargetsFromBody(state);
+  const target={...body,garmentLengthCm:state.desiredLengthCm};
+  for(const [key,value] of Object.entries(target)){
+    const [lower,upper]=LIMITS[key];
+    target[key]=clamp(value,lower,upper);
+  }
+  return target;
 }
 function updateProposalUI(){
-  const proposed=nearestBase(state,activeMode);
+  const proposed=getRecommendation(),candidate=proposed.base;
+  $('suggested-base').textContent=candidate;
   $('active-base').textContent=state.activeBase;
-  $('suggested-base').textContent=proposed.base;
-  $('proposal-explanation').textContent=activeMode==='body'
-    ?'Propuesta automática usando pecho y cadera corporales. Si la aplicas, la camiseta se adapta con una diferencia de 14 cm de DEMOSTRACIÓN, no una holgura validada.'
-    :'Propuesta automática según pecho, cadera y largo actuales de la camiseta. La malla ya muestra esas medidas de ensayo.';
-  $('use-proposal').disabled=proposed.base===state.activeBase;
-  $('use-proposal').textContent=proposed.base===state.activeBase
-    ?'La propuesta coincide con la base activa'
-    :'Usar camiseta '+proposed.base+' propuesta';
-  document.querySelectorAll('[data-base-id]').forEach(button=>{
-    button.setAttribute('aria-pressed',String(button.dataset.baseId===state.activeBase));
-    button.classList.toggle('active',button.dataset.baseId===state.activeBase);
+  $('proposal-input-chest').textContent=cmText(state.bodyChestCm)+' cm';
+  $('proposal-input-hip').textContent=cmText(state.bodyHipCm)+' cm';
+  $('proposal-input-length').textContent=cmText(state.desiredLengthCm)+' cm';
+  const outOfDemo=proposed.status==='review-outside-demo';
+  $('proposal-status').textContent=outOfDemo
+    ?'Fuera de los rangos de referencia de este ensayo: revisión manual'
+    :'Candidato de simulación · No aprobado para fabricación';
+  $('proposal-status').classList.toggle('is-warning',outOfDemo);
+  $('proposal-explanation').textContent='Comparación de tres datos (pecho corporal, cadera corporal y largo solicitado) frente a las referencias numéricas N1/N2 de este laboratorio. Ninguna holgura ni posición lateral industrial ha sido validada.';
+  $('lateral-position-warning').textContent='Patrón base candidato: '+candidate+
+    '. Posición lateral 1/2/3: SIN ASIGNAR; faltan reglas y pruebas de patronaje. Las seis opciones mostradas son posibilidades técnicas, no resultados de tallaje.';
+  document.querySelectorAll('[data-pattern-base]').forEach(box=>{
+    box.classList.toggle('is-family-candidate',box.dataset.patternBase===candidate);
   });
+  const classified=classifiedLabels(state,candidate);
+  $('proposal-bands').textContent=
+    'Grupos relativos al candidato '+candidate+' · Pecho: '+
+    (classified.bodyChestState>0?'+1':String(classified.bodyChestState))+
+    ' · Cadera: '+(classified.bodyHipState>0?'+1':String(classified.bodyHipState))+
+    ' · Largo solicitado: '+(state.desiredLengthCm<
+      BASE_SHIRTS[candidate].garmentLengthCm-3?'-1':
+      state.desiredLengthCm>BASE_SHIRTS[candidate].garmentLengthCm+3?'+1':'0')+
+    '. Son etiquetas de ensayo, no posiciones laterales industriales.';
+  const selected=Object.entries(classified).filter(([,v])=>v!==0);
+  $('discrete-status').textContent=selected.length
+    ?'Etiquetas derivadas de las medidas (referencia '+candidate+'): '+
+      selected.map(([k,v])=>labelNames[k]+' '+(v>0?'+1':'−1')).join(' · ')+
+      '. No determinan posición de fabricación.'
+    :'Etiquetas derivadas de las medidas: todos los parámetros dentro del grupo 0 de referencia '+candidate+'.';
+  const target=getDemoTargets();
+  const differs=Object.entries(target).some(([key,value])=>Math.abs(state[key]-value)>.001);
+  const button=$('use-proposal');
+  button.disabled=outOfDemo||(!differs&&state.activeBase===candidate);
+  button.textContent=outOfDemo
+    ?'Revisión manual necesaria antes de aplicar'
+    :button.disabled?'La camiseta ya coincide con la demostración'
+      :'Aplicar al visor la propuesta '+candidate;
   return proposed;
 }
-function updateReadings(){
-  const diffs=nominalDifferences(state);
-  $('delta-chest').textContent=formatDelta(diffs.chest);
-  $('delta-hip').textContent=formatDelta(diffs.hip);
-}
-function formatChangePercent(current,base){
-  if(!(Number.isFinite(current)&&Number.isFinite(base)&&base>0))return '—';
-  const raw=(current/base-1)*100;
-  const rounded=Math.abs(raw)<.05?0:raw;
+function formatPercent(value,reference){
+  if(!(Number.isFinite(value)&&Number.isFinite(reference)&&reference>0))return '—';
+  const raw=(value/reference-1)*100,rounded=Math.abs(raw)<.05?0:raw;
   return (rounded>0?'+':'')+rounded.toLocaleString('es-ES',{
     minimumFractionDigits:1,maximumFractionDigits:1
   })+' %';
 }
 function updateGeometryFeedback(){
   if(!viewer||!referenceSections)return;
-  const sections=viewer.measureChestSections();
-  const now=sections[activeMode],original=referenceSections[activeMode];
+  const current=viewer.measureChestSections()[activeMode],reference=referenceSections[activeMode];
   $('mesh-mode-readout').textContent=activeMode==='body'?'A · Cuerpo':'B · Camiseta';
-  for(const [id,metric] of [['shape-width','width'],['shape-front','front'],['shape-back','back']]){
-    $(id).textContent=formatChangePercent(now[metric],original[metric]);
+  for(const [id,axis] of [['shape-width','width'],['shape-front','front'],['shape-back','back']]){
+    $(id).textContent=formatPercent(current[axis],reference[axis]);
   }
 }
 function updateGeometry(){
@@ -94,11 +132,12 @@ function updateGeometry(){
   geometryFrame=requestAnimationFrame(()=>{
     geometryFrame=0;
     if(!viewer)return;
-    try{viewer.update(state);updateGeometryFeedback();}
-    catch(error){
-      const banner=$('scene-error');
-      banner.textContent='Error en la geometría experimental: '+error.message;
-      banner.hidden=false;
+    try{
+      viewer.update(state);
+      updateGeometryFeedback();
+    }catch(error){
+      $('scene-error').hidden=false;
+      $('scene-error').textContent='Error geométrico: '+error.message;
       $('render-status').textContent='REVISAR GEOMETRÍA';
       $('render-status').classList.add('error');
     }
@@ -106,105 +145,124 @@ function updateGeometry(){
 }
 function redraw(){
   syncInputs();
-  updateReadings();
   syncDiscreteControls();
-  updateDiscreteStatus();
+  updateReadings();
   updateProposalUI();
   updateGeometry();
 }
-function changeValue(key,value){
-  if(!(key in LIMITS))return;
-  const raw=Number(value);
-  if(!Number.isFinite(raw))return;
-  const [min,max]=LIMITS[key];
-  state[key]=Math.min(max,Math.max(min,raw));
-  // Fuente única de verdad: el intervalo -1/0/+1 se recalcula desde estos centímetros.
+function changeValue(key,raw){
+  if(!(key in allLimits))return;
+  const value=Number(raw);
+  if(!Number.isFinite(value))return;
+  const [min,max]=allLimits[key];
+  state[key]=clamp(value,min,max);
   redraw();
 }
+function activateTab(name,{focus=false}={}){
+  if(!TABS.includes(name))return;
+  activeTab=name;
+  for(const value of TABS){
+    const tab=$('tab-'+value),panel=$('panel-'+value),on=value===name;
+    tab.setAttribute('aria-selected',String(on));
+    tab.tabIndex=on?0:-1;
+    panel.hidden=!on;
+  }
+  if(focus)$('tab-'+name).focus();
+}
+document.querySelectorAll('[role="tab"][data-tab]').forEach(tab=>{
+  tab.addEventListener('click',()=>activateTab(tab.dataset.tab));
+  tab.addEventListener('keydown',event=>{
+    const current=TABS.indexOf(tab.dataset.tab);
+    const next=event.key==='ArrowRight'?TABS[(current+1)%TABS.length]:
+      event.key==='ArrowLeft'?TABS[(current+TABS.length-1)%TABS.length]:
+      event.key==='Home'?TABS[0]:event.key==='End'?TABS[TABS.length-1]:null;
+    if(!next)return;
+    event.preventDefault();
+    activateTab(next,{focus:true});
+  });
+});
+document.querySelectorAll('[data-go-tab]').forEach(button=>{
+  button.addEventListener('click',()=>activateTab(button.dataset.goTab,{focus:true}));
+});
 function enableMode(mode){
   if(!MODES.includes(mode))return;
   activeMode=mode;
+  state.experimentMode=mode;
   const body=mode==='body';
   $('mode-body').setAttribute('aria-pressed',String(body));
   $('mode-garment').setAttribute('aria-pressed',String(!body));
-  $('body-fields').disabled=!body;
+  // Medidas siempre editables en el paso 1. Congelar controles solo en Ajuste 3D.
+  $('body-fields').disabled=false;
+  $('adjust-body-fields').hidden=!body;
+  $('adjust-body-fields').disabled=!body;
+  $('garment-fields').hidden=body;
   $('garment-fields').disabled=body;
-  $('body-fields').classList.toggle('is-locked',!body);
   $('garment-fields').classList.toggle('is-locked',body);
-  state.experimentMode=activeMode;
-  viewer?.setGuideTarget(activeMode);
-  updateProposalUI();
+  viewer?.setGuideTarget(mode);
   updateGeometryFeedback();
 }
-document.querySelectorAll('[data-label-key]').forEach(button=>{
-  button.addEventListener('click',()=>{
-    const {labelKey,labelValue}=button.dataset;
-    if(!(labelKey in LABEL_CONFIG)||LABEL_CONFIG[labelKey].target!==activeMode)return;
-    const next=Number(labelValue);
-    if(!LABEL_VALUES.includes(next))return;
-    const measure=STATE_TO_MEASURE[labelKey];
-    if(!measure)return;
-    // Los botones fijan un valor real del campo numérico (en este ensayo),
-    // y de ese valor se deriva la clase correspondiente, sin sumas de deltas.
-    changeValue(measure,representativeCm(measure,next,state.activeBase));
-  });
-});
-document.querySelectorAll('[data-base-id]').forEach(button=>{
-  button.addEventListener('click',()=>{
-    const id=normalizeBase(button.dataset.baseId);
-    state.activeBase=id;
-    const ref=BASE_SHIRTS[id];
-    for(const measure of ['garmentChestCm','garmentHipCm','garmentLengthCm'])
-      state[measure]=ref[measure];
-    enableMode('garment');
-    redraw();
-  });
-});
-$('use-proposal').addEventListener('click',()=>{
-  const {base}=nearestBase(state,activeMode);
-  if(base===state.activeBase)return;
-  if(activeMode==='body'){
-    // En el modo A no se modifica la camiseta hasta la aceptación explícita.
-    const targets=demoGarmentTargetsFromBody(state);
-    Object.assign(state,targets);
-  }
-  state.activeBase=base;
-  enableMode('garment');
-  redraw();
-});
 $('mode-body').addEventListener('click',()=>enableMode('body'));
 $('mode-garment').addEventListener('click',()=>enableMode('garment'));
-for(const key of fields){
-  const range=$(key+'-range'),numeric=$(key+'-number');
-  if(range)range.addEventListener('input',()=>changeValue(key,range.value));
-  if(numeric){
-    numeric.addEventListener('input',()=>{
-      if(numeric.value.trim()!=='' && numeric.validity.valid)changeValue(key,numeric.value);
-    });
-    numeric.addEventListener('change',()=>{
-      if(numeric.value.trim())changeValue(key,numeric.value);
-      numeric.value=String(state[key]);
-    });
+document.querySelectorAll('[data-label-key]').forEach(button=>{
+  button.addEventListener('click',()=>{
+    const {labelKey,labelValue}=button.dataset,config=LABEL_CONFIG[labelKey];
+    if(!config)return;
+    // En Medidas editamos cuerpo aunque Ajuste 3D se haya quedado en modo B.
+    if(activeTab==='adjust'&&config.target!==activeMode)return;
+    const level=Number(labelValue);
+    if(!LABEL_VALUES.includes(level))return;
+    const measure=STATE_TO_MEASURE[labelKey];
+    if(!measure)return;
+    changeValue(measure,representativeCm(measure,level,getRecommendation().base));
+  });
+});
+for(const key of Object.keys(allLimits)){
+  for(const input of measureControls(key)){
+    if(input.type==='range')input.addEventListener('input',()=>changeValue(key,input.value));
+    if(input.type==='number'){
+      input.addEventListener('input',()=>{
+        if(input.value.trim()!==''&&input.validity.valid)changeValue(key,input.value);
+      });
+      input.addEventListener('change',()=>{
+        if(input.value.trim()!=='')changeValue(key,input.value);
+        input.value=String(state[key]);
+      });
+    }
   }
 }
-function resetSet(keys){
-  for(const k of keys){
-    state[k]=k.startsWith('garment')
-      ?BASE_SHIRTS[state.activeBase][k]
-      :DEFAULT_FIT[k];
+$('reset-body').addEventListener('click',()=>{
+  for(const key of ['bodyChestCm','bodyHipCm','bodyHeightCm'])state[key]=DEFAULT_FIT[key];
+  redraw();
+});
+$('reset-garment').addEventListener('click',()=>{
+  for(const key of ['garmentChestCm','garmentHipCm','garmentLengthCm']){
+    state[key]=BASE_SHIRTS[state.activeBase][key];
   }
   redraw();
-}
-$('reset-body').addEventListener('click',()=>resetSet(['bodyChestCm','bodyHipCm','bodyHeightCm']));
-$('reset-garment').addEventListener('click',()=>resetSet(['garmentChestCm','garmentHipCm','garmentLengthCm']));
+});
 $('reset-all').addEventListener('click',()=>{
-  Object.assign(state,DEFAULT_FIT,{activeBase:DEFAULT_BASE,experimentMode:'body'});
+  Object.assign(state,DEFAULT_FIT,{
+    desiredLengthCm:DEFAULT_FIT.garmentLengthCm,
+    activeBase:DEFAULT_BASE,
+    experimentMode:'body'
+  });
   enableMode('body');
+  activateTab('measures',{focus:true});
+  redraw();
+});
+$('use-proposal').addEventListener('click',()=>{
+  const candidate=getRecommendation();
+  if(candidate.status==='review-outside-demo')return;
+  const targets=getDemoTargets();
+  Object.assign(state,targets,{activeBase:candidate.base});
+  enableMode('garment');
+  activateTab('adjust',{focus:true});
   redraw();
 });
 document.querySelectorAll('[data-view]').forEach(button=>{
   button.addEventListener('click',()=>{
-    document.querySelectorAll('[data-view]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));
+    document.querySelectorAll('[data-view]').forEach(el=>
+      el.setAttribute('aria-pressed',String(el===button)));
     viewer?.view(button.dataset.view);
   });
 });
@@ -215,16 +273,27 @@ function updateDisplay(){
     wire:$('wireframe').checked
   });
 }
-['show-body','transparent-garment','wireframe'].forEach(id=>$(id).addEventListener('change',updateDisplay));
+for(const id of ['show-body','transparent-garment','wireframe']){
+  $(id).addEventListener('change',updateDisplay);
+}
 $('save-json').addEventListener('click',()=>{
-  const bytes=JSON.stringify({...serializeFit(state),experimentMode:activeMode},null,2);
-  const file=new Blob([bytes],{type:'application/json;charset=utf-8'});
+  const documentData={
+    ...serializeFit(state),
+    requestedGarmentLengthCm:state.desiredLengthCm,
+    workflowStep:activeTab,
+    experimentMode:activeMode,
+    recommendation:getRecommendation()
+  };
+  const file=new Blob([JSON.stringify(documentData,null,2)],{type:'application/json;charset=utf-8'});
   const href=URL.createObjectURL(file),a=document.createElement('a');
-  a.href=href;a.download='NUBYRA_experimento_cuerpo_camiseta.json';
+  a.href=href;a.download='NUBYRA_medidas_ajuste_propuesta_demo.json';
   document.body.append(a);a.click();a.remove();
   setTimeout(()=>URL.revokeObjectURL(href),1000);
 });
+enableMode('body');
+activateTab('measures');
 redraw();
+// El laboratorio sigue funcionando como formulario/JSON si no hay WebGL.
 try{
   const {createFitViewer}=await import('./fit-viewer.mjs');
   viewer=createFitViewer($('fit-canvas'),state);
@@ -233,15 +302,15 @@ try{
   updateDisplay();
   viewer.view('quarter');
   const check=viewer.geometryDiagnostics();
-  if(!check.independentMeshReferences||check.garmentPieces<4)throw Error('Faltan mallas independientes');
+  if(!check.independentMeshReferences||check.garmentPieces<4)
+    throw Error('Faltan las dos mallas independientes');
   $('render-status').textContent='DOS MALLAS ACTIVAS';
   $('render-status').classList.add('ready');
   redraw();
 }catch(error){
   $('render-status').textContent='3D NO DISPONIBLE';
   $('render-status').classList.add('error');
-  const banner=$('scene-error');
-  banner.hidden=false;
-  banner.textContent='No ha sido posible iniciar la visualización WebGL. Comprueba el navegador o la carga de Three.js. Los controles y el JSON siguen disponibles. '+error.message;
+  $('scene-error').hidden=false;
+  $('scene-error').textContent='No se ha podido iniciar WebGL. Los controles y el JSON siguen disponibles. '+error.message;
   console.warn('NUBYRA Fit Lab:',error);
 }
