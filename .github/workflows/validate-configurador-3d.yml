@@ -1,0 +1,28 @@
+name: NUBYRA · Validación del configurador 3D
+
+on:
+  pull_request:
+    paths:
+      - 'configurador-3d/**'
+      - 'tests/configurador-3d.test.mjs'
+      - '.github/workflows/validate-configurador-3d.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Sintaxis y pruebas Node 22
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Comprobar módulos del visor
+        run: |
+          for source in configurador-3d/*.mjs; do node --check "$source"; done
+      - name: Ejecutar pruebas 3D y geometría
+        run: node --test tests/configurador-3d.test.mjs
