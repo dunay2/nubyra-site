@@ -4,7 +4,7 @@
  * El cuerpo es un volumen sintético abstracto, nunca la representación de una jugadora.
  */
 import { serializeLabels } from './discrete-states.mjs';
-import { classifiedLabels,serializeClassifier } from './size-classifier.mjs';
+import { classifiedLabels,serializeClassifier,suggestPatternFromMeasurements } from './size-classifier.mjs';
 export const FIT_VERSION='nubyra.fit-lab/0.3';
 export const DEFAULT_FIT=Object.freeze({
   bodyChestCm:88,bodyHipCm:96,bodyHeightCm:160,
@@ -38,20 +38,47 @@ export function normalizeRenderFit(values){
 }
 export function serializeFit(state){
   const values=normalizeFit(state);
+  const rawRequested=Number(state?.desiredLengthCm);
+  const requestedLength=Number.isFinite(rawRequested)
+    ?clamp(rawRequested,...LIMITS.garmentLengthCm)
+    :values.garmentLengthCm;
+  const recommendation=suggestPatternFromMeasurements({
+    ...values,desiredLengthCm:requestedLength
+  });
+  const classes=classifiedLabels(values,recommendation.base);
+  const legacy=serializeClassifier(values,state?.activeBase,state?.experimentMode||'body');
   return {
     schema:FIT_VERSION,
     status:'experimental-not-manufacturing-approved',
-    discretization:serializeLabels(classifiedLabels(values,state.activeBase)),
-    sizeProposal:serializeClassifier(values,state.activeBase,state.experimentMode||'body'),
     kind:'synthetic-geometry-not-anthropometric',
-    body:{chestCm:values.bodyChestCm,hipCm:values.bodyHipCm,heightReferenceCm:values.bodyHeightCm},
-    garment:{chestTargetCm:values.garmentChestCm,hipTargetCm:values.garmentHipCm,
-      lengthTargetCm:values.garmentLengthCm},
+    workflow:'measurements-to-3d-to-pattern-proposal',
+    requestedGarmentLengthCm:requestedLength,
+    discretization:serializeLabels(classes),
+    sizeProposal:{
+      ...legacy,
+      activeBase:state?.activeBase||'N1',
+      suggestedBase:recommendation.base,
+      groups:classes,
+      lateralPosition:null,
+      candidateOnly:true,
+      candidateStatus:recommendation.status,
+      measuredInputs:recommendation.measuredInputs,
+      validatedIndustrialRanges:false,
+      appliedGarmentPattern:null
+    },
+    body:{
+      chestCm:values.bodyChestCm,hipCm:values.bodyHipCm,
+      heightReferenceCm:values.bodyHeightCm
+    },
+    garment:{
+      chestTargetCm:values.garmentChestCm,hipTargetCm:values.garmentHipCm,
+      lengthTargetCm:values.garmentLengthCm
+    },
     differencesNominalCm:{
       chest:values.garmentChestCm-values.bodyChestCm,
       hip:values.garmentHipCm-values.bodyHipCm
     },
-    note:'Las etiquetas -1/0/+1 se derivan de rangos demo en centímetros relativos a una base N1/N2. Las referencias, umbrales y tallas no han sido calibradas. NO son perímetros medidos sobre las mallas, ni holguras útiles certificadas. No hay validación industrial.'
+    note:'Medidas y rangos ilustrativos, NO perímetros calibrados sobre las mallas. La recomendación de N1/N2 es experimental; posiciones laterales 1/2/3 no asignadas, sin holguras verificadas, ni homologación industrial.'
   };
 }
 export function nominalDifferences(input){
