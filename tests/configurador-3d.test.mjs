@@ -69,3 +69,58 @@ test('presets explícitos en vez de colores inventados por HTML', () => {
   assert.equal(Object.keys(PRESETS).length, 4);
   assert.equal(PRESETS.oceano.base, '#102d50');
 });
+
+
+// Sección de regresión de GLB — independiente del render Three.js.
+import { inspectGlb, projectedAtlasUV } from '../configurador-3d/model-audit.mjs';
+
+function glbForTest(gltf) {
+  const raw=Buffer.from(JSON.stringify(gltf),'utf8');
+  const pad=(4-raw.length%4)%4;
+  const chunk=Buffer.concat([raw,Buffer.alloc(pad,0x20)]);
+  const header=Buffer.alloc(20);
+  header.write('glTF',0);header.writeUInt32LE(2,4);header.writeUInt32LE(20+chunk.length,8);
+  header.writeUInt32LE(chunk.length,12);header.write('JSON',16);
+  return Buffer.concat([header,chunk]);
+}
+const glbValid={asset:{version:'2.0'},meshes:[{primitives:[{attributes:{POSITION:0,NORMAL:1,TEXCOORD_0:2},indices:3}]}],accessors:[{count:8},{count:8},{count:8},{count:36}],materials:[{name:'Fabric'}]};
+
+test('auditoría GLB 2.0: inspecciona triángulos, materiales y cobertura UV',()=>{
+ const result=inspectGlb(glbForTest(glbValid));
+ assert.equal(result.triangles,12);assert.equal(result.meshes,1);
+ assert.equal(result.uvCoverage,1);assert.equal(result.materials,1);
+ assert.equal(result.missingNormals,0);
+});
+
+test('auditoría GLB rechaza cabeceras falsas, tamaños inconsistentes y versiones distintas de 2',()=>{
+ const good=glbForTest(glbValid);
+ const corrupt=Buffer.from(good);corrupt.writeUInt32LE(42,8);
+ assert.throws(()=>inspectGlb(corrupt),/Longitud GLB/);
+ const noHeader=Buffer.from(good);noHeader.write('BAD!',0);
+ assert.throws(()=>inspectGlb(noHeader),/cabecera GLB/);
+ const version=Buffer.from(good);version.writeUInt32LE(1,4);
+ assert.throws(()=>inspectGlb(version),/2.0/);
+});
+
+test('GLB excesivo o con compresión no soportada no entra en GLTFLoader',()=>{
+ const oversized=glbForTest({...glbValid, accessors:[{count:5},{count:5},{count:5},{count:2_000_000}]});
+ assert.throws(()=>inspectGlb(oversized),/optimizar/);
+ const compressed=glbForTest({...glbValid,extensionsRequired:['KHR_draco_mesh_compression']});
+ assert.throws(()=>inspectGlb(compressed),/descodificador/);
+});
+
+test('atlas: la parte frontal y trasera ocupan mitades separadas y texto queda derecha arriba',()=>{
+ const box={minX:-1,maxX:1,minY:0,maxY:10};
+ assert.deepEqual(projectedAtlasUV({x:0,y:5,z:1},box),[.25,.5]);
+ assert.deepEqual(projectedAtlasUV({x:0,y:5,z:-1},box),[.75,.5]);
+ assert.deepEqual(projectedAtlasUV({x:1,y:10,z:1},box),[.5,1]);
+ assert.deepEqual(projectedAtlasUV({x:1,y:10,z:-1},box),[.5,1]);
+ assert.throws(()=>projectedAtlasUV({x:0,y:0,z:0},{minX:0,maxX:0,minY:0,maxY:1}),/Límites/);
+});
+
+test('GLB importado aplica atlas como material y desactiva planos flotantes',()=>{
+ assert.match(viewer,/projectGarment\(gltf\.scene,atlas\)/);
+ assert.match(viewer,/printFront\.mesh\.visible=false;printBack\.mesh\.visible=false/);
+ assert.match(viewer,/atlas\.texture/);
+ assert.ok(existsSync(resolve(root,'model-audit.mjs')));
+});
