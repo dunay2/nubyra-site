@@ -292,3 +292,13 @@ test('el visor 3D y la vista SVG no dibujan logotipos fijos N/NC',()=>{
  assert.match(print,/ctx\.drawImage\(state\.crest/);
  assert.match(print,/printBlock\(ctx,z\.number/);
 });
+
+
+test('la paleta sigue modificando ribetes y paneles de la nueva malla, no los GLB de terceros',()=>{
+  assert.match(viewer,/function updateFreeTestMaterials\(colors\)/);
+  assert.match(viewer,/if\(!sourceIsFreeTest\|\|!sourceScene\)return/);
+  assert.match(viewer,/material\.color\.set\(nextColor\)/);
+  assert.match(viewer,/sourceIsFreeTest=true/);
+  assert.match(viewer,/sourceIsFreeTest=false/);
+  assert.match(viewer,/updateFreeTestMaterials\(s\)/);
+});
