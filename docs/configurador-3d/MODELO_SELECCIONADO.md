@@ -1,7 +1,7 @@
 # NUBYRA — Modelo 3D seleccionado · opción B
 
 **Selección aprobada:** ClothingAxis, **Girls Sleeveless Basketball Tshirt - 07**.
-**Estado:** no comprado; no se ha descargado el paquete ni se han verificado sus UV/topología. Nunca se adjunta el asset comercial al repositorio público sin derechos específicos.
+**Estado:** seleccionado y con respuesta afirmativa del vendedor comunicada por el promotor el 13/10/2026. El texto exacto de la autorización no está disponible en este expediente, por lo que su alcance WebGL y las condiciones específicas no se consideran documentadas. El asset todavía no está adquirido ni disponible para inspección; no se han verificado UV/topología. Nunca se adjunta el asset comercial al repositorio público sin derechos específicos.
 
 - Modelo: https://www.cgtrader.com/3d-models/character/clothing/girls-sleeveless-basketball-tshirt-07
 - Ficha del autor: https://clothingaxis.artstation.com/projects/oJva0B
@@ -28,3 +28,10 @@ La licencia Royalty Free permite determinados usos comerciales del modelo **inco
 
 ### Responsabilidad de entrega
 NUBYRA prepara software, pruebas y control de marcajes. El modelo comercial no se compra, descarga ni redistribuye automáticamente por haber aprobado su candidatura.
+
+## REV04 — 13/10/2026 · Integración preparada y comprobada en GitHub
+- **CI verde:** [21 pruebas Node.js correctas](https://github.com/dunay2/nubyra-site/actions/runs/38403472224), incluida la selección de mallas y la auditoría de formato.
+- Carga local GLB o glTF con dependencias; el visor detecta objetos y permite seleccionar **solamente** las piezas de camiseta a las que se aplica el atlas gráfico.
+- Los materiales y geometría originales permanecen intactos hasta esa confirmación y pueden restaurarse.
+- La estimación de zonas y UV continúa siendo **provisional**: no equivale a impresión industrial ni ajuste morfológico.
+- **Único insumo pendiente para avanzar sobre el modelo aprobado:** archivo original descargado legalmente del vendedor (GLB o ZIP con glTF y texturas), preferiblemente acompañado del texto literal del permiso afirmativo para conservar su alcance.
