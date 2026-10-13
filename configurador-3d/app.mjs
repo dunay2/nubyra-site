@@ -19,7 +19,8 @@ function validate(){
   problems.push(...viewerWarnings);
   if(modelWarning)problems.push(modelWarning);
   const box=$('validation');
-  box.classList.toggle('has-error',problems.some(x=>!x.startsWith('Modelo externo')));
+  const informational=p=>p.startsWith('Modelo externo')||p.startsWith('Modelo propio de ensayo NUBYRA')||p.startsWith('Modelo importado sin alterar')||p.startsWith('Marcajes aplicados');
+  box.classList.toggle('has-error',problems.some(p=>!informational(p)));
   box.textContent=problems.length?problems.join(' · '):'Composición visual sin solapamientos detectados. Pendiente de comprobar cotas y normativa de la competición.';
   $('download-json').disabled=!validNumber(state.number);
 }
