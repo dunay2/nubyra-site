@@ -109,20 +109,26 @@ export function serializeClassifier(values,activeBase=DEFAULT_BASE,mode='body'){
  * No deducimos la posición lateral 1/2/3 sin fichas técnicas homologadas.
  */
 export const RECOMMENDATION_FIELDS=Object.freeze([
- 'bodyChestCm','bodyHipCm','garmentLengthCm'
+  'bodyChestCm','bodyHipCm','desiredLengthCm'
 ]);
+const referenceKey=measure=>measure==='desiredLengthCm'?'garmentLengthCm':measure;
 export function suggestPatternFromMeasurements(values){
   if(!values||typeof values!=='object')throw Error('Medidas requeridas');
   const parameters=RECOMMENDATION_FIELDS.map(measure=>{
-    const value=Number(values[measure]);
+    // Se permite fallback al largo visual previo para compatibilidad con el
+    // laboratorio antiguo, pero la nueva UI tiene largo solicitado propio.
+    const raw=measure==='desiredLengthCm'
+      ?values.desiredLengthCm??values.garmentLengthCm:values[measure];
+    const value=Number(raw);
     if(!Number.isFinite(value))throw Error('Medida inválida: '+measure);
-    return {measure,value,step:BAND_STEPS[measure]};
+    const source=referenceKey(measure);
+    return {measure,source,value,step:BAND_STEPS[source]};
   });
   const candidates=Object.keys(BASE_SHIRTS).map(base=>{
-    const distances=parameters.map(({measure,value,step})=>({
-      measure,value,reference:BASE_SHIRTS[base][measure],
-      deltaCm:value-BASE_SHIRTS[base][measure],
-      normalizedDelta:(value-BASE_SHIRTS[base][measure])/step
+    const distances=parameters.map(({measure,source,value,step})=>({
+      measure,value,reference:BASE_SHIRTS[base][source],
+      deltaCm:value-BASE_SHIRTS[base][source],
+      normalizedDelta:(value-BASE_SHIRTS[base][source])/step
     }));
     return {
       base,
