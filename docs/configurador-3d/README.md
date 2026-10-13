@@ -52,3 +52,12 @@ No se incrustan modelos de terceros sin comprobar licencia, topología, UV y pos
 - [Issue #14 · Pruebas](https://github.com/dunay2/nubyra-site/issues/14)
 
 El `.json` exportado se etiqueta expresamente como **borrador no aprobado para fabricación**. La prenda del piloto exige revisión específica de normativa, rango de tallas y arte de sublimación industrial.
+
+## REV03 — ClothingAxis y formatos de importación (13/10/2026)
+
+- Modelo **seleccionado por NUBYRA**: [Girls Sleeveless Basketball Tshirt – 07](https://www.cgtrader.com/3d-models/character/clothing/girls-sleeveless-basketball-tshirt-07). **No comprado ni empaquetado.** La licencia no autoriza por defecto servir un GLB recuperable en una web pública.
+- **Importación local:** GLB autónomo (máximo 35 MB) o glTF junto a BIN y texturas (conjunto máximo 90 MB), archivos extraídos del ZIP del vendedor.
+- **Seguridad:** revisión de triángulos, UV, normales, recursos y bloqueo de URLs externas o rutas con `..`. Las dependencias se resuelven mediante URL temporales revocadas al finalizar.
+- **Orientación:** ajuste 0°/180° para la previsualización. El atlas sobre la malla sigue siendo provisional y puede requerir seleccionar manualmente superficies y UV.
+- **Pruebas:** 17 unitarias locales correctas. Sin ensayo WebGL real del modelo comercial; no anunciar integración final ni cumplimiento de impresión.
+- **Contrato y adquisición:** [MODELO_SELECCIONADO.md](MODELO_SELECCIONADO.md).
