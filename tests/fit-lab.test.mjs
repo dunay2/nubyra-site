@@ -49,7 +49,7 @@ test('se congelan los campos de la otra malla en cada modo y se sincronizan dos 
  assert.match(app,/\$\('garment-fields'\)\.disabled=body/);
  assert.match(app,/range\.addEventListener\('input'/);
  assert.match(app,/numeric\.addEventListener\('change'/);
- assert.match(app,/viewer\?\.update\(state\)/);
+ assert.match(app,/viewer\.update\(state\)/);
  assert.match(app,/activeMode='body'/);
 });
 test('viewer renderiza dos referencias de geometría separadas y nunca reescala ambas automáticamente',()=>{
