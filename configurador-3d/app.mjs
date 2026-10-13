@@ -78,16 +78,33 @@ $('crest-file').addEventListener('change',async e=>{
   finally{URL.revokeObjectURL(url);}
 });
 
-$('model-file').addEventListener('change',async e=>{
-  const file=e.target.files?.[0];if(!file)return;
-  if(!/\.glb$/i.test(file.name)||file.size>20*1024*1024){modelWarning='Selecciona un GLB de hasta 20 MB.';validate();return;}
-  if(!viewer){modelWarning='El visor 3D aún no está disponible. Comprueba tu conexión o el navegador.';validate();return;}
+let localModelFiles=null;
+async function importLocalModel(files){
+  if(!files?.length)return;
+  if(!viewer){modelWarning='El visor WebGL no está disponible. El editor 2D continúa activo.';validate();return;}
+  const fileInput=$('model-file'),orientation=$('model-orientation');
+  fileInput.disabled=true;orientation.disabled=true;
+  $('render-status').textContent='CARGANDO MODELO';
   try{
-    const report=await viewer.importModel(await file.arrayBuffer());
+    const report=await viewer.importFiles(files,{rotateDegrees:Number(orientation.value)});
+    localModelFiles=Array.from(files);
     modelWarning=report.warning;
-    $('model-caption').textContent=`Modelo GLB importado · ${report.meshes} mallas · ${report.uvMeshes} con UV`;
+    const names=report.meshNames?.slice(0,3).join(', ');
+    $('model-caption').textContent='Modelo local · '+report.meshes+' mallas · '+report.triangles.toLocaleString('es-ES')+
+      ' triángulos · UV '+report.uvMeshes+' · '+(names||'sin nombres de malla');
+    $('render-status').textContent='MODELO LOCAL · SIN PUBLICAR';
     viewer.update(state);validate();
-  }catch(error){modelWarning='No se pudo importar este modelo: '+error.message;validate();}
+  }catch(error){
+    $('render-status').textContent=localModelFiles?'MODELO ANTERIOR ACTIVO':'3D EN DIRECTO';
+    modelWarning='Importación pendiente: '+error.message;validate();
+  }finally{fileInput.disabled=false;orientation.disabled=false;}
+}
+$('model-file').addEventListener('change',e=>{
+  const files=Array.from(e.target.files||[]);
+  if(files.length)void importLocalModel(files);
+});
+$('model-orientation').addEventListener('change',()=>{
+  if(localModelFiles)void importLocalModel(localModelFiles);
 });
 
 document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>{
