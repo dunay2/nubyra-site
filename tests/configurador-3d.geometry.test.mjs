@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { resolve } from 'node:path';
+import { resolve, dirname } from 'node:path';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import {createFreeTestJersey, torsoHalfWidth, torsoDepth, GRID, TEST_JERSEY_META} from '../configurador-3d/free-test-jersey.mjs';
 import {inspectGlb} from '../configurador-3d/model-audit.mjs';
@@ -112,6 +113,13 @@ test('distribución geométrica v2: menos coste relativo de ribetes y presupuest
 test('exportación GLB 2.0 del modelo de ensayo auditable e importable',async()=>{
  const group=createFreeTestJersey(THREE);
  const glb=await new GLTFExporter().parseAsync(group,{binary:true,onlyVisible:true});
+ if(process.env.NUBYRA_EXPORT_GLB){
+  const target=resolve(process.env.NUBYRA_EXPORT_GLB);
+  await mkdir(dirname(target),{recursive:true});
+  await writeFile(target,new Uint8Array(glb));
+  console.log('NUBYRA_GLB_ARTIFACT='+target);
+ }
+
  assert.ok(glb instanceof ArrayBuffer);
  const audit=inspectGlb(glb);
  assert.equal(audit.meshes,12);
