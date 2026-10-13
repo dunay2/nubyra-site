@@ -211,3 +211,17 @@ footer{font-size:11px;color:#7b8e9e;margin-top:45px;padding:22px 0;border-top:1p
 #panel-adjust .catalog-picker{margin-bottom:14px}
 @media(min-width:1081px){.view-panel{max-height:calc(100vh - 22px);overflow-y:auto;scrollbar-width:thin;overscroll-behavior:contain}}
 @media(max-width:640px){.scale-card{padding:12px}.scale-metrics{gap:5px}.scale-metrics>div{padding:9px 6px}.scale-metrics strong{font-size:11px}.catalog-picker{padding:11px}.scale-card__title>span{white-space:normal}}
+
+
+/* Límite geométrico del busto: 0 = superficie neutra, nunca hundimiento. */
+.bust-control{margin:13px 0 18px;padding:14px 13px 12px;border:1px solid #98c6dd;border-radius:11px;background:#eaf5fb}
+.bust-control>.field-top label{color:#154d70;font-size:12px}
+.bust-control .field-top input[type=number]{width:59px;height:34px;padding:6px;background:#fff;border:1px solid #a8cada;border-radius:8px;text-align:right;font-size:13px;font-weight:850;color:#173f5a}
+.bust-control input[type=range],.bust-adjust-field input[type=range]{width:100%;accent-color:#176f9c;cursor:pointer}
+.bust-control p,.bust-adjust-field .bust-hint{margin:9px 0 0;font-size:10px;color:#46677c;line-height:1.55}
+.bust-control p strong{color:#155273}
+.bust-adjust-field{background:#eff8fc;padding:12px;border:1px solid #d0e5ef;border-radius:9px}
+.bust-adjust-field .field-top label{font-size:11px;color:#235d7d}
+.bust-adjust-field .field-top input[type=number]{max-width:56px}
+.scale-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(max-width:640px){.bust-control{padding:11px}.bust-control>.field-top{flex-wrap:wrap}}
