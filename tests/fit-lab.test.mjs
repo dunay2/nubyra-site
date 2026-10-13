@@ -100,7 +100,7 @@ test('patrón N1/N2 es resultado únicamente en la pestaña final',()=>{
  assert.match(final,/id="proposal-input-length"/);
  assert.match(final,/id="use-proposal"/);
  assert.equal((final.match(/data-pattern-base="N[12]"/g)||[]).length,6);
- assert.match(final,/Posición lateral 1\/2\/3/);
+ assert.match(final,/[Pp]osición lateral (?:industrial )?1\/2\/3/);
  assert.match(final,/sin validar/);
  assert.match(app,/const proposed=getRecommendation\(\)/);
  assert.match(app,/suggestPatternFromMeasurements\(state\)/);
