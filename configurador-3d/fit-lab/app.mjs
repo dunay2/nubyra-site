@@ -132,6 +132,7 @@ function enableMode(mode){
   $('body-fields').classList.toggle('is-locked',!body);
   $('garment-fields').classList.toggle('is-locked',body);
   state.experimentMode=activeMode;
+  viewer?.setGuideTarget(activeMode);
   updateProposalUI();
   updateGeometryFeedback();
 }
@@ -227,6 +228,7 @@ redraw();
 try{
   const {createFitViewer}=await import('./fit-viewer.mjs');
   viewer=createFitViewer($('fit-canvas'),state);
+  viewer.setGuideTarget(activeMode);
   referenceSections=viewer.measureChestSections();
   updateDisplay();
   viewer.view('quarter');
