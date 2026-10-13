@@ -3,7 +3,8 @@
  * Entradas en cm de DEMOSTRACIÓN. Sin calibración antropométrica, sin fitting ni fabricación.
  * El cuerpo es un volumen sintético abstracto, nunca la representación de una jugadora.
  */
-export const FIT_VERSION='nubyra.fit-lab/0.1';
+import { effectFor, serializeLabels } from './discrete-states.mjs';
+export const FIT_VERSION='nubyra.fit-lab/0.2';
 export const DEFAULT_FIT=Object.freeze({
   bodyChestCm:88,bodyHipCm:96,bodyHeightCm:160,
   garmentChestCm:102,garmentHipCm:110,garmentLengthCm:64
@@ -31,6 +32,7 @@ export function serializeFit(state){
   return {
     schema:FIT_VERSION,
     status:'experimental-not-manufacturing-approved',
+    discretization:serializeLabels(state),
     kind:'synthetic-geometry-not-anthropometric',
     body:{chestCm:values.bodyChestCm,hipCm:values.bodyHipCm,heightReferenceCm:values.bodyHeightCm},
     garment:{chestTargetCm:values.garmentChestCm,hipTargetCm:values.garmentHipCm,
@@ -39,7 +41,7 @@ export function serializeFit(state){
       chest:values.garmentChestCm-values.bodyChestCm,
       hip:values.garmentHipCm-values.bodyHipCm
     },
-    note:'Entradas ilustrativas en cm: NO son perímetros medidos sobre la malla, ni holguras útiles certificadas. No se ha evaluado material elástico, fricción, tensión o fabricación.'
+    note:'Entradas numéricas y etiquetas -1/0/+1 ilustrativas e independientes: NO son perímetros medidos sobre la malla, ni holguras útiles certificadas. Las etiquetas no corresponden todavía a intervalos en centímetros. No se ha evaluado material elástico, fricción, tensión o fabricación.'
   };
 }
 export function nominalDifferences(input){
@@ -109,8 +111,8 @@ function changePositions(mesh,transform){
 export function deformBody(mesh,values){
   if(mesh?.userData?.fitRole!=='body')throw Error('Se esperaba la malla corporal');
   const v=normalizeFit(values);
-  const deltaChest=v.bodyChestCm/DEFAULT_FIT.bodyChestCm-1;
-  const deltaHip=v.bodyHipCm/DEFAULT_FIT.bodyHipCm-1;
+  const deltaChest=v.bodyChestCm/DEFAULT_FIT.bodyChestCm-1+effectFor(values,'bodyChestState');
+  const deltaHip=v.bodyHipCm/DEFAULT_FIT.bodyHipCm-1+effectFor(values,'bodyHipState');
   changePositions(mesh,(x,y,z)=>{
     const chest=gauss((y-.28)/.43),hip=gauss((y+.98)/.46);
     const scale=1+deltaChest*chest+deltaHip*hip;
@@ -121,9 +123,9 @@ export function deformBody(mesh,values){
 export function deformGarment(group,values){
   if(!group?.traverse)throw Error('La prenda debe ser un grupo de mallas independiente');
   const v=normalizeFit(values);
-  const deltaChest=v.garmentChestCm/DEFAULT_FIT.garmentChestCm-1;
-  const deltaHip=v.garmentHipCm/DEFAULT_FIT.garmentHipCm-1;
-  const extraLength=(v.garmentLengthCm-DEFAULT_FIT.garmentLengthCm)/40;
+  const deltaChest=v.garmentChestCm/DEFAULT_FIT.garmentChestCm-1+effectFor(values,'garmentChestState');
+  const deltaHip=v.garmentHipCm/DEFAULT_FIT.garmentHipCm-1+effectFor(values,'garmentHipState');
+  const extraLength=(v.garmentLengthCm-DEFAULT_FIT.garmentLengthCm)/40+effectFor(values,'garmentLengthState');
   let count=0;
   group.traverse(mesh=>{
     if(!mesh.isMesh || !mesh.geometry?.getAttribute('position'))return;
