@@ -1,11 +1,11 @@
 /**
  * NUBYRA · camiseta de ensayo SIN DESCARGAS ni assets comerciales.
- * Geometría original CC0, generada en Three.js. No es patrón industrial.
+ * Geometría original NUBYRA, generada en Three.js. Derechos reservados. No es patrón industrial.
  * La construcción femenina es estilización visual; no expresa tallas reales.
  */
 export const TEST_JERSEY_META=Object.freeze({
   id:'nubyra-free-sleeveless-v1',
-  author:'NUBYRA · prototipo original', license:'CC0-1.0',
+  author:'NUBYRA · prototipo original', license:'NUBYRA-internal-test',
   garment:'Camiseta deportiva femenina sin mangas',
   industrial:false, independentFromClothingAxis:true
 });
@@ -76,7 +76,7 @@ function strip(T,points,front,color,name,radius=.018){
 export function createFreeTestJersey(T){
   if(!T?.ShapeGeometry||!T?.Group)throw Error('Se necesita Three.js para generar el modelo de prueba');
   const group=new T.Group();
-  group.name='NUBYRA_Test_Free_Sleeveless_CC0';
+  group.name='NUBYRA_Test_Free_Sleeveless';
   group.userData={...TEST_JERSEY_META};
   const blue=new T.MeshStandardMaterial({color:0x102d50,roughness:.94,metalness:0,side:T.DoubleSide});
   const yellow=new T.MeshStandardMaterial({color:0xf8c12e,roughness:.85,side:T.DoubleSide});
