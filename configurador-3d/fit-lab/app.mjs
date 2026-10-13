@@ -9,16 +9,17 @@ import {
   DEFAULT_CONFIGURATION,GARMENT_CATALOG,stateForConfiguration,
   recommendPreviewConfiguration
 } from './garment-catalog.mjs';
-import {DEFAULT_BODY_PROFILE,getBodyProfile} from './fit-drape.mjs';
+import {DEFAULT_BODY_PROFILE,getBodyProfile,DEFAULT_BUST_PROJECTION,BUST_PROJECTION_MIN,BUST_PROJECTION_MAX} from './fit-drape.mjs';
 import {createScaleSilhouettes} from './scale-diagram.mjs';
 
 const $=id=>document.getElementById(id);
 const TABS=Object.freeze(['measures','adjust','proposal']);
 const state={...DEFAULT_FIT,desiredLengthCm:DEFAULT_FIT.garmentLengthCm,
   activeBase:DEFAULT_BASE,activeConfiguration:DEFAULT_CONFIGURATION,
-  bodyProfile:DEFAULT_BODY_PROFILE,experimentMode:'body'};
+  bodyProfile:DEFAULT_BODY_PROFILE,bustProjectionLevel:DEFAULT_BUST_PROJECTION,experimentMode:'body'};
 let activeTab='measures',activeMode='body',viewer=null,geometryFrame=0,referenceSections=null;
-const allLimits={...LIMITS,desiredLengthCm:LIMITS.garmentLengthCm};
+const allLimits={...LIMITS,desiredLengthCm:LIMITS.garmentLengthCm,
+  bustProjectionLevel:[BUST_PROJECTION_MIN,BUST_PROJECTION_MAX]};
 const labelNames={
   bodyChestState:'Pecho corporal',bodyHipState:'Cadera corporal',
   garmentChestState:'Pecho prenda',garmentHipState:'Cadera prenda',
@@ -168,6 +169,9 @@ function updateScaleDiagram(){
     ?'≈ '+cmText(svg.estimatedFrontHemLiftCm)+' cm (ensayo)'
     :'Pendiente del visor 3D';
   $('diagram-body-profile').textContent=getBodyProfile(state.bodyProfile).label;
+  $('scale-bust-level').textContent=svg.bustProjectionLevel===0
+    ?'0 · plano'
+    :cmText(svg.bustProjectionLevel)+' / 10 · hacia fuera';
   document.querySelectorAll('[data-body-profile]').forEach(button=>{
     button.setAttribute('aria-pressed',
       String(button.dataset.bodyProfile===state.bodyProfile));
@@ -302,6 +306,7 @@ for(const key of Object.keys(allLimits)){
 }
 $('reset-body').addEventListener('click',()=>{
   for(const key of ['bodyChestCm','bodyHipCm','bodyHeightCm'])state[key]=DEFAULT_FIT[key];
+  state.bustProjectionLevel=DEFAULT_BUST_PROJECTION;
   redraw();
 });
 $('reset-garment').addEventListener('click',()=>{
@@ -313,6 +318,7 @@ $('reset-all').addEventListener('click',()=>{
     activeBase:DEFAULT_BASE,
     activeConfiguration:DEFAULT_CONFIGURATION,
     bodyProfile:DEFAULT_BODY_PROFILE,
+    bustProjectionLevel:DEFAULT_BUST_PROJECTION,
     experimentMode:'body'
   });
   enableMode('body');
@@ -358,6 +364,7 @@ $('save-json').addEventListener('click',()=>{
     requestedGarmentLengthCm:state.desiredLengthCm,
     restConfiguration:state.activeConfiguration,
     bodyDistributionProfile:state.bodyProfile,
+    bustProjectionLevel:state.bustProjectionLevel,
     garmentCatalogSize:Object.keys(GARMENT_CATALOG).length,
     drapeEstimate:viewer?.drapeDiagnostics()??null,
     workflowStep:activeTab,
