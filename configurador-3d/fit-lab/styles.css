@@ -225,3 +225,19 @@ footer{font-size:11px;color:#7b8e9e;margin-top:45px;padding:22px 0;border-top:1p
 .bust-adjust-field .field-top input[type=number]{max-width:56px}
 .scale-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
 @media(max-width:640px){.bust-control{padding:11px}.bust-control>.field-top{flex-wrap:wrap}}
+
+/* Fit Lab: composición compacta. Mantener las geometrías y los IDs de medición. */
+.intro{grid-template-columns:minmax(0,1fr);margin-bottom:18px}
+.intro h1{font-size:clamp(28px,3.2vw,46px)}
+.visual-comparison{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(275px,1fr);gap:0;align-items:stretch;border-bottom:1px solid #dce6ee}
+.visual-comparison .scene{min-width:0;min-height:470px;height:auto;border-right:1px solid #dce6ee}
+.visual-comparison .scale-card{margin:0;border:0;border-radius:0;box-shadow:none;min-width:0;padding:18px 14px;background:#f7fafc;display:flex;flex-direction:column;justify-content:flex-start}
+.visual-comparison .scale-card__title{gap:8px;align-items:flex-start}
+.visual-comparison .scale-card h3{font-size:16px}
+.visual-comparison #fit-scale-diagram{width:100%;max-height:310px;min-height:240px}
+.visual-comparison .scale-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.visual-comparison .scene-label{font-size:11px}
+.rear-guide-help,.intro-tip{display:none}
+.geometry-feedback{margin-top:10px}
+@media(max-width:1000px){.visual-comparison{grid-template-columns:minmax(0,1fr) minmax(220px,.8fr)}.visual-comparison .scene{min-height:380px}}
+@media(max-width:680px){.visual-comparison{grid-template-columns:minmax(0,1fr)}.visual-comparison .scene{min-height:320px;border-right:0}.visual-comparison .scale-card{border-top:1px solid #dce6ee}.visual-comparison #fit-scale-diagram{max-height:260px}}
