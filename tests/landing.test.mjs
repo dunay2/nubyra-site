@@ -11,10 +11,13 @@ const js = readFileSync(resolve(root, 'landing.js'), 'utf8');
 const kits = ['oceano','canaria','lava','brisa','cumbre','horizonte'];
 const storageBase = 'https://vyeebvzuxarekfaisfdy.supabase.co/storage/v1/object/public/nubyra-web/';
 
-test('los recursos locales referenciados en HTML existen', () => {
+test('los recursos locales de la landing y su ruta 3D existen', () => {
   const paths = [...html.matchAll(/(?:src|href)="(\.\/[^"?#]+)"/g)].map(m=>m[1]);
-  assert.equal(paths.length, 2);
-  for (const path of paths) assert.ok(existsSync(resolve(root,path)), `no existe ${path}`);
+  assert.ok(paths.length >= 3, 'falta el enlace al configurador 3D');
+  for (const path of paths) {
+    const target = path.endsWith('/') ? path + 'index.html' : path;
+    assert.ok(existsSync(resolve(root,target)), `no existe ${target}`);
+  }
 });
 
 test('los seis modelos de galería usan el bucket público y conservan copia local', () => {
@@ -26,11 +29,10 @@ test('los seis modelos de galería usan el bucket público y conservan copia loc
   assert.ok(!html.includes('01_print_recursos/gallery-'),'sigue referenciando recortes antiguos');
 });
 
-test('las URLs de imagen usan Storage y mantienen la paleta local', () => {
+test('la portada mantiene Storage, el catálogo y los estilos de marca', () => {
   assert.ok(html.includes(storageBase+'01_print_recursos/hero-photo.png'));
   assert.ok(html.includes(storageBase+'02_catalogo_recursos/equipacion-oceano.png'));
-  assert.ok(js.includes(storageBase+'01_print_recursos/'));
-  assert.ok(js.includes(storageBase+'02_catalogo_recursos/'));
+  assert.ok(html.includes(storageBase+'01_print_recursos/configurador-camiseta-frente.png'));
   assert.ok(css.includes("./assets/nubyra/04_paleta/paleta.css"));
 });
 
@@ -55,11 +57,20 @@ test('el acceso privado no se anuncia públicamente y la landing no duplica la a
   assert.ok(!/supabase-js|service_role|createClient\(/.test(js));
 });
 
-test('la demostración deja claro que no ejecuta 3D ni simula medidas', () => {
-  assert.match(html,/No hay simulación 3D ni patrón validado/);
-  assert.match(html,/No enviamos ni almacenamos tus datos en un servidor/);
-  assert.match(js,/manufacturingApproved:false/);
-  assert.match(js,/equipacion-/);
+test('el configurador 3D sustituye la demo 2D como entrada del sitio', () => {
+  const appHtml = readFileSync(resolve(root,'configurador-3d/index.html'),'utf8');
+  assert.match(html, /<a[^>]*href="\.\/configurador-3d\/"[^>]*id="builder-launch-3d"/);
+  assert.match(html, /href="\.\/configurador-3d\/">Configurador 3D<\/a>/);
+  assert.match(html, /Modelo de ensayo propio, no industrial/);
+  assert.match(html, /No se genera un pedido ni se envían los datos a un servidor/);
+  assert.ok(!html.includes('builder-proportions-panel'), 'sigue la simulación de medidas antigua');
+  assert.ok(!html.includes('id="builder-download"'), 'sigue el falso generador de propuesta 2D');
+  assert.ok(!js.includes('updateKit()'), 'continúa activo el configurador anterior');
+  assert.match(js, /builder-gallery-feedback/);
+  assert.match(css, /builder--3d-entry/);
+  assert.match(appHtml, /id="try-free-model"/);
+  assert.match(appHtml, /id="webgl"/);
+  assert.ok(!html.includes('nubyra-configurador-3d-preview.vercel.app'), 'la web depende de una preview externa');
 });
 
 test('no quedan referencias a imágenes temporales de Figma', () => {

@@ -1,0 +1,49 @@
+name: NUBYRA · Validación del configurador 3D
+
+on:
+  pull_request:
+    paths:
+      - 'configurador-3d/**'
+      - 'index.html'
+      - 'landing.js'
+      - 'landing.css'
+      - 'tests/landing.test.mjs'
+      - 'README.md'
+      - 'docs/configurador-3d/**'
+      - 'tests/configurador-3d.test.mjs'
+      - 'tests/configurador-3d.geometry.test.mjs'
+      - '.github/workflows/validate-configurador-3d.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Sintaxis y pruebas Node 22
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Comprobar módulos del visor
+        run: |
+          for source in configurador-3d/*.mjs; do node --check "$source"; done
+          node --check landing.js
+      - name: Ejecutar pruebas 3D y geometría
+        run: node --test tests/configurador-3d.test.mjs
+
+      - name: Preparar Three.js temporalmente para ensayo geométrico real
+        run: npm install --prefix "$RUNNER_TEMP/nubyra-three" --no-save --no-package-lock --ignore-scripts --no-audit --no-fund three@0.180.0
+      - name: Exportar e importar la camiseta de ensayo como GLB 2.0
+        env:
+          THREE_TEST_DIR: ${{ runner.temp }}/nubyra-three
+        run: node --test tests/configurador-3d.geometry.test.mjs
+      - name: Comprobar suite completa de la web y el editor 3D
+        env:
+          THREE_TEST_DIR: ${{ runner.temp }}/nubyra-three
+        run: |
+          npm ci --no-audit --no-fund
+          npm test

@@ -28,7 +28,7 @@
       <a class="brand" href="#inicio" aria-label="NUBYRA, volver al inicio">NUBYRA</a>
       <nav class="desktop-nav" aria-label="Navegación principal">
         <a href="#equipaciones">Equipaciones</a>
-        <a href="#configurador">Configurador</a>
+        <a href="./configurador-3d/">Configurador 3D</a>
         <a href="#como-funciona">Cómo funciona</a>
         <a href="#proyecto">Nuestro proyecto</a>
       </nav>
@@ -42,7 +42,7 @@
     <nav class="mobile-nav" id="mobile-navigation" aria-label="Menú móvil" hidden>
       <a href="#inicio">Inicio</a>
       <a href="#equipaciones">Equipaciones</a>
-      <a href="#configurador">Configurador</a>
+      <a href="./configurador-3d/">Configurador 3D</a>
       <a href="#como-funciona">Cómo funciona</a>
       <a href="#proyecto">Nuestro proyecto</a>
       <a href="#contacto" class="mobile-nav__cta">Hablemos <span aria-hidden="true">→</span></a>
@@ -116,63 +116,47 @@
     <section class="section section--configurator" id="configurador" aria-labelledby="configurador-title">
       <div class="container">
         <div class="section__heading">
-          <p class="kicker">02 / CONFIGURADOR</p>
-          <h2 id="configurador-title">Diseña tu equipación</h2>
-          <p class="section__intro">Explora propuestas, colores y detalles sobre una muestra digital editable.</p>
+          <p class="kicker">02 / CONFIGURADOR 3D</p>
+          <h2 id="configurador-title">Diseña tu equipación en 3D</h2>
+          <p class="section__intro">Personaliza colores, nombre del equipo, dorsal y patrocinadores, y gira la camiseta para ver ambas caras. Es una prueba visual del piloto.</p>
         </div>
-        <div class="builder" id="builder">
-          <div class="builder__viewer">
-            <div class="builder__topline"><span class="eyebrow">Vista de referencia</span><span class="builder__demo-pill">DEMO VISUAL</span></div>
-            <div class="builder__art">
-              <img id="builder-image" src="https://vyeebvzuxarekfaisfdy.supabase.co/storage/v1/object/public/nubyra-web/01_print_recursos/configurador-camiseta-frente.png" alt="Camiseta de muestra NUBYRA. No es una simulación de tejido en 3D." width="195" height="228">
+        <div class="builder builder--3d-entry" id="builder-3d-entry">
+          <div class="builder__viewer builder__viewer--3d-entry">
+            <div class="builder__topline">
+              <span class="eyebrow">Identidad del club</span>
+              <span class="builder__demo-pill">3D EXPERIMENTAL</span>
             </div>
-            <div class="builder__bottomline"><span id="builder-view-description">Camiseta / Vista frontal</span><span id="builder-design-label">Diseño Océano</span></div>
+            <div class="builder__art builder__art--3d-entry">
+              <img src="https://vyeebvzuxarekfaisfdy.supabase.co/storage/v1/object/public/nubyra-web/01_print_recursos/configurador-camiseta-frente.png" alt="Camiseta NUBYRA del catálogo, imagen conceptual usada como referencia visual; el modelo de ensayo 3D se abre en el configurador" width="302" height="411" loading="lazy">
+            </div>
+            <div class="builder__bottomline">
+              <span>Referencia visual del catálogo</span>
+              <span>Personalización interactiva en el editor</span>
+            </div>
           </div>
-          <div class="builder__controls">
-            <div class="builder__controls-top"><p class="kicker">PERSONALIZACIÓN</p><h3>Propuesta visual del equipo</h3><p>Selecciona una referencia gráfica y ajusta los datos de ejemplo.</p></div>
-            <div class="builder__tabs" role="tablist" aria-label="Opciones de configuración">
-              <button type="button" role="tab" id="tab-design" aria-selected="true" aria-controls="builder-design-panel" tabindex="0">Diseño</button>
-              <button type="button" role="tab" id="tab-proportions" aria-selected="false" aria-controls="builder-proportions-panel" tabindex="-1">Proporciones</button>
+          <div class="builder__controls builder__controls--3d-entry">
+            <div class="builder__controls-top">
+              <p class="kicker">PERSONALIZACIÓN DIGITAL</p>
+              <h3>Tu equipo, desde todos los ángulos</h3>
+              <p>Prueba una camiseta 3D giratoria y modifica sus marcajes. El editor funciona en una página propia dentro de NUBYRA.</p>
             </div>
-            <div class="builder__tab-panel" id="builder-design-panel" role="tabpanel" aria-labelledby="tab-design">
-              <p class="builder__label">Colores principales <span class="builder__label-muted">(referencias)</span></p>
-              <div class="swatch-list" aria-label="Paletas de ejemplo">
-                <button type="button" class="swatch is-selected" style="--swatch:#092e5e" aria-label="Paleta Océano" aria-pressed="true" data-kit="oceano"></button>
-                <button type="button" class="swatch" style="--swatch:#ffd222" aria-label="Paleta Canaria" aria-pressed="false" data-kit="canaria"></button>
-                <button type="button" class="swatch" style="--swatch:#131313" aria-label="Paleta Lava" aria-pressed="false" data-kit="lava"></button>
-                <button type="button" class="swatch" style="--swatch:#a3d9d3" aria-label="Paleta Brisa" aria-pressed="false" data-kit="brisa"></button>
-                <button type="button" class="swatch" style="--swatch:#ac89ca" aria-label="Paleta Cumbre" aria-pressed="false" data-kit="cumbre"></button>
-                <button type="button" class="swatch" style="--swatch:#f4c6d3" aria-label="Paleta Horizonte" aria-pressed="false" data-kit="horizonte"></button>
-              </div>
-              <p class="builder__label">Estampados y diseños</p>
-              <div class="pattern-list" id="pattern-list" aria-label="Seleccionar diseño">
-                <button type="button" class="pattern is-selected" data-kit="oceano" aria-label="Diseño Océano" aria-pressed="true"><img src="https://vyeebvzuxarekfaisfdy.supabase.co/storage/v1/object/public/nubyra-web/02_catalogo_recursos/equipacion-oceano.png" alt="" loading="lazy"></button>
-                <button type="button" class="pattern" data-kit="canaria" aria-label="Diseño Canaria" aria-pressed="false"><img src="https://vyeebvzuxarekfaisfdy.supabase.co/storage/v1/object/public/nubyra-web/02_catalogo_recursos/equipacion-canaria.png" alt="" loading="lazy"></button>
-                <button type="button" class="pattern" data-kit="lava" aria-label="Diseño Lava" aria-pressed="false"><img src="https://vyeebvzuxarekfaisfdy.supabase.co/storage/v1/object/public/nubyra-web/02_catalogo_recursos/equipacion-lava.png" alt="" loading="lazy"></button>
-                <button type="button" class="pattern" data-kit="brisa" aria-label="Diseño Brisa" aria-pressed="false"><img src="https://vyeebvzuxarekfaisfdy.supabase.co/storage/v1/object/public/nubyra-web/02_catalogo_recursos/equipacion-brisa.png" alt="" loading="lazy"></button>
-                <button type="button" class="pattern" data-kit="cumbre" aria-label="Diseño Cumbre" aria-pressed="false"><img src="https://vyeebvzuxarekfaisfdy.supabase.co/storage/v1/object/public/nubyra-web/02_catalogo_recursos/equipacion-cumbre.png" alt="" loading="lazy"></button>
-                <button type="button" class="pattern" data-kit="horizonte" aria-label="Diseño Horizonte" aria-pressed="false"><img src="https://vyeebvzuxarekfaisfdy.supabase.co/storage/v1/object/public/nubyra-web/02_catalogo_recursos/equipacion-horizonte.png" alt="" loading="lazy"></button>
-              </div>
-              <div class="builder__inputs">
-                <label for="builder-team">Nombre del equipo <input type="text" name="team" id="builder-team" maxlength="24" value="NUBYRA" autocomplete="off"></label>
-                <label for="builder-number">Dorsal de ejemplo <input type="text" name="number" id="builder-number" maxlength="3" value="10" inputmode="numeric" pattern="[0-9]{1,3}" autocomplete="off"></label>
-              </div>
+            <div class="builder__features" aria-label="Qué puedes personalizar">
+              <div><span>01</span><strong>Colores</strong><small>Tejido, paneles, ribetes y letras.</small></div>
+              <div><span>02</span><strong>Identidad</strong><small>Nombre del equipo, apellido, escudo y dorsal.</small></div>
+              <div><span>03</span><strong>Patrocinadores</strong><small>Texto frontal y zonas traseras de ensayo.</small></div>
+              <div><span>04</span><strong>Vistas</strong><small>Frontal, espalda, lateral y rotación.</small></div>
             </div>
-            <div class="builder__tab-panel" id="builder-proportions-panel" role="tabpanel" aria-labelledby="tab-proportions" hidden>
-              <p class="builder__notice">Exploración conceptual de camiseta. Las medidas no confirman una talla ni un patrón fabricable.</p>
-              <div class="measure-field"><label for="measure-length">Largo de camiseta <output id="value-length" for="measure-length">60 cm</output></label><input id="measure-length" type="range" min="48" max="76" value="60" step="1"></div>
-              <div class="measure-field"><label for="measure-chest">Pecho <output id="value-chest" for="measure-chest">92 cm</output></label><input id="measure-chest" type="range" min="68" max="124" value="92" step="1"></div>
-              <div class="measure-field"><label for="measure-hip">Cadera <output id="value-hip" for="measure-hip">98 cm</output></label><input id="measure-hip" type="range" min="74" max="132" value="98" step="1"></div>
-            </div>
-            <div class="builder__summary" aria-live="polite"><span id="builder-sample">Océano · NUBYRA · 10</span><span class="builder__summary-note">Solo referencia visual</span></div>
-            <button type="button" id="builder-download" class="btn btn--yellow builder__save">Descargar propuesta <span aria-hidden="true">↓</span></button>
-            <p class="builder__disclaimer">Las imágenes no cambian con el nombre, el dorsal ni las medidas: esos datos solo figuran en el archivo descargado. No hay simulación 3D ni patrón validado en esta versión.</p>
+            <p class="builder__gallery-feedback" id="builder-gallery-feedback" aria-live="polite" hidden></p>
+            <a href="./configurador-3d/" id="builder-launch-3d" class="btn btn--yellow builder__save">
+              Abrir configurador 3D <span aria-hidden="true">↗</span>
+            </a>
+            <p class="builder__disclaimer">Modelo de ensayo propio, no industrial. Las medidas y los estampados del catálogo todavía no se reproducen como patrones fabricables. No se genera un pedido ni se envían los datos a un servidor.</p>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="section section--steps" id="como-funciona" aria-labelledby="como-title">
+        <section class="section section--steps" id="como-funciona" aria-labelledby="como-title">
       <div class="container">
         <div class="section__heading"><p class="kicker">03 / CÓMO FUNCIONA</p><h2 id="como-title">Del diseño al ajuste</h2><p class="section__intro">Un proceso sencillo, pensado para tu equipo y para cada jugadora.</p></div>
         <div class="steps-grid">
