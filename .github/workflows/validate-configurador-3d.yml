@@ -40,7 +40,15 @@ jobs:
       - name: Exportar e importar la camiseta de ensayo como GLB 2.0
         env:
           THREE_TEST_DIR: ${{ runner.temp }}/nubyra-three
+          NUBYRA_EXPORT_GLB: artifacts/nubyra-test-jersey.glb
         run: node --test tests/configurador-3d.geometry.test.mjs
+      - name: Publicar GLB original para revisión técnica
+        uses: actions/upload-artifact@v4
+        with:
+          name: nubyra-test-jersey-glb
+          path: artifacts/nubyra-test-jersey.glb
+          if-no-files-found: error
+          retention-days: 7
       - name: Comprobar suite completa de la web y el editor 3D
         env:
           THREE_TEST_DIR: ${{ runner.temp }}/nubyra-three
