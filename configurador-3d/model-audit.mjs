@@ -3,7 +3,7 @@ const MAGIC = 0x46546c67; // ASCII glTF little-endian
 const JSON_CHUNK = 0x4e4f534a;
 const decoder = new TextDecoder('utf-8', { fatal: true });
 
-export function inspectGlb(bytes, { maxBytes = 20 * 1024 * 1024, maxTriangles = 250_000 } = {}) {
+export function inspectGlb(bytes, { maxBytes = 35 * 1024 * 1024, maxTriangles = 250_000 } = {}) {
   const source = bytes instanceof ArrayBuffer ? new Uint8Array(bytes) : bytes;
   if (!(source instanceof Uint8Array)) throw new TypeError('Se requiere ArrayBuffer o Uint8Array');
   if (source.byteLength < 20 || source.byteLength > maxBytes) throw new Error('GLB vacío, truncado o demasiado grande');
@@ -18,13 +18,19 @@ export function inspectGlb(bytes, { maxBytes = 20 * 1024 * 1024, maxTriangles = 
   let gltf;
   try { gltf = JSON.parse(decoder.decode(source.subarray(20, 20 + jsonLength))); }
   catch { throw new Error('Metadatos GLB ilegibles'); }
+  return inspectGltfJson(gltf, {maxTriangles});
+}
+
+/** Inspección del documento glTF JSON sin acceder a recursos externos. */
+export function inspectGltfJson(gltf, {maxTriangles=250_000} = {}) {
+  if (!gltf || typeof gltf!=='object') throw new Error('Metadatos glTF inválidos');
   if (gltf.asset?.version !== '2.0') throw new Error('glTF 2.0 obligatorio');
   const unsupported = (gltf.extensionsRequired || []).filter(x =>
     ['KHR_draco_mesh_compression', 'EXT_meshopt_compression', 'KHR_texture_basisu'].includes(x));
   if (unsupported.length) throw new Error(`Modelo comprimido sin descodificador: ${unsupported.join(', ')}`);
   const primitives = (gltf.meshes || []).flatMap(m => m.primitives || []);
   if (!primitives.length || !primitives.some(p => p.attributes && Number.isInteger(p.attributes.POSITION))) {
-    throw new Error('El GLB no contiene malla de camiseta identificable');
+    throw new Error('El modelo no contiene geometría triangulada identificable');
   }
   const accessors = gltf.accessors || [];
   let triangles = 0;
@@ -48,6 +54,7 @@ export function inspectGlb(bytes, { maxBytes = 20 * 1024 * 1024, maxTriangles = 
     uvCoverage: uvPrimitives / primitives.length,
     missingNormals,
     materials: (gltf.materials || []).length,
+    meshNames: (gltf.meshes||[]).slice(0,30).map((m,i)=>String(m.name||'Malla '+(i+1)).slice(0,75)),
     textures: (gltf.textures || []).length,
     warnings: [
       ...(uvPrimitives !== primitives.length ? ['UV no presentes en todas las mallas; se usará proyección provisional.'] : []),
