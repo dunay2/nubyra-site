@@ -59,7 +59,7 @@ test('el acceso privado no se anuncia públicamente y la landing no duplica la a
 
 test('el configurador 3D sustituye la demo 2D como entrada del sitio', () => {
   const appHtml = readFileSync(resolve(root,'configurador-3d/index.html'),'utf8');
-  assert.match(html, /id="builder-launch-3d"[^>]*href="\.\/configurador-3d\/"/);
+  assert.match(html, /<a[^>]*href="\.\/configurador-3d\/"[^>]*id="builder-launch-3d"/);
   assert.match(html, /href="\.\/configurador-3d\/">Configurador 3D<\/a>/);
   assert.match(html, /Modelo de ensayo propio, no industrial/);
   assert.match(html, /No se genera un pedido ni se envían los datos a un servidor/);
