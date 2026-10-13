@@ -61,3 +61,16 @@ El `.json` exportado se etiqueta expresamente como **borrador no aprobado para f
 - **Orientación:** ajuste 0°/180° para la previsualización. El atlas sobre la malla sigue siendo provisional y puede requerir seleccionar manualmente superficies y UV.
 - **Pruebas:** 17 unitarias locales correctas. Sin ensayo WebGL real del modelo comercial; no anunciar integración final ni cumplimiento de impresión.
 - **Contrato y adquisición:** [MODELO_SELECCIONADO.md](MODELO_SELECCIONADO.md).
+
+
+## REV05 — ensayo sin descarga de proveedor (13/10/2026)
+
+La imposibilidad de descargar temporalmente ClothingAxis no impide ensayar la personalización 3D. En el panel «Escudo y modelo 3D» existe el botón **«Probar camiseta 3D sin descargar archivos»**, que genera una camiseta femenina deportiva con geometría propia de NUBYRA.
+
+- El visor crea frontal, espalda, paneles laterales y ribetes, exporta la geometría como GLB en la sesión e importa el resultado mediante el mismo GLTFLoader utilizado por el modelo comercial.
+- Las dos mallas principales se seleccionan automáticamente y sus materiales reciben el atlas dinámico. El pantalón, ribetes y otras zonas se mantienen separados.
+- **Sin adquisición, descargas comerciales ni licencias de terceros**. Código y geometría originales del proyecto, derechos reservados.
+- [Detalles y referencias de modelos gratuitos](MODELO_PRUEBA_SIN_DESCARGA.md).
+- [GitHub Actions: 23 pruebas + 2 pruebas geométricas/GLB correctas](https://github.com/dunay2/nubyra-site/actions/runs/38407478932).
+
+La prueba interna no valida el modelo final ni certifica patronaje, morfología o espacios reglamentarios. La integración ClothingAxis sigue pendiente de recibir su archivo y comprobar la licencia definitiva.
