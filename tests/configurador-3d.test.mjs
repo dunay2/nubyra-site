@@ -124,3 +124,58 @@ test('GLB importado aplica atlas como material y desactiva planos flotantes',()=
  assert.match(viewer,/atlas\.texture/);
  assert.ok(existsSync(resolve(root,'model-audit.mjs')));
 });
+
+
+// Modelo ClothingAxis aprobado: importar de forma local sin alojarlo en la web.
+import { chooseModelFiles, inspectLocalGltf, MODEL_PROVENANCE, MODEL_LIMITS } from '../configurador-3d/model-package.mjs';
+const mockFile=(name,size=1024)=>({name,size});
+
+test('ClothingAxis registrado como candidato, sin presumir adquisición o autorización WebGL pública',()=>{
+ assert.match(MODEL_PROVENANCE.product,/Basketball Tshirt/);
+ assert.match(MODEL_PROVENANCE.uri,/cgtrader\.com/);
+ assert.equal(MODEL_PROVENANCE.purchased,false);
+ assert.equal(MODEL_PROVENANCE.publicEmbeddingAuthorized,false);
+ assert.match(markup,/Girls Sleeveless Basketball Tshirt/);
+});
+
+test('GLB autocontenido: único archivo, límite de tamaño y mezclas bloqueadas',()=>{
+ const chosen=chooseModelFiles([mockFile('CAMISETA.GLB',18_500_000)]);
+ assert.equal(chosen.format,'glb');
+ assert.equal(chosen.resources.size,0);
+ assert.throws(()=>chooseModelFiles([mockFile('a.glb'),mockFile('b.gltf')]),/exactamente un/);
+ assert.throws(()=>chooseModelFiles([mockFile('a.glb'),mockFile('material.png')]),/no válido/);
+ assert.throws(()=>chooseModelFiles([mockFile('a.glb',MODEL_LIMITS.maxGlbBytes+1)]),/35 MB/);
+});
+
+test('glTF externo con BIN y texturas: dependencias detectadas y cobertura UV',()=>{
+ const selection=chooseModelFiles([mockFile('modelo.gltf'),mockFile('cuerpo.bin'),mockFile('tejido.png'),mockFile('logo.jpg')]);
+ assert.equal(selection.format,'gltf');
+ const obj={...glbValid,buffers:[{uri:'cuerpo.bin',byteLength:48}],images:[{uri:'texturas/tejido.png'}]};
+ const out=inspectLocalGltf(JSON.stringify(obj),selection.resources);
+ assert.deepEqual(out.required.sort(),['cuerpo.bin','tejido.png']);
+ assert.deepEqual(out.unused,['logo.jpg']);
+ assert.equal(out.audit.triangles,12);
+});
+
+test('glTF bloquea URLs externas, path traversal, recursos faltantes y paquetes excesivos',()=>{
+ const p=chooseModelFiles([mockFile('prenda.gltf'),mockFile('data.bin')]);
+ const doc={...glbValid,buffers:[{uri:'https://externo.com/model.bin'}]};
+ assert.throws(()=>inspectLocalGltf(JSON.stringify(doc),p.resources),/no segura/);
+ doc.buffers[0].uri='../data.bin';
+ assert.throws(()=>inspectLocalGltf(JSON.stringify(doc),p.resources),/no segura/);
+ doc.buffers[0].uri='otra.bin';
+ assert.throws(()=>inspectLocalGltf(JSON.stringify(doc),p.resources),/Faltan recursos/);
+ assert.throws(()=>chooseModelFiles([mockFile('a.gltf'),mockFile('dupe.png'),mockFile('dupe.png')]),/duplicado/);
+ assert.throws(()=>chooseModelFiles([mockFile('a.gltf',1),mockFile('b.bin',MODEL_LIMITS.maxTotalBytes)]),/90 MB/);
+});
+
+test('integración del paquete y orientación presentes sin modificar la landing pública',()=>{
+ assert.match(viewer,/async importFiles\(files/);
+ assert.match(viewer,/manager\.setURLModifier/);
+ assert.match(viewer,/URL\.revokeObjectURL/);
+ assert.match(app,/viewer\.importFiles\(files/);
+ assert.match(markup,/id="model-orientation"/);
+ assert.match(markup,/id="model-file" multiple/);
+ assert.match(markup,/no subiremos esos archivos a ningún servidor/);
+ assert.ok(existsSync(resolve(root,'model-package.mjs')));
+});
