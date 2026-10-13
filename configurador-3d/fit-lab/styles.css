@@ -110,3 +110,10 @@ footer{font-size:11px;color:#7b8e9e;margin-top:45px;padding:22px 0;border-top:1p
 .discrete-options{margin-top:11px}
 .discrete-hint p{line-height:1.65}
 @media(max-width:620px){.size-proposal{padding:13px}.recommended-box{padding:11px}.cm-band{font-size:9px}}
+
+/* Leyenda posterior: los perfiles se extraen de vértices de las dos mallas. */
+.rear-guide-help{padding:11px 18px;background:#fbf6e9;border-top:1px solid #e9ddba;color:#6d5d3c;font-size:11px;line-height:1.55}
+.rear-guide-help strong{font-weight:850}
+.rear-guide-help span{font-weight:860;border-radius:4px;padding:1px 5px}
+.guide-base{color:#9e6d09;background:#ffecd0}.guide-live{color:#086f9e;background:#dceef8}
+@media(max-width:620px){.rear-guide-help{padding:11px 14px;font-size:10px}}
