@@ -4,7 +4,7 @@ import { DEFAULT_LABELS, LABEL_CONFIG, LABEL_VALUES, labelKeyForMeasure, normali
 const $=id=>document.getElementById(id);
 const fields=Object.keys(LIMITS);
 const state={...DEFAULT_FIT,...DEFAULT_LABELS};
-let activeMode='body',viewer=null,geometryFrame=0;
+let activeMode='body',viewer=null,geometryFrame=0,referenceSections=null;
 function formatDelta(value){return (value>=0?'+':'')+String(value)+' cm';}
 function syncInputs(){
   for(const key of fields){
@@ -38,12 +38,29 @@ function updateReadings(){
   $('delta-chest').textContent=formatDelta(diffs.chest);
   $('delta-hip').textContent=formatDelta(diffs.hip);
 }
+function formatChangePercent(current,base){
+  if(!(Number.isFinite(current)&&Number.isFinite(base)&&base>0))return '—';
+  const raw=(current/base-1)*100;
+  const rounded=Math.abs(raw)<.05?0:raw;
+  return (rounded>0?'+':'')+rounded.toLocaleString('es-ES',{
+    minimumFractionDigits:1,maximumFractionDigits:1
+  })+' %';
+}
+function updateGeometryFeedback(){
+  if(!viewer||!referenceSections)return;
+  const sections=viewer.measureChestSections();
+  const now=sections[activeMode],original=referenceSections[activeMode];
+  $('mesh-mode-readout').textContent=activeMode==='body'?'A · Cuerpo':'B · Camiseta';
+  for(const [id,metric] of [['shape-width','width'],['shape-front','front'],['shape-back','back']]){
+    $(id).textContent=formatChangePercent(now[metric],original[metric]);
+  }
+}
 function updateGeometry(){
   if(geometryFrame)cancelAnimationFrame(geometryFrame);
   geometryFrame=requestAnimationFrame(()=>{
     geometryFrame=0;
     if(!viewer)return;
-    try{viewer.update(state);}
+    try{viewer.update(state);updateGeometryFeedback();}
     catch(error){
       const banner=$('scene-error');
       banner.textContent='Error en la geometría experimental: '+error.message;
@@ -81,6 +98,7 @@ function enableMode(mode){
   $('garment-fields').disabled=body;
   $('body-fields').classList.toggle('is-locked',!body);
   $('garment-fields').classList.toggle('is-locked',body);
+  updateGeometryFeedback();
 }
 document.querySelectorAll('[data-label-key]').forEach(button=>{
   button.addEventListener('click',()=>{
@@ -148,6 +166,7 @@ redraw();
 try{
   const {createFitViewer}=await import('./fit-viewer.mjs');
   viewer=createFitViewer($('fit-canvas'),state);
+  referenceSections=viewer.measureChestSections();
   updateDisplay();
   viewer.view('quarter');
   const check=viewer.geometryDiagnostics();
