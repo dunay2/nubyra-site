@@ -119,7 +119,7 @@ test('atlas: la parte frontal y trasera ocupan mitades separadas y texto queda d
 });
 
 test('GLB importado aplica atlas como material y desactiva planos flotantes',()=>{
- assert.match(viewer,/projectGarment\(gltf\.scene,atlas\)/);
+ assert.match(viewer,/projectGarment\(sourceScene,atlas,selected\)/);
  assert.match(viewer,/printFront\.mesh\.visible=false;printBack\.mesh\.visible=false/);
  assert.match(viewer,/atlas\.texture/);
  assert.ok(existsSync(resolve(root,'model-audit.mjs')));
@@ -192,4 +192,49 @@ test('marcajes del SVG ajustados al torso y render frontal/trasera sin fallos',(
  assert.ok(front.includes('NUBYRA CANARIAS'));
  assert.ok(back.includes('PÉREZ'));
  assert.ok(front.includes('NC'));
+});
+
+
+import { describeGarmentMeshes, validateGarmentMeshChoice } from '../configurador-3d/mesh-selection.mjs';
+function fixtureMeshes(){
+  const objects=[
+    {isMesh:true,name:'Jersey_Front',geometry:{attributes:{position:{count:900},uv:{count:900}}},material:{name:'jersey fabric'},userData:{}},
+    {isMesh:true,name:'Shorts',geometry:{attributes:{position:{count:600}}},material:{name:'pants fabric'},userData:{}},
+    {isMesh:true,name:'collar',geometry:{attributes:{position:{count:60}}},material:{name:'trim'},userData:{}}
+  ];
+  return {objects,traverse(cb){objects.forEach(cb)}};
+}
+test('candidatos de tejido distinguen camiseta, pantalón y ribete sin modificar materiales',()=>{
+ const root=fixtureMeshes();
+ const existing=root.objects.map(m=>m.material);
+ const meshes=describeGarmentMeshes(root);
+ assert.equal(meshes.length,3);
+ assert.equal(meshes[0].candidate,true);
+ assert.equal(meshes[1].candidate,false);
+ assert.equal(meshes[2].candidate,false);
+ assert.equal(meshes[0].triangles,300);
+ assert.equal(meshes[0].uv,true);
+ assert.deepEqual(root.objects.map(m=>m.material),existing);
+});
+
+test('selección de mallas es explícita y valida identidad, repetidos y límite',()=>{
+ const meshes=describeGarmentMeshes(fixtureMeshes());
+ assert.throws(()=>validateGarmentMeshChoice(meshes,[]),/al menos una/);
+ assert.throws(()=>validateGarmentMeshChoice(meshes,['extraña']),/desconocida/);
+ assert.deepEqual(validateGarmentMeshChoice(meshes,['garment-0','garment-0']),['garment-0']);
+ assert.throws(()=>validateGarmentMeshChoice(
+  Array.from({length:40},(_,id)=>({id:'x'+id})),
+  Array.from({length:40},(_,id)=>'x'+id)
+ ),/Demasiadas/);
+});
+
+test('el importador no altera automáticamente la malla y exige confirmar los marcajes',()=>{
+ assert.match(viewer,/function restoreSurfaces\(\)/);
+ assert.match(viewer,/function applyGarmentSelection\(ids\)/);
+ assert.match(viewer,/meshCandidates:descriptors,projectedMeshes:0/);
+ assert.match(viewer,/const selected=meshes.filter\(m=>chosen.includes/);
+ assert.match(app,/displayGarmentMeshes\(report\.meshCandidates\|\|\[\]\)/);
+ assert.match(app,/viewer\.applyGarmentSelection\(ids\)/);
+ assert.match(markup,/id="mesh-list"/);
+ assert.match(markup,/id="apply-meshes"/);
 });
