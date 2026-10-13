@@ -30,6 +30,15 @@ test('malla femenina visual abierta: mallas separadas y UV/normales correctas',(
   assert.equal(mesh.geometry.getAttribute('uv')?.count,mesh.geometry.getAttribute('position').count,mesh.name);
   assert.ok(mesh.geometry.index ? mesh.geometry.index.count%3===0 : mesh.geometry.getAttribute('position').count%3===0,mesh.name);
  }
+ const byPiece=meshes.map(mesh=>({
+  name:mesh.name,
+  triangles:(mesh.geometry.index?.count ?? mesh.geometry.getAttribute('position').count)/3
+ }));
+ const triangleTotal=byPiece.reduce((n,piece)=>n+piece.triangles,0);
+ assert.ok(Number.isInteger(triangleTotal),'el recuento de triángulos debe ser entero');
+ console.log('NUBYRA_GEOMETRY_AUDIT='+JSON.stringify({
+  triangles:triangleTotal,meshCount:meshes.length,byPiece
+ }));
  assert.ok(meshes.some(x=>/Jersey_Front/.test(x.name)));
  assert.ok(meshes.some(x=>/Jersey_Back/.test(x.name)));
  assert.ok(meshes.some(x=>/trim-front-neck/.test(x.name)));
