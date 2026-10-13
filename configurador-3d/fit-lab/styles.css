@@ -117,3 +117,65 @@ footer{font-size:11px;color:#7b8e9e;margin-top:45px;padding:22px 0;border-top:1p
 .rear-guide-help span{font-weight:860;border-radius:4px;padding:1px 5px}
 .guide-base{color:#9e6d09;background:#ffecd0}.guide-live{color:#086f9e;background:#dceef8}
 @media(max-width:620px){.rear-guide-help{padding:11px 14px;font-size:10px}}
+
+
+/* Flujo definitivo de UX del piloto: Medidas → Ajuste 3D → Propuesta. */
+.editor-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:20px 0 0;border-bottom:1px solid #dce6ed;padding-bottom:9px}
+.editor-tab{display:flex;align-items:center;justify-content:center;gap:7px;min-height:48px;background:#edf3f7;border:1px solid #dbe5ec;border-radius:10px;color:#47657b;font-size:12px;font-weight:850;padding:9px 6px;white-space:nowrap}
+.editor-tab>span{display:inline-grid;place-items:center;width:23px;height:23px;border:1px solid #c5d7e1;border-radius:50%;font-size:10px;flex-shrink:0}
+.editor-tab[aria-selected=true]{background:#123753;color:#fff;border-color:#123753}
+.editor-tab[aria-selected=true]>span{border-color:#799fb4}
+.editor-tab:hover{border-color:#658aa3}
+.editor-panels{max-height:min(67vh,680px);min-height:290px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;padding:20px 3px 8px}
+.tab-panel[hidden]{display:none!important}
+.tab-panel .step-eyebrow{color:#9b7c17;font-size:10px;font-weight:900;letter-spacing:.12em;margin-bottom:9px}
+.tab-panel>h3{font-size:18px;line-height:1.3;letter-spacing:-.03em;margin-bottom:8px}
+.step-copy,.tab-panel .hint{color:#627d8f;font-size:11px;line-height:1.55;margin-bottom:17px}
+.tab-panel .hint{margin:0}
+.tab-panel .param-panel{margin-top:13px}
+.tab-actions{display:flex;align-items:center;justify-content:flex-end;margin:16px 0 4px;gap:9px}
+.tab-actions--between{justify-content:space-between}
+.step-primary,.step-secondary{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:9px;border:1px solid #123753;padding:12px 15px;min-height:44px;font-size:12px;font-weight:850;text-align:center}
+.step-primary{color:#fff;background:#123753}
+.step-secondary{color:#123753;background:#fff;border-color:#c4d9e6}
+.step-primary:not(:disabled):hover{background:#1a4a69}
+.step-primary:disabled{opacity:.58;cursor:not-allowed;background:#e8eef3;color:#546d7e;border-color:#c9d8e3}
+.step-secondary:hover{background:#edf5fa}
+#panel-proposal .proposed-result{display:grid;grid-template-columns:1fr auto;gap:8px 10px;background:#e8f4f9;border:1px solid #c5ddeb;border-radius:12px;padding:16px;margin:18px 0 12px}
+.proposed-result>span{font-size:10px;color:#587b90;font-weight:870;letter-spacing:.08em;align-self:center}
+.proposed-result>strong{color:#103956;font-size:35px;font-weight:900;letter-spacing:-.04em;line-height:1}
+.proposed-result>p{grid-column:1/-1;font-size:11px;line-height:1.55;color:#4b6a7e;margin:0}
+.proposed-result>.proposal-status{font-weight:800;color:#176541}
+.proposed-result>.proposal-status.is-warning{color:#a25715}
+.proposed-inputs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.proposed-inputs>div{padding:13px 10px;border:1px solid #dce7ed;background:#f8fafc;border-radius:10px}
+.proposed-inputs small{display:block;font-size:10px;color:#597286;line-height:1.5}
+.proposed-inputs strong{display:block;font-size:17px;color:#123753;font-variant-numeric:tabular-nums;margin-top:6px}
+.proposal-bands{margin:14px 0 17px;border-left:3px solid #75a5c2;background:#f1f6fa;border-radius:6px;padding:11px;font-size:11px;color:#355c76;line-height:1.55}
+.configuration{border:1px solid #d9e6ef;border-radius:12px;padding:13px;background:#fff}
+.configuration__heading{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:11px}
+.configuration__heading strong{font-size:12px;color:#1c4560}
+.configuration__heading span{font-size:10px;color:#688092}
+.pattern-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.pattern-grid>div{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;border:1px solid #d8e5ed;border-radius:8px;padding:10px 6px;background:#f7fafc}
+.pattern-grid>div strong{font-size:12px;color:#486b80}
+.pattern-grid>div small{font-size:9px;color:#8295a2}
+.pattern-grid>div.is-family-candidate{background:#e6f1f8;border-color:#75a8c7}
+.pattern-grid>div.is-family-candidate strong{color:#0c4d76}
+.configuration__note{font-size:11px;line-height:1.55;color:#825d2d;background:#fbf4e7;padding:11px;border-radius:8px;margin-top:11px}
+.shirt-comparison{margin:16px 0;padding:15px;border-radius:11px;background:#f1f7fb;border:1px solid #d3e4ee}
+.shirt-comparison>p:first-child{font-size:11px;color:#365c76;line-height:1.6}
+.shirt-comparison>p:first-child strong{font-size:14px;color:#103c57}
+.shirt-comparison>p:first-child span{font-size:10px;color:#698496}
+.shirt-comparison .step-primary{display:flex;width:100%;margin:11px 0}
+.shirt-comparison>p:last-child{font-size:10px;color:#688394;line-height:1.55}
+#panel-adjust .discrete-hint{margin:15px 0}
+#panel-adjust #adjust-body-fields .fit-field{margin-bottom:17px}
+#panel-adjust #adjust-body-fields .fit-field:last-child{margin-bottom:0}
+#panel-adjust #garment-fields{opacity:1;background:#fff}
+#panel-measures .param-panel{margin-bottom:16px}
+#panel-measures .reset-inline{padding:8px 0}
+#panel-proposal .result{margin-top:15px}
+@media(min-width:1081px){.view-panel{position:sticky;top:10px;align-self:start}.scene{height:clamp(340px,47vh,510px);min-height:340px}}
+@media(max-width:1080px){.editor-panels{max-height:none;overflow:visible}.editor-tabs{margin-top:16px}}
+@media(max-width:640px){.editor-tab{font-size:11px;gap:3px;padding:8px 3px;min-height:44px}.editor-tab>span{width:20px;height:20px;font-size:9px}.editor-panels{padding-top:17px}.proposed-inputs{gap:5px}.proposed-inputs>div{padding:10px 7px}.proposed-inputs strong{font-size:15px}.configuration__heading{flex-wrap:wrap}}
