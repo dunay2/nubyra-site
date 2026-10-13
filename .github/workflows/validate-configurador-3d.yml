@@ -42,4 +42,6 @@ jobs:
       - name: Comprobar suite completa de la web y el editor 3D
         env:
           THREE_TEST_DIR: ${{ runner.temp }}/nubyra-three
-        run: npm test
+        run: |
+          npm ci --no-audit --no-fund
+          npm test
