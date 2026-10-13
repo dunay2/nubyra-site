@@ -158,6 +158,17 @@ export function deformGarment(group,values){
   if(count===0)throw Error('Prenda sin superficies deformables');
   return count;
 }
+/**
+ * Único punto de entrada de la interacción A/B (barras y botones discretos).
+ * Convierte estado de UI en un contrato compartido, no elimina las etiquetas.
+ * Las dos mallas conservan sus propias referencias y posiciones iniciales.
+ */
+export function applyFitToModels(body,garment,state){
+  const v=normalizeRenderFit(state);
+  deformBody(body,v);
+  deformGarment(garment,v);
+  return v;
+}
 // Inspección aproximada, NO holgura verificada ni perímetro real calculado.
 export function getBodyExtentAt(mesh,y,band=.035){
   if(!mesh?.geometry)throw Error('Cuerpo requerido');
