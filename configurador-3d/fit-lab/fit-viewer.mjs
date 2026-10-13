@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createFreeTestJersey } from '../free-test-jersey.mjs';
-import { createReferenceBody, deformBody, deformGarment, normalizeRenderFit, measureCrossSection } from './fit-geometry.mjs';
+import { createReferenceBody, applyFitToModels, measureCrossSection } from './fit-geometry.mjs';
 
 export function createFitViewer(canvas,initial){
   if(!canvas || !canvas.parentElement)throw Error('Canvas de laboratorio requerido');
@@ -77,10 +77,8 @@ export function createFitViewer(canvas,initial){
   tick();
   const api={
     update(values){
-      // No eliminar las etiquetas discretas al normalizar el estado recibido de la UI.
-      const v=normalizeRenderFit(values);
-      deformBody(mannequin,v);
-      deformGarment(garment,v);
+      // Único controlador común: las etiquetas nunca se pierden en esta frontera.
+      applyFitToModels(mannequin,garment,values);
       return {body:mannequin,garment};
     },
     setVisual(flags){
