@@ -110,8 +110,9 @@
         <div><small>Altura corporal</small><strong id="scale-body-height">160 cm</strong></div>
         <div><small>Largo de camiseta</small><strong id="scale-shirt-length">64 cm</strong></div>
         <div><small>Subida frontal estimada</small><strong id="scale-hem-lift">—</strong></div>
+        <div><small>Proyección del busto</small><strong id="scale-bust-level">3 / 10</strong></div>
       </div>
-      <p>Altura y largo comparten escala vertical. La referencia de hombro, la silueta y la caída son aproximaciones geométricas de ensayo, <strong>no mediciones anatómicas ni simulación textil validada</strong>.</p>
+      <p>Altura y largo comparten escala vertical. La proyección del busto nunca es negativa: <strong>0 = plano</strong>. La referencia de hombro, la silueta y la caída son aproximaciones geométricas de ensayo, <strong>no mediciones anatómicas ni simulación textil validada</strong>.</p>
     </section>
    </section>
 
@@ -138,6 +139,14 @@
             <button type="button" data-body-profile="thorax" aria-pressed="false">Torácico</button>
           </div>
           <small>No son clases de personas. La distribución del volumen no puede deducirse solo del perímetro de pecho.</small>
+        </div>
+        <div class="bust-control" aria-label="Proyección del busto limitada a valores no negativos">
+          <div class="field-top">
+            <label for="bustProjectionLevel-range">Proyección del busto · nivel de ensayo</label>
+            <div><input id="bustProjectionLevel-number" type="number" min="0" max="10" step="1" value="3" aria-label="Proyección del busto, de 0 plano a 10"> <span>/ 10</span></div>
+          </div>
+          <input id="bustProjectionLevel-range" type="range" min="0" max="10" step="1" value="3">
+          <p><strong>0 = plano</strong> · 1–10 = proyección hacia delante. <strong>No existe un nivel negativo ni una cavidad.</strong> Es un parámetro de forma independiente de los centímetros de contorno.</p>
         </div>
         <p class="step-copy">El patrón todavía no se elige. Las medidas y el largo solicitado son las entradas del recomendador; las etiquetas de ajuste se calculan después.</p>
     <fieldset class="param-panel" id="body-fields">
@@ -205,6 +214,14 @@
    <div class="field-top"><label for="adjust-bodyChestCm-range">Pecho corporal</label><div><input type="number" data-fit-key="bodyChestCm" id="adjust-bodyChestCm-number" aria-label="Pecho corporal en cm durante ajuste 3D" min="65" max="120" step="1" value="88"><span>cm</span></div></div>
    <input type="range" data-fit-key="bodyChestCm" id="adjust-bodyChestCm-range" min="65" max="120" step="1" value="88">
   </div>
+          <div class="fit-field bust-adjust-field">
+            <div class="field-top">
+              <label for="adjust-bustProjectionLevel-range">Proyección del busto (0 = plano)</label>
+              <div><input type="number" data-fit-key="bustProjectionLevel" id="adjust-bustProjectionLevel-number" min="0" max="10" step="1" value="3" aria-label="Nivel de proyección del busto, cero es plano"> <span>/ 10</span></div>
+            </div>
+            <input type="range" data-fit-key="bustProjectionLevel" id="adjust-bustProjectionLevel-range" min="0" max="10" step="1" value="3">
+            <p class="bust-hint">El relieve solo crece hacia fuera. Cambiar el contorno de pecho no autoriza una concavidad anterior.</p>
+          </div>
           <div class="fit-field">
    <div class="field-top"><label for="adjust-bodyHipCm-range">Cadera corporal</label><div><input type="number" data-fit-key="bodyHipCm" id="adjust-bodyHipCm-number" aria-label="Cadera corporal en cm durante ajuste 3D" min="70" max="130" step="1" value="96"><span>cm</span></div></div>
    <input type="range" data-fit-key="bodyHipCm" id="adjust-bodyHipCm-range" min="70" max="130" step="1" value="96">
