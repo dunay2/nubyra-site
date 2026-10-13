@@ -107,19 +107,19 @@ function redrawAtlas(atlas,front,back,state){
  ctx.drawImage(front.canvas,0,0);ctx.drawImage(back.canvas,1024,0);
  atlas.texture.needsUpdate=true;
 }
-function projectGarment(model,atlas){
+function projectGarment(model,atlas,selectedIds){
  model.updateMatrixWorld(true);
  const meshes=[];model.traverse(o=>{if(o.isMesh&&o.geometry?.attributes?.position)meshes.push(o);});
  if(!meshes.length)throw new Error('El modelo no contiene mallas compatibles');
- const box=new THREE.Box3().setFromObject(model);
- const s=box.getSize(new THREE.Vector3());
- if(!(s.x>0.05 && s.y>0.05 && s.z>0))throw new Error('Dimensiones no compatibles para camiseta 3D');
- // Mantener piezas pequeñas de ribetes en su material original.
- const score=o=>o.geometry.getAttribute('position').count;
- const largest=Math.max(...meshes.map(score));
- const selected=meshes.filter(o=>score(o)>=Math.max(100,largest*.20)&&!(/trim|rib|collar|zip|button|label|cord/i).test(o.name));
- if(!selected.length)throw new Error('No se identificó la superficie principal de tejido');
- if(selected.some(o=>o.isSkinnedMesh||o.morphTargetInfluences?.length))throw new Error('La malla deformable requiere calibración previa de UV, no se modificará automáticamente');
+ const descriptors=describeGarmentMeshes(model);
+ const chosen=validateGarmentMeshChoice(descriptors,selectedIds);
+ const selected=meshes.filter(m=>chosen.includes(m.userData.nubyraMeshId));
+ if(selected.some(m=>m.isSkinnedMesh||m.morphTargetInfluences?.length))
+  throw new Error('La malla deformable requiere calibración previa de UV');
+ const box=new THREE.Box3();
+ for(const mesh of selected)box.expandByObject(mesh);
+ const size=box.getSize(new THREE.Vector3());
+ if(!(size.x>0.01&&size.y>0.01))throw new Error('La selección no tiene dimensiones válidas');
  const bounds={minX:box.min.x,maxX:box.max.x,minY:box.min.y,maxY:box.max.y};
  let remodeled=0,triangles=0;
  for(const mesh of selected){
