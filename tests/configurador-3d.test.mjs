@@ -191,8 +191,8 @@ test('marcajes del SVG ajustados al torso y render frontal/trasera sin fallos',(
  const back=jerseySVG(DEFAULT_STATE,'back',ctx);
  assert.ok(front.includes('NUBYRA CANARIAS'));
  assert.ok(back.includes('PÉREZ'));
- assert.doesNotMatch(front, /<text\\b[^>]*>\\s*(?:N|NC)\\s*<\\/text>/);
- assert.doesNotMatch(back, /<text\\b[^>]*>\\s*(?:N|NC)\\s*<\\/text>/);
+ assert.doesNotMatch(front, /<text\b[^>]*>\s*(?:N|NC)\s*<\/text>/);
+ assert.doesNotMatch(back, /<text\b[^>]*>\s*(?:N|NC)\s*<\/text>/);
 });
 
 
@@ -272,14 +272,14 @@ test('sin logos N y NC de demostración en el frontal, espalda, atlas 3D ni resp
  const front=jerseySVG(DEFAULT_STATE,'front',sampleCtx);
  const back=jerseySVG(DEFAULT_STATE,'back',sampleCtx);
  for(const svg of [front,back]){
-   assert.doesNotMatch(svg, /<text\\b[^>]*>\\s*(?:N|NC)\\s*<\\/text>/, 'siguen presentes logos predeterminados');
-   assert.doesNotMatch(svg, /<image\\b/, 'sin escudo subido, la camiseta debe quedar libre de logotipos');
+   assert.doesNotMatch(svg, /<text\b[^>]*>\s*(?:N|NC)\s*<\/text>/, 'siguen presentes logos predeterminados');
+   assert.doesNotMatch(svg, /<image\b/, 'sin escudo subido, la camiseta debe quedar libre de logotipos');
  }
  assert.ok(front.includes('NUBYRA CANARIAS'));
  assert.ok(back.includes('PÉREZ'));
  assert.ok(front.includes('12') && back.includes('12'));
- assert.doesNotMatch(viewer,/printBlock\\(ctx,z\\.brand/);
- assert.doesNotMatch(viewer,/ctx\\.fillText\\(['"]NC['"]/);
+ assert.doesNotMatch(viewer,/printBlock\(ctx,z\.brand/);
+ assert.doesNotMatch(viewer,/ctx\.fillText\(['"]NC['"]/);
 });
 
 test('el escudo de club cargado por el usuario sí se conserva y el dorsal no cambia',()=>{
@@ -287,8 +287,8 @@ test('el escudo de club cargado por el usuario sí se conserva y el dorsal no ca
  const state={...DEFAULT_STATE,crestDataUrl:custom};
  const front=jerseySVG(state,'front',sampleCtx,true);
  const back=jerseySVG(state,'back',sampleCtx,true);
- assert.match(front,/<image\\b[^>]*href="data:image\\/png;base64,AAAA"/);
- assert.doesNotMatch(back,/<image\\b/);
+ assert.match(front,/<image\b[^>]*href="data:image\/png;base64,AAAA"/);
+ assert.doesNotMatch(back,/<image\b/);
  assert.ok(front.includes('12') && back.includes('12'));
- assert.match(viewer,/ctx\\.drawImage\\(state\\.crest/);
+ assert.match(viewer,/ctx\.drawImage\(state\.crest/);
 });
