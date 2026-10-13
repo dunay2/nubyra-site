@@ -74,3 +74,17 @@ La imposibilidad de descargar temporalmente ClothingAxis no impide ensayar la pe
 - [GitHub Actions: 23 pruebas + 2 pruebas geométricas/GLB correctas](https://github.com/dunay2/nubyra-site/actions/runs/38407478932).
 
 La prueba interna no valida el modelo final ni certifica patronaje, morfología o espacios reglamentarios. La integración ClothingAxis sigue pendiente de recibir su archivo y comprobar la licencia definitiva.
+
+## Integración con la web principal · 13/10/2026
+
+Con aprobación del promotor, se prepara la integración pública **del prototipo visual** (no del modelo comercial) a través de la ruta `https://nubyra.es/configurador-3d/`:
+
+- Menús de escritorio y móvil: **Configurador 3D**, enlace relativo al mismo dominio.
+- Bloque `#configurador` de la landing: nueva entrada al editor, sin duplicar por iframe ni ejecutar dos visores.
+- Galería: conserva Océano, Canaria, Lava, Brisa, Cumbre y Horizonte como **referencias**; una selección informa de que el estampado exacto aún no se transfiere a la malla.
+- Eliminado de `landing.js` el controlador de la antigua demo 2D; se conservan cabecera, navegación, contacto y descarga de borrador.
+- Fallback SVG permanece disponible **dentro** del editor 3D si el navegador no puede usar WebGL.
+- Sin cambios en Google/Supabase Auth, tablas, datos de jugadoras ni backend.
+- No se distribuyen modelos comerciales (ClothingAxis sigue pendiente). El modelo provisional es una construcción de ensayo propia.
+
+**Verificación:** GitHub Actions ejecuta pruebas geométricas Three.js/GLB, la suite de regresión de la landing, favicon y autenticación y pruebas del editor. La simulación no acredita cumplimiento reglamentario ni medidas fabricables; cualquier discrepancia real se investigará tras la comprobación visual WebGL en el navegador final.
