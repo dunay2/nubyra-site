@@ -5,9 +5,9 @@
  */
 import { serializeLabels } from './discrete-states.mjs';
 import { classifiedLabels,serializeClassifier,suggestPatternFromMeasurements } from './size-classifier.mjs';
-import {getBodyProfile,drapeFixedGarment} from './fit-drape.mjs';
+import {getBodyProfile,drapeFixedGarment,normalizeBustProjection,bustProtrusionUnits} from './fit-drape.mjs';
 import {getGarmentConfiguration} from './garment-catalog.mjs';
-export const FIT_VERSION='nubyra.fit-lab/0.3';
+export const FIT_VERSION='nubyra.fit-lab/0.4';
 export const DEFAULT_FIT=Object.freeze({
   bodyChestCm:88,bodyHipCm:96,bodyHeightCm:160,
   garmentChestCm:102,garmentHipCm:110,garmentLengthCm:64
@@ -36,7 +36,7 @@ export function normalizeFit(values){
  */
 export function normalizeRenderFit(values){
   const cm=normalizeFit(values);
-  return {...cm,...classifiedLabels(cm,values?.activeBase)};
+  return {...cm,...classifiedLabels(cm,values?.activeBase),bustProjectionLevel:normalizeBustProjection(values?.bustProjectionLevel)};
 }
 export function serializeFit(state){
   const values=normalizeFit(state);
@@ -72,6 +72,7 @@ export function serializeFit(state){
     },
     body:{
       chestCm:values.bodyChestCm,hipCm:values.bodyHipCm,
+      bustProjectionLevel:normalizeBustProjection(state?.bustProjectionLevel),
       heightReferenceCm:values.bodyHeightCm
     },
     garment:{
@@ -82,7 +83,7 @@ export function serializeFit(state){
       chest:values.garmentChestCm-values.bodyChestCm,
       hip:values.garmentHipCm-values.bodyHipCm
     },
-    note:'Medidas y rangos ilustrativos, NO perímetros calibrados sobre las mallas. La recomendación de N1/N2 es experimental; posiciones laterales 1/2/3 no asignadas, sin holguras verificadas, ni homologación industrial.'
+    note:'Medidas y rangos ilustrativos, NO perímetros calibrados sobre las mallas. La proyección del busto está limitada a 0-10 (0 = plano, nunca negativa) y no son centímetros. Las posiciones industriales 1/2/3, holguras y tallas no están validadas.'
   };
 }
 export function nominalDifferences(input){
@@ -95,7 +96,8 @@ function bodyHalfAxes(y){
   const shoulder=gauss((y-.86)/.38);
   return {
     width:.386+.102*bust+.083*hips+.038*shoulder,
-    depth:.151+.079*bust+.063*hips+.032*shoulder
+    // Sin busto en la malla neutra: en nivel 0 el perfil anterior no tiene relieve pectoral.
+    depth:.205+.042*hips
   };
 }
 export function createReferenceBody(T){
@@ -155,15 +157,23 @@ export function deformBody(mesh,values){
   const deltaChest=v.bodyChestCm/DEFAULT_FIT.bodyChestCm-1;
   const deltaHip=v.bodyHipCm/DEFAULT_FIT.bodyHipCm-1;
   const profile=getBodyProfile(values?.bodyProfile);
+  const level=normalizeBustProjection(values?.bustProjectionLevel);
+  const protrusion=bustProtrusionUnits(level,profile.code);
   changePositions(mesh,(x,y,z)=>{
     const chest=gauss((y-.28)/.43),hip=gauss((y+.98)/.46);
-    const lateral=1+profile.lateral*deltaChest*chest+1.04*deltaHip*hip;
-    const centered=z+.005,isBack=centered<0;
-    // Una proyección de busto frontal no aumenta artificialmente la espalda.
-    // Solo el perfil torácico explícito permite ampliar profundidad posterior.
-    const chestDepth=isBack?profile.back:profile.front;
-    const depth=1+chestDepth*deltaChest*chest+1.06*deltaHip*hip;
-    return [x*lateral,y,centered*depth-.005];
+    // Pecho torácico (medida de contorno) puede variar en anchura sin crear
+    // una concavidad frontal. Esto es independiente del relieve del busto.
+    const lateral=Math.max(.30,1+profile.lateral*deltaChest*chest+1.04*deltaHip*hip);
+    const centered=z+.005,isFront=centered>0;
+    const rearTorsoAdjustment=!isFront&&profile.code==='thorax'
+      ?profile.back*deltaChest*chest:0;
+    const depth=Math.max(.40,1+rearTorsoAdjustment+1.06*deltaHip*hip);
+    const frontFacing=isFront?smooth(centered/.115):0;
+    const breastEnvelope=gauss((y-.27)/.34)*gauss(x/.40)*frontFacing;
+    // PRINCIPIO FÍSICO DEL ENSAYO: el relieve es 0 o positivo.
+    // No se utiliza deltaChest negativo para empujar vértices al interior.
+    const outwardRelief=protrusion*breastEnvelope;
+    return [x*lateral,y,centered*depth+outwardRelief-.005];
   });
   return mesh;
 }
@@ -202,7 +212,7 @@ export function deformGarment(group,values){
  */
 export function applyFitToModels(body,garment,state){
   const v=normalizeRenderFit(state);
-  deformBody(body,{...v,bodyProfile:state?.bodyProfile});
+  deformBody(body,{...v,bodyProfile:state?.bodyProfile,bustProjectionLevel:state?.bustProjectionLevel});
   // El reposo de la camiseta se elige entre las seis configuraciones de ensayo.
   // Ningún valor corporal entra directamente en las dimensiones de fabricación.
   const configuration=getGarmentConfiguration(state?.activeConfiguration??'N1-2');

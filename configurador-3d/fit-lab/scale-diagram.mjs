@@ -6,7 +6,7 @@
  * NO existe una morfología única determinada por contorno pecho/cadera/altura.
  * El punto de hombro está supuesto al 82% de altura de referencia.
  */
-import {getBodyProfile} from './fit-drape.mjs';
+import {getBodyProfile,normalizeBustProjection,bustProtrusionUnits} from './fit-drape.mjs';
 export const DIAGRAM_SCALE=1.26; // px / cm: no cambia entre variantes ni cuerpo
 export const SHOULDER_HEIGHT_RATIO=.82; // estimación gráfica, no antropometría
 export const GROUND_Y=286;
@@ -26,6 +26,8 @@ export function createScaleSilhouettes(input){
  const length=Math.max(48,Math.min(84,Number(input.garmentLengthCm)||64));
  const lift=Math.max(0,Math.min(20,Number(input.estimatedFrontHemLiftCm)||0));
  const profile=getBodyProfile(input.bodyProfile);
+ const bustLevel=normalizeBustProjection(input.bustProjectionLevel);
+ const bustReliefUnits=bustProtrusionUnits(bustLevel,profile.code);
  const ratio=profile.code==='lateral'?.44:profile.code==='thorax'?.68:.57;
  const chestA=estimatedEllipseHalfWidthCm(chest,ratio)*DIAGRAM_SCALE;
  const hipA=estimatedEllipseHalfWidthCm(hip,.61)*DIAGRAM_SCALE;
@@ -71,7 +73,11 @@ export function createScaleSilhouettes(input){
  const chestHalfDepth=estimatedEllipseHalfWidthCm(chest,ratio)*ratio;
  // En perfiles frontales la profundidad dorsal es referencia fija.
  const backCm=profile.code==='thorax'?.46*2*chestHalfDepth:6.8;
- const frontCm=Math.max(6.5,2*chestHalfDepth-backCm);
+ // La proyección anterior no puede ser negativa. En nivel 0 el busto es plano:
+ // el tórax neutro tiene su espesor, pero ninguna protrusión pectoral extra.
+ // El factor de unidades 3D a ancho gráfico es ILUSTRATIVO, no antropométrico.
+ const bustReliefDiagramCm=bustReliefUnits*35;
+ const frontCm=11.5+bustReliefDiagramCm;
  const backX=scx-backCm*px,frontX=scx+frontCm*px;
  const hipHalfDepth=estimatedEllipseHalfWidthCm(hip,.61)*.61;
  const hipBackX=scx-hipHalfDepth*.95*px,hipFrontX=scx+hipHalfDepth*1.05*px;
@@ -112,6 +118,7 @@ export function createScaleSilhouettes(input){
   nominalLengthCm:length,estimatedFrontHemLiftCm:lift,
   estimatedFrontCoverageCm:Math.max(0,length-lift),
   bodyHeightCm:H,scalePxPerCm:px,bodyProfile:profile.code,
-  notes:'Escala vertical 1.26 px/cm, hombro estimado al 82% de altura. Anchura y perfil sintéticos. Subida del bajo ilustrativa, NO fitting validado.'
+  bustProjectionLevel:bustLevel,bustReliefDiagramCm,sideBustFrontX:frontX,
+  notes:'Escala vertical 1.26 px/cm; hombro al 82% supuesto. El relieve del busto es un nivel 0-10, 0=superficie torácica neutra, sin protrusión ni cavidad. Ancho, fondo y caída son simulaciones no validadas.'
  };
 }

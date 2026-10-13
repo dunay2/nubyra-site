@@ -132,3 +132,20 @@ No hay simulación de elementos finitos, XPBD validado, gravedad, mecánica de f
 - La silueta 2D mantiene escala vertical común y no presenta predicciones de calidad o ajuste.
 - La aplicación de una propuesta cambia la **variante de reposo**, no el cuerpo.
 - **nubyra.es no se modifica** antes de revisión visual humana y aprobación de integración.
+
+
+## 13/10/2026 — Restricción: cero de busto es plano, nunca una cavidad
+
+**Observación del usuario (captura de visor lateral):** el motor había permitido que una variación negativa de perímetro redujera la profundidad pectoral por debajo de su superficie de referencia. Esto creaba una falsa depresión/pecho hacia dentro, físicamente injustificable para el objetivo de esta POC.
+
+**Corrección del contrato geométrico:**
+- El **contorno de pecho corporal en centímetros** y la **proyección frontal del busto** son variables distintas. Un perímetro por sí solo no fija la protrusión anterior.
+- Se añade un **nivel explícito de proyección 0 a 10**, experimental y **NO medido en cm**, con **0 = superficie torácica neutra, sin relieve de busto**. Los valores negativos se limitan a cero y los mayores a 10. No se interpreta el nivel 0 como ausencia de tórax: el torso mantiene su espesor.
+- Se elimina el relieve positivo pectoral codificado en la profundidad geométrica de la **malla de cuerpo neutra**. La proyección adicional frontal se suma **solo con amplitud no negativa**, modulada por perfil, altura y lateralidad; nunca se calcula multiplicando la profundidad frontal por una variación de contorno negativa.
+- Una reducción del perímetro de pecho puede cambiar la **anchura** del tórax, pero no hace retroceder la superficie anterior ni dibuja una cavidad. Una modificación posterior se reserva al perfil torácico explícito, no al busto.
+- La **silueta lateral 2D** utiliza el mismo nivel 0 a 10: con 0 se dibuja superficie torácica base, con 1-10 relieve positivo. Se mantiene la escala vertical de altura/largo y se indica expresamente que los centímetros gráficos horizontales son ilustrativos, no metrología.
+- Los controles de Medidas y Ajuste 3D se sincronizan, tienen min=0 y max=10, y el JSON conserva el nivel y su valor acotado.
+
+**Pruebas de aceptación:** cualquier entrada negativa produce exactamente la misma geometría que 0; cambiar el contorno corporal por debajo de 88 cm con proyección 0 **no reduce la profundidad frontal neutra**; subir proyección a 3 y 10 aumenta el relieve frontal de manera monótona sin cambiar la espalda para el perfil frontal; representación 2D coherente; la camiseta continúa siendo una de las seis variantes finitas y solo cambia su caída estimada.
+
+No se ha construido un maniquí antropométrico real ni se ha demostrado física textil, contacto integral o fitting industrial. Esta corrección asegura la **restricción no negativa del relieve**, no la fidelidad anatómica integral.

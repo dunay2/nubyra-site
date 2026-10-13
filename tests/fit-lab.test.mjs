@@ -18,6 +18,10 @@ import {
 import {
  DEFAULT_LABELS,LABEL_CONFIG,LABEL_VALUES,serializeLabels
 } from '../configurador-3d/fit-lab/discrete-states.mjs';
+import {
+ BUST_PROJECTION_MIN,BUST_PROJECTION_MAX,DEFAULT_BUST_PROJECTION,
+ normalizeBustProjection,bustProtrusionUnits
+} from '../configurador-3d/fit-lab/fit-drape.mjs';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..','configurador-3d','fit-lab');
 const html=readFileSync(resolve(root,'index.html'),'utf8');
@@ -125,6 +129,54 @@ test('clasificador utiliza 3 entradas independientes: pecho, cadera corporal y l
  assert.throws(()=>suggestPatternFromMeasurements({bodyChestCm:88,bodyHipCm:90}),
   /Medida inválida/);
 });
+
+test('relieve de busto es una variable geométrica 0-10 separada de los centímetros del contorno',()=>{
+ assert.equal(BUST_PROJECTION_MIN,0);
+ assert.equal(BUST_PROJECTION_MAX,10);
+ assert.equal(DEFAULT_BUST_PROJECTION,3);
+ assert.equal(normalizeBustProjection(0),0);
+ assert.equal(normalizeBustProjection(-15),0);
+ assert.equal(normalizeBustProjection(3),3);
+ assert.equal(normalizeBustProjection(999),10);
+ assert.equal(normalizeBustProjection('inválido'),DEFAULT_BUST_PROJECTION);
+ assert.equal(bustProtrusionUnits(0,'front'),0);
+ assert.equal(bustProtrusionUnits(-25,'front'),0);
+ assert.ok(bustProtrusionUnits(10,'front')>bustProtrusionUnits(3,'front'));
+ assert.ok(bustProtrusionUnits(10,'lateral')>0);
+ const normalized=normalizeRenderFit({...DEFAULT_FIT,bustProjectionLevel:-8});
+ assert.equal(normalized.bustProjectionLevel,0);
+ const out=serializeFit({...DEFAULT_FIT,bustProjectionLevel:0});
+ assert.equal(out.body.bustProjectionLevel,0);
+ assert.match(out.note,/0 = plano/);
+ assert.match(geometry,/const outwardRelief=protrusion\*breastEnvelope/);
+ assert.doesNotMatch(geometry,/chestDepth\*deltaChest\*chest/);
+});
+test('UI muestra nivel 0=plano sin cifras negativas en Medidas, Ajuste y gráfico 2D',async()=>{
+ for(const id of [
+  'bustProjectionLevel-number','bustProjectionLevel-range',
+  'adjust-bustProjectionLevel-number','adjust-bustProjectionLevel-range',
+  'scale-bust-level'
+ ])assert.match(html,new RegExp('id="'+id+'"'));
+ assert.match(html,/min="0" max="10" step="1" value="3"/);
+ assert.match(html,/0 = plano/);
+ assert.match(html,/No existe un nivel negativo ni una cavidad/);
+ assert.match(app,/bustProjectionLevel:\[BUST_PROJECTION_MIN,BUST_PROJECTION_MAX\]/);
+ assert.match(app,/bustProjectionLevel:DEFAULT_BUST_PROJECTION/);
+ assert.match(app,/\$\('scale-bust-level'\)\.textContent=svg\.bustProjectionLevel===0/);
+ const {createScaleSilhouettes}=await import('../configurador-3d/fit-lab/scale-diagram.mjs');
+ const base={...DEFAULT_FIT,bodyProfile:'front'};
+ const neutral=createScaleSilhouettes({...base,bustProjectionLevel:0});
+ const negative=createScaleSilhouettes({...base,bustProjectionLevel:-20});
+ const reducedChest=createScaleSilhouettes({...base,bodyChestCm:65,bustProjectionLevel:0});
+ const raised=createScaleSilhouettes({...base,bustProjectionLevel:10});
+ assert.equal(neutral.bustReliefDiagramCm,0);
+ assert.equal(neutral.bodySide,negative.bodySide);
+ assert.equal(neutral.sideBustFrontX,reducedChest.sideBustFrontX,
+  'menor contorno no debe dibujar el pecho hacia dentro');
+ assert.ok(raised.sideBustFrontX>neutral.sideBustFrontX);
+ assert.equal(raised.bustProjectionLevel,10);
+});
+
 test('largo solicitado es distinto de largo de la camiseta usada para comparar',()=>{
  const s={...DEFAULT_FIT,desiredLengthCm:78,activeBase:'N1'};
  const result=suggestPatternFromMeasurements(s);

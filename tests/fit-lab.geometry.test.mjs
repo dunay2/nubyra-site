@@ -32,16 +32,42 @@ if(!home){
   assert.equal(garment.children.filter(x=>x.isMesh).length,12);
   assert.ok(body.geometry.getAttribute('position').count>2200);
  });
- test('busto frontal: aumenta X y Z anterior sin aumentar Z posterior del cuerpo',()=>{
+ test('busto frontal: crece solo hacia fuera, con anchura de tórax independiente y espalda fija',()=>{
   const body=createReferenceBody(THREE);
-  deformBody(body,input());
+  deformBody(body,input({bustProjectionLevel:0}));
   const before=metrics(body);
-  deformBody(body,input({bodyChestCm:118}));
+  deformBody(body,input({bodyChestCm:118,bustProjectionLevel:10}));
   const after=metrics(body);
   assert.ok(after.width>before.width*1.10);
-  assert.ok(after.front>before.front*1.35);
+  assert.ok(after.front>before.front*1.55);
   assert.ok(Math.abs(after.back-before.back)<.004,
    'el busto no debería aumentar artificialmente la espalda');
+ });
+ test('límite físico: nivel 0 es la superficie plana y los valores negativos no la hunden',()=>{
+  const body=createReferenceBody(THREE);
+  deformBody(body,input({bodyChestCm:88,bustProjectionLevel:0}));
+  const neutral=metrics(body),neutralPositions=clone(body.geometry);
+  deformBody(body,input({bodyChestCm:88,bustProjectionLevel:-999}));
+  assert.deepEqual(clone(body.geometry),neutralPositions,
+    'un nivel negativo debe convertirse exactamente en cero');
+  deformBody(body,input({bodyChestCm:65,bustProjectionLevel:0}));
+  const reduced=metrics(body);
+  assert.ok(Math.abs(reduced.front-neutral.front)<.0001,
+    'un contorno de pecho inferior NO puede hundir el relieve frontal neutro');
+  assert.ok(Math.abs(reduced.back-neutral.back)<.0001,
+    'el busto no modifica la profundidad de espalda');
+  deformBody(body,input({bodyChestCm:88,bustProjectionLevel:3}));
+  const gentle=metrics(body);
+  deformBody(body,input({bodyChestCm:88,bustProjectionLevel:10}));
+  const max=metrics(body);
+  assert.ok(gentle.front>neutral.front+.03,
+    'relieve positivo debe sobresalir respecto a la superficie neutra');
+  assert.ok(max.front>gentle.front+.09,
+    'proyección debe ser monótona creciente entre 0 y 10');
+  assert.ok(Math.abs(max.back-neutral.back)<.0001);
+  deformBody(body,input({bodyChestCm:88,bustProjectionLevel:999}));
+  assert.ok(Math.abs(metrics(body).front-max.front)<1e-6,
+    'los valores por encima de diez deben limitarse');
  });
  test('perfil torácico sí puede modificar la profundidad posterior explícitamente',()=>{
   const body=createReferenceBody(THREE);
@@ -80,7 +106,7 @@ if(!home){
   const beforeShirt=metrics(garment);
   const beforeBack=clone(backOf(garment).geometry);
   const frontOriginal=clone(frontOf(garment).geometry);
-  const expanded=applyFitToModels(body,garment,input({bodyChestCm:120}));
+  const expanded=applyFitToModels(body,garment,input({bodyChestCm:120,bustProjectionLevel:10}));
   const afterShirt=metrics(garment);
   const frontChanged=clone(frontOf(garment).geometry);
   const backChanged=clone(backOf(garment).geometry);
@@ -102,7 +128,7 @@ if(!home){
   applyFitToModels(body,garment,input());
   const frontBefore=clone(frontOf(garment).geometry);
   const backBefore=clone(backOf(garment).geometry);
-  const data=applyFitToModels(body,garment,input({bodyChestCm:120}));
+  const data=applyFitToModels(body,garment,input({bodyChestCm:120,bustProjectionLevel:10}));
   const f=frontOf(garment).geometry.getAttribute('position');
   const b=backOf(garment).geometry.getAttribute('position');
   let frontRows=0,backRows=0;

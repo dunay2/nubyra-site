@@ -215,6 +215,40 @@ test('perfil sintético cambia la imagen 2D sin cambiar medidas ni talla de repo
  assert.equal(node('active-base').textContent,variant);
 });
 
+
+test('el nivel de proyección 0 es plano, no acepta negativos y sincroniza 3D y perfil lateral 2D',()=>{
+ node('tab-measures').dispatch('click');
+ const measure=node('bodyChestCm-number').value;
+ const baseline3=node('scale-body-side').getAttribute('d');
+ const control=node('bustProjectionLevel-range');
+ control.value='0';
+ control.dispatch('input');
+ const zero=node('scale-body-side').getAttribute('d');
+ assert.equal(node('bustProjectionLevel-number').value,'0');
+ assert.equal(node('adjust-bustProjectionLevel-range').value,'0');
+ assert.equal(node('adjust-bustProjectionLevel-number').value,'0');
+ assert.equal(node('scale-bust-level').textContent,'0 · plano');
+ assert.notEqual(zero,baseline3,'cero elimina la protrusión frontal anterior');
+ control.value='-6';
+ control.dispatch('input');
+ assert.equal(control.value,'0','el nivel negativo se limita a cero');
+ assert.equal(node('scale-body-side').getAttribute('d'),zero,
+  'valor negativo no crea hundimiento 2D');
+ control.value='10';
+ control.dispatch('input');
+ assert.equal(node('scale-bust-level').textContent,'10 / 10 · hacia fuera');
+ assert.notEqual(node('scale-body-side').getAttribute('d'),zero);
+ assert.equal(node('bodyChestCm-number').value,measure,
+  'la proyección morfológica no modifica el contorno corporal');
+ node('tab-adjust').dispatch('click');
+ node('mode-body').dispatch('click');
+ const second=node('adjust-bustProjectionLevel-number');
+ second.value='5';
+ second.dispatch('change');
+ assert.equal(node('bustProjectionLevel-range').value,'5');
+ assert.equal(node('scale-bust-level').textContent,'5 / 10 · hacia fuera');
+});
+
 test.after(()=>{
  globalThis.document=original.document;
  globalThis.requestAnimationFrame=original.requestAnimationFrame;
