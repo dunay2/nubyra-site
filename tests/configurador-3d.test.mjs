@@ -179,3 +179,17 @@ test('integración del paquete y orientación presentes sin modificar la landing
  assert.match(markup,/no subiremos esos archivos a ningún servidor/);
  assert.ok(existsSync(resolve(root,'model-package.mjs')));
 });
+
+
+import { jerseySVG } from '../configurador-3d/flat.mjs';
+test('marcajes del SVG ajustados al torso y render frontal/trasera sin fallos',()=>{
+ const zones=VIEW_ZONES.front;
+ assert.ok(zones.team.x>=240 && zones.sponsor.x>=250);
+ assert.ok(zones.crest.x+zones.crest.width<790);
+ const ctx={font:'',measureText(t){return {width:String(t).length*Number(this.font.match(/(\d+)px/)?.[1]||40)*.56}}};
+ const front=jerseySVG(DEFAULT_STATE,'front',ctx);
+ const back=jerseySVG(DEFAULT_STATE,'back',ctx);
+ assert.ok(front.includes('NUBYRA CANARIAS'));
+ assert.ok(back.includes('PÉREZ'));
+ assert.ok(front.includes('NC'));
+});
