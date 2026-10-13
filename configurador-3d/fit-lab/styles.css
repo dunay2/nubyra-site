@@ -179,3 +179,35 @@ footer{font-size:11px;color:#7b8e9e;margin-top:45px;padding:22px 0;border-top:1p
 @media(min-width:1081px){.view-panel{position:sticky;top:10px;align-self:start}.scene{height:clamp(340px,47vh,510px);min-height:340px}}
 @media(max-width:1080px){.editor-panels{max-height:none;overflow:visible}.editor-tabs{margin-top:16px}}
 @media(max-width:640px){.editor-tab{font-size:11px;gap:3px;padding:8px 3px;min-height:44px}.editor-tab>span{width:20px;height:20px;font-size:9px}.editor-panels{padding-top:17px}.proposed-inputs{gap:5px}.proposed-inputs>div{padding:10px 7px}.proposed-inputs strong{font-size:15px}.configuration__heading{flex-wrap:wrap}}
+
+
+/* Capas, referencias a escala vertical, distribución sintética y 6 estados de reposo. */
+.scale-card{padding:14px 16px 17px;border-top:1px solid #dbe7ed;background:#f6fafd}
+.scale-card__title{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:6px}
+.scale-card__title h3{font-size:14px;color:#123e59;letter-spacing:-.025em;margin-top:2px}
+.scale-card__title>span{font-size:10px;color:#165b7b;background:#e7f2f8;padding:6px 9px;border-radius:15px;white-space:nowrap;font-weight:760}
+#fit-scale-diagram{display:block;width:min(100%,340px);height:auto;max-height:265px;margin:0 auto}
+.scale-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:9px}
+.scale-metrics>div{padding:9px 8px;background:#fff;border:1px solid #d8e5eb;border-radius:8px;min-width:0}
+.scale-metrics small{display:block;font-size:9px;color:#5d798a;line-height:1.35;min-height:25px}
+.scale-metrics strong{display:block;margin-top:6px;font-size:12px;color:#123e59;line-height:1.4;font-variant-numeric:tabular-nums}
+.scale-card>p:last-child{margin-top:10px;color:#647f8e;font-size:10px;line-height:1.55}
+.profile-picker{padding:12px;border:1px solid #dae6ec;border-radius:10px;background:#f4f9fb;margin:15px 0}
+.profile-picker>strong{display:block;font-size:12px;color:#214761;margin-bottom:8px}
+.profile-picker__buttons{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.profile-picker__buttons button{font-size:11px;font-weight:770;padding:9px 5px;min-height:39px;background:#fff;color:#45657b;border:1px solid #c8dce8;border-radius:8px}
+.profile-picker__buttons button[aria-pressed=true]{background:#143b56;color:#fff;border-color:#143b56}
+.profile-picker>small{font-size:10px;color:#668194;line-height:1.5;display:block;margin-top:8px}
+.catalog-picker{border:1px solid #c9dfe8;background:#f5fafc;border-radius:11px;padding:14px;margin:16px 0}
+.catalog-picker__top{display:flex;justify-content:space-between;align-items:center;gap:9px}
+.catalog-picker__top h4{font-size:13px;color:#123e5b}
+.catalog-picker__top span{font-size:10px;font-weight:850;color:#2a6582}
+.catalog-picker>p{font-size:11px;line-height:1.55;color:#617c8d;margin:9px 0}
+.catalog-picker__grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:10px}
+.catalog-picker__grid button{min-height:40px;font-size:12px;font-weight:850;color:#395d75;background:#fff;border:1px solid #cbdce7;border-radius:8px}
+.catalog-picker__grid button[aria-pressed=true]{background:#123b57;color:#fff;border-color:#123b57}
+.catalog-picker .catalog-picker__grid+small{display:block;font-size:10px;line-height:1.55;color:#6f8594;margin-top:10px}
+#garment-fields[disabled]{opacity:.72}
+#panel-adjust .catalog-picker{margin-bottom:14px}
+@media(min-width:1081px){.view-panel{max-height:calc(100vh - 22px);overflow-y:auto;scrollbar-width:thin;overscroll-behavior:contain}}
+@media(max-width:640px){.scale-card{padding:12px}.scale-metrics{gap:5px}.scale-metrics>div{padding:9px 6px}.scale-metrics strong{font-size:11px}.catalog-picker{padding:11px}.scale-card__title>span{white-space:normal}}
