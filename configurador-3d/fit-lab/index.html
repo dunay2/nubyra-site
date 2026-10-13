@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width,initial-scale=1">
+ <meta name="theme-color" content="#081f36">
+ <meta name="description" content="NUBYRA · Ensayo geométrico de cuerpo y camiseta independientes. Sin validación de tallas ni patronaje.">
+ <title>NUBYRA · Laboratorio de ajuste 3D A/B</title>
+ <link rel="stylesheet" href="./styles.css">
+ <script type="importmap">{
+  "imports":{
+   "three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+   "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+  }
+ }</script>
+ <script type="module" src="./app.mjs"></script>
+</head>
+<body>
+ <a class="skip" href="#lab">Saltar al laboratorio</a>
+ <header class="topbar">
+  <a class="brand" href="../">NUBYR<span>A</span></a>
+  <span class="top-subtitle">Investigación · Ajuste morfológico</span>
+  <span class="label-beta">POC · SIN VALIDACIÓN INDUSTRIAL</span>
+ </header>
+ <main class="wrap" id="lab">
+  <div class="intro">
+   <div><p class="eyebrow">ESTUDIO 01 · DOS GEOMETRÍAS INDEPENDIENTES</p>
+   <h1>El cuerpo cambia.<br><em>La camiseta decide después.</em></h1>
+   <p class="lead">Comprueba qué ocurre al cambiar el cuerpo y mantener la prenda fija, o al adaptar únicamente la prenda. La camiseta sigue siendo el prototipo geométrico NUBYRA.</p></div>
+   <div class="intro-tip">No hay fotos, medidas de jugadoras ni cálculo de tensión textil. Los valores de ejemplo son sintéticos.</div>
+  </div>
+  <div class="workspace">
+   <section class="view-panel" aria-label="Prueba tridimensional">
+    <div class="panel-header">
+     <div><p class="panel-overline">VISTA 3D EN DIRECTO</p><h2>Comparación cuerpo / camiseta</h2></div>
+     <span class="pill" id="render-status">INICIANDO VISOR</span>
+    </div>
+    <div class="scene" id="scene-wrapper">
+     <canvas id="fit-canvas" aria-label="Dos mallas independientes: cuerpo abstracto y camiseta 3D giratorios"></canvas>
+     <div class="scene-error" id="scene-error" hidden></div>
+     <div class="scene-label">Malla de cuerpo sintético + camiseta NUBYRA v2</div>
+    </div>
+    <div class="camera-controls" role="group" aria-label="Vistas de cámara">
+     <button type="button" data-view="quarter" aria-pressed="true">3/4</button>
+     <button type="button" data-view="front" aria-pressed="false">Frontal</button>
+     <button type="button" data-view="side" aria-pressed="false">Lateral</button>
+     <button type="button" data-view="back" aria-pressed="false">Espalda</button>
+    </div>
+    <div class="display-options" aria-label="Capas de visualización">
+     <label><input type="checkbox" id="show-body" checked> Ver cuerpo</label>
+     <label><input type="checkbox" id="transparent-garment" checked> Camiseta translúcida</label>
+     <label><input type="checkbox" id="wireframe"> Ver triángulos</label>
+    </div>
+    <div class="legend">
+      <span><i class="legend-body"></i> Cuerpo sintético</span>
+      <span><i class="legend-garment"></i> Prenda independiente</span>
+    </div>
+   </section>
+   <section class="editor" aria-label="Parámetros del experimento">
+    <div class="editor-head"><p class="panel-overline">PRUEBA CONTROLADA</p><h2>Experimentos A y B</h2>
+    <p>Al elegir un modo, congelamos la geometría que no corresponde. Cada valor cambia solo su propia malla.</p></div>
+    <div class="mode-switch" role="group" aria-label="Modo de experimento">
+      <button id="mode-body" type="button" aria-pressed="true"><strong>A · Cambiar cuerpo</strong><small>Prenda fija</small></button>
+      <button id="mode-garment" type="button" aria-pressed="false"><strong>B · Adaptar camiseta</strong><small>Cuerpo fijo</small></button>
+    </div>
+    <fieldset class="param-panel" id="body-fields">
+     <legend><span class="number">01</span> Cuerpo sintético <span class="panel-tag">MALLA A</span></legend>
+     <p class="section-hint">Datos numéricos ilustrativos; no representan a ninguna jugadora.</p>
+     <div class="fit-field">
+       <div class="field-top"><label for="bodyChestCm-range">Pecho · referencia</label><div><input aria-label="Pecho del cuerpo en cm" id="bodyChestCm-number" type="number" min="65" max="120" step="1" value="88"><span>cm</span></div></div>
+       <input id="bodyChestCm-range" type="range" min="65" max="120" step="1" value="88">
+     </div>
+     <div class="fit-field">
+       <div class="field-top"><label for="bodyHipCm-range">Cadera · referencia</label><div><input aria-label="Cadera del cuerpo en cm" id="bodyHipCm-number" type="number" min="70" max="130" step="1" value="96"><span>cm</span></div></div>
+       <input id="bodyHipCm-range" type="range" min="70" max="130" step="1" value="96">
+     </div>
+     <div class="auxiliary">
+       <label for="bodyHeightCm-number">Altura corporal (auxiliar)</label>
+       <span><input id="bodyHeightCm-number" type="number" min="125" max="190" step="1" value="160"> cm</span>
+       <small>Referencia informativa. No mueve la malla ni determina el largo de camiseta.</small>
+     </div>
+     <button class="reset-inline" id="reset-body" type="button">Restablecer cuerpo</button>
+    </fieldset>
+    <fieldset class="param-panel is-locked" id="garment-fields" disabled>
+     <legend><span class="number">02</span> Camiseta <span class="panel-tag">MALLA B</span></legend>
+     <p class="section-hint">Valores objetivo para la deformación visual; pendientes de calibración en cm.</p>
+     <div class="fit-field">
+      <div class="field-top"><label for="garmentChestCm-range">Volumen del pecho</label><div><input aria-label="Pecho objetivo de la camiseta en cm" id="garmentChestCm-number" type="number" min="75" max="135" step="1" value="102"><span>cm</span></div></div>
+      <input id="garmentChestCm-range" type="range" min="75" max="135" step="1" value="102">
+     </div>
+     <div class="fit-field">
+      <div class="field-top"><label for="garmentHipCm-range">Volumen de cadera</label><div><input aria-label="Cadera objetivo de la camiseta en cm" id="garmentHipCm-number" type="number" min="80" max="145" step="1" value="110"><span>cm</span></div></div>
+      <input id="garmentHipCm-range" type="range" min="80" max="145" step="1" value="110">
+     </div>
+     <div class="fit-field">
+      <div class="field-top"><label for="garmentLengthCm-range">Largo de prenda</label><div><input aria-label="Largo objetivo de la camiseta en cm" id="garmentLengthCm-number" type="number" min="48" max="84" step="1" value="64"><span>cm</span></div></div>
+      <input id="garmentLengthCm-range" type="range" min="48" max="84" step="1" value="64">
+     </div>
+     <button class="reset-inline" id="reset-garment" type="button">Restablecer camiseta</button>
+    </fieldset>
+    <div class="result">
+      <h3>Comparación nominal de entradas</h3>
+      <div class="result-grid">
+        <p><small>Prenda − cuerpo · pecho</small><strong id="delta-chest">+14 cm</strong></p>
+        <p><small>Prenda − cuerpo · cadera</small><strong id="delta-hip">+14 cm</strong></p>
+      </div>
+      <p>Estas diferencias entre números <strong>no equivalen</strong> a holgura, contacto, tensión ni ajuste físico real: las secciones 3D todavía no están calibradas.</p>
+    </div>
+    <div class="actions"><button type="button" id="reset-all">Restablecer experimento</button><button type="button" id="save-json">Exportar datos JSON</button></div>
+    <p class="disclaimer">Simulación geométrica de investigación. Ningún resultado permite aprobar una orden de producción, talla o patrón industrial. El editor funciona en tu navegador y no envía medidas a un servidor.</p>
+   </section>
+  </div>
+  <footer>© NUBYRA · Laboratorio de investigación morfológica · Separación cuerpo / prenda</footer>
+ </main>
+</body>
+</html>
