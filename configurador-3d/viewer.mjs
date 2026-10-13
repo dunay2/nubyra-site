@@ -187,7 +187,9 @@ export async function initViewer(canvas,state,onWarnings){
  const resize=()=>{const parent=canvas.parentElement,w=Math.max(1,parent.clientWidth),h=Math.max(1,parent.clientHeight);
   renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();};
  const observer=new ResizeObserver(resize);observer.observe(canvas.parentElement);resize();
- const frame=()=>{if(disposed)return;controls.update();renderer function restoreSurfaces(){
+ const frame=()=>{if(disposed)return;controls.update();renderer.render(scene,camera);requestAnimationFrame(frame);};frame();
+
+ function restoreSurfaces(){
   for(const [m,original] of originalSurfaces){
    if(m.geometry!==original.geometry)m.geometry.dispose();
    if(m.material!==original.material)m.material.dispose();
