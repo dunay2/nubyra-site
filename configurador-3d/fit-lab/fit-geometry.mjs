@@ -5,6 +5,8 @@
  */
 import { serializeLabels } from './discrete-states.mjs';
 import { classifiedLabels,serializeClassifier,suggestPatternFromMeasurements } from './size-classifier.mjs';
+import {getBodyProfile,drapeFixedGarment} from './fit-drape.mjs';
+import {getGarmentConfiguration} from './garment-catalog.mjs';
 export const FIT_VERSION='nubyra.fit-lab/0.3';
 export const DEFAULT_FIT=Object.freeze({
   bodyChestCm:88,bodyHipCm:96,bodyHeightCm:160,
@@ -56,6 +58,8 @@ export function serializeFit(state){
     discretization:serializeLabels(classes),
     sizeProposal:{
       ...legacy,
+      fixedPreviewConfiguration:state?.activeConfiguration??'N1-2',
+      finiteCatalogSize:6,
       activeBase:state?.activeBase||'N1',
       suggestedBase:recommendation.base,
       groups:classes,
@@ -150,15 +154,16 @@ export function deformBody(mesh,values){
   const v=normalizeFit(values);
   const deltaChest=v.bodyChestCm/DEFAULT_FIT.bodyChestCm-1;
   const deltaHip=v.bodyHipCm/DEFAULT_FIT.bodyHipCm-1;
+  const profile=getBodyProfile(values?.bodyProfile);
   changePositions(mesh,(x,y,z)=>{
     const chest=gauss((y-.28)/.43),hip=gauss((y+.98)/.46);
-    // Ensayo: mayor expansión en Z negativo para que la espalda realmente se desplace.
-    // La prenda debe poder seguir fija mientras este volumen corporal crece.
-    const lateral=1+1.48*deltaChest*chest+1.04*deltaHip*hip;
+    const lateral=1+profile.lateral*deltaChest*chest+1.04*deltaHip*hip;
     const centered=z+.005,isBack=centered<0;
-    const depth=1+(isBack?1.85:1.18)*deltaChest*chest+1.06*deltaHip*hip;
-    const offset=(isBack?-.09:.035)*deltaChest*chest;
-    return [x*lateral,y,centered*depth+offset-.005];
+    // Una proyección de busto frontal no aumenta artificialmente la espalda.
+    // Solo el perfil torácico explícito permite ampliar profundidad posterior.
+    const chestDepth=isBack?profile.back:profile.front;
+    const depth=1+chestDepth*deltaChest*chest+1.06*deltaHip*hip;
+    return [x*lateral,y,centered*depth-.005];
   });
   return mesh;
 }
@@ -197,9 +202,18 @@ export function deformGarment(group,values){
  */
 export function applyFitToModels(body,garment,state){
   const v=normalizeRenderFit(state);
-  deformBody(body,v);
-  deformGarment(garment,v);
-  return v;
+  deformBody(body,{...v,bodyProfile:state?.bodyProfile});
+  // El reposo de la camiseta se elige entre las seis configuraciones de ensayo.
+  // Ningún valor corporal entra directamente en las dimensiones de fabricación.
+  const configuration=getGarmentConfiguration(state?.activeConfiguration??'N1-2');
+  const garmentRest={
+    ...v,garmentChestCm:configuration.chestCm,
+    garmentHipCm:configuration.hipCm,
+    garmentLengthCm:configuration.lengthCm
+  };
+  deformGarment(garment,garmentRest);
+  const drape=drapeFixedGarment(body,garment,configuration.lengthCm);
+  return {...v,restConfiguration:configuration.code,drape};
 }
 // Inspección aproximada, NO holgura verificada ni perímetro real calculado.
 export function getBodyExtentAt(mesh,y,band=.035){
