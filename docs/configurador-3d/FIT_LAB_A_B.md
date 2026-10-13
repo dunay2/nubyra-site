@@ -43,3 +43,35 @@ La **altura corporal** se guarda como escala auxiliar de referencia y **no modif
 5. Patrón N1/N2 y tres posiciones laterales tras ajuste/fitting del piloto; no deducir la solución de fabricación de una deformación 3D libre.
 
 **No fusionar automáticamente en main ni publicar en nubyra.es antes de revisión visual WebGL y decisión explícita del promotor.**
+
+
+## Revisión 13/10/2026: talla base propuesta y discretización métrica de ensayo (PR #24)
+
+El usuario ha detectado que el pecho seguía creciendo visualmente sobre todo hacia adelante. Se han aplicado dos cambios verificables:
+
+**Expansión posterior:** el pecho modifica coordenadas X positivas/negativas y Z positiva/negativa. En la vista **Espalda** se dibujan los contornos de una sección real en dos trazos: ámbar = geometría original; azul = geometría actual. Las pruebas geométricas comprueban que los valores Z de la parte trasera son más negativos al aumentar el pecho.
+
+**Jerarquía de producto:**
+1. Seleccionar o recibir propuesta de **patrón base N1/N2**.
+2. Ajustar pecho, cadera y largo mediante controles en centímetros.
+3. Mostrar la etiqueta **−1/0/+1** derivada del valor en centímetros *respecto a esa base*. Al pulsar la etiqueta se fija un representante en centímetros y el deslizador se mueve.
+4. Recalcular la **propuesta automática de camiseta** cuando varían las medidas. En el experimento A, aceptar esa propuesta es una acción explícita, para no modificar la prenda mientras se modifica solo el cuerpo.
+
+### Valores numéricos provisionales del demostrador (NO tallaje de fabricación)
+
+| Referencia simulada | Pecho corporal | Cadera corporal | Pecho prenda | Cadera prenda | Largo prenda |
+|---|---:|---:|---:|---:|---:|
+| N1 | 88 | 96 | 102 | 110 | 64 |
+| N2 | 106 | 116 | 120 | 130 | 72 |
+
+Pasos ilustrativos para tres etiquetas: **8 cm pecho, 10 cm cadera y 6 cm largo**. El estado 0 abarca la referencia ± medio paso; −1 valores inferiores y +1 superiores. Se selecciona el tamaño candidato con la menor distancia normalizada (cuadrática) entre medidas y referencias de ensayo; en A se emplean las medidas corporales y en B las de camiseta. La camiseta **activa** puede diferir de la **propuesta**; el cambio solo se aplica cuando se acepta.
+
+Estos rangos, distancias y representantes sirven exclusivamente para verificar la UX y la deformación de malla. **No proceden del patronista, no están respaldados por pruebas de fitting y no autorizan fabricación**.
+
+La memoria vigente de subvención estipula **dos patrones base de camiseta y tres posiciones laterales de ajuste cada uno**; sin embargo, NO detalla los rangos en centímetros. Por tanto, **las etiquetas de pecho/cadera/largo −1/0/+1 no equivalen automáticamente a las posiciones laterales industriales 1/2/3**. Queda pendiente establecer esa relación con patronaje y ensayos físicos.
+
+#### Evidencia y controles de calidad
+- [PR #24](https://github.com/dunay2/nubyra-site/pull/24) — clasificación bidireccional y propuesta dinámica.
+- [CI #38445862481](https://github.com/dunay2/nubyra-site/actions/runs/38445862481) — 89/89 pruebas completas y 11/11 pruebas geométricas reales correctas.
+- Verificar manualmente el trazado ámbar/azul de la espalda, la actualización bidireccional entre centímetros y etiquetas, las propuestas N1/N2 y la separación cuerpo/camiseta.
+- nubyra.es debe mantenerse sin modificaciones hasta aprobación.
