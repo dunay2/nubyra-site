@@ -139,6 +139,48 @@ function updateGeometryFeedback(){
     $(id).textContent=formatPercent(current[axis],reference[axis]);
   }
 }
+function updateScaleDiagram(){
+  const drape=viewer?.drapeDiagnostics();
+  const svg=createScaleSilhouettes({
+    ...state,
+    estimatedFrontHemLiftCm:drape?.estimatedFrontHemLiftCm??0,
+    frontProjectionUnits:drape?.frontProjectionUnits??0
+  });
+  const paths=[
+    ['scale-body-front',svg.bodyFront],['scale-body-side',svg.bodySide],
+    ['scale-shirt-front',svg.shirtFront],['scale-shirt-side',svg.shirtSide]
+  ];
+  for(const [id,d] of paths)$(id).setAttribute('d',d);
+  for(const [id,head] of [
+    ['scale-head-front',svg.headFront],['scale-head-side',svg.headSide]
+  ]){
+    for(const prop of ['cx','cy','r'])$(id).setAttribute(prop,String(head[prop]));
+  }
+  $('scale-front-hem').setAttribute('y1',String(svg.frontHemY));
+  $('scale-front-hem').setAttribute('y2',String(svg.frontHemY));
+  $('scale-reference-hem').setAttribute('y1',String(svg.nominalHemY));
+  $('scale-reference-hem').setAttribute('y2',String(svg.nominalHemY));
+  $('scale-height-label').textContent=cmText(svg.bodyHeightCm)+' cm';
+  $('scale-length-label').textContent='Camiseta: '+cmText(svg.nominalLengthCm)+' cm';
+  $('scale-body-height').textContent=cmText(svg.bodyHeightCm)+' cm';
+  $('scale-shirt-length').textContent=cmText(svg.nominalLengthCm)+' cm';
+  $('scale-hem-lift').textContent=drape
+    ?'≈ '+cmText(svg.estimatedFrontHemLiftCm)+' cm (ensayo)'
+    :'Pendiente del visor 3D';
+  $('diagram-body-profile').textContent=getBodyProfile(state.bodyProfile).label;
+  document.querySelectorAll('[data-body-profile]').forEach(button=>{
+    button.setAttribute('aria-pressed',
+      String(button.dataset.bodyProfile===state.bodyProfile));
+  });
+  $('diagram-body-layer').setAttribute('display',
+    $('show-body').checked?'inline':'none');
+  $('diagram-garment-layer').setAttribute('display',
+    $('show-garment').checked?'inline':'none');
+  $('scale-front-hem').setAttribute('display',
+    $('show-garment').checked?'inline':'none');
+  $('scale-reference-hem').setAttribute('display',
+    $('show-garment').checked?'inline':'none');
+}
 function updateGeometry(){
   if(geometryFrame)cancelAnimationFrame(geometryFrame);
   geometryFrame=requestAnimationFrame(()=>{
@@ -292,14 +334,22 @@ document.querySelectorAll('[data-view]').forEach(button=>{
     viewer?.view(button.dataset.view);
   });
 });
-function updateDisplay(){
+function updateDisplay(event){
+  const body=$('show-body'),garment=$('show-garment');
+  // Nunca dejamos al usuario ante un visor 3D vacío.
+  if(!body.checked&&!garment.checked){
+    if(event?.target===body)garment.checked=true;
+    else body.checked=true;
+  }
   viewer?.setVisual({
-    body:$('show-body').checked,
+    body:body.checked,
+    garment:garment.checked,
     transparent:$('transparent-garment').checked,
     wire:$('wireframe').checked
   });
+  updateScaleDiagram();
 }
-for(const id of ['show-body','transparent-garment','wireframe']){
+for(const id of ['show-body','show-garment','transparent-garment','wireframe']){
   $(id).addEventListener('change',updateDisplay);
 }
 $('save-json').addEventListener('click',()=>{
