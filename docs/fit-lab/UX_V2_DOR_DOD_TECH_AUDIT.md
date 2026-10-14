@@ -62,3 +62,16 @@ Fecha: 2026-10-14. Estado: prototipo de investigación; sin validación de patro
 
 ## Regla de evidencia
 Un despliegue READY no acredita corrección geométrica, ergonomía o ausencia de regresiones. Sin prueba de navegador no marcar DoD completo. Sin material y patronista, no afirmar simulación de gravedad real.
+
+## Evidencia de barrido de dependencias (2026-10-14)
+
+Inventario Fit Lab: `app.mjs` 405 líneas, `fit-geometry.mjs` 293, `fit-viewer.mjs` 210, `size-classifier.mjs` 153, `fit-drape.mjs` 135, `scale-diagram.mjs` 125, `garment-catalog.mjs` 79, `discrete-states.mjs` 49. El primer objetivo de racionalización es `app.mjs`, no una eliminación masiva.
+
+Barrido léxico de exports sin referencia en **otros módulos de Fit Lab** (candidatos a revisar, no código muerto acreditado):
+- `discrete-states.mjs`: `DEFAULT_LABELS`, `normalizeLabel`, `normalizeLabels`, `effectFor`, `labelKeyForMeasure`.
+- `size-classifier.mjs`: `normalizeBase`, `bandOf`, `getBand`, `nearestBase`, `initialValuesForBase`, `demoGarmentTargetsFromBody`, `RECOMMENDATION_FIELDS`.
+- `fit-geometry.mjs`: `getBodyExtentAt`, entre otros símbolos usados directamente en pruebas.
+- `garment-catalog.mjs`: `availableConfigurations`.
+- `scale-diagram.mjs`: `estimatedEllipseHalfWidthCm`.
+
+**No eliminar aún:** el barrido no resuelve consumidores fuera de Fit Lab, uso desde tests ni importaciones externas. Gate de retirada: grep del repositorio completo + revisión de tests + una PR específica pequeña con no regresión.
