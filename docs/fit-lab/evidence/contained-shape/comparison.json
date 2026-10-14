@@ -1,0 +1,48 @@
+[
+  {
+    "height": 160,
+    "chest": 88,
+    "hip": 96,
+    "before": {
+      "chestYcm": 7.669421266918341,
+      "headBottomYcm": 39.40495892989734,
+      "hemWidthCm": 11.4769852851048,
+      "hemDepthCm": 12.476138438075042,
+      "meshes": 8,
+      "triangles": 20136,
+      "bufferBytes": 427024
+    },
+    "after": {
+      "chestYcm": 9.271488504961503,
+      "headBottomYcm": 37.28925531560724,
+      "hemWidthCm": 13.846488432450728,
+      "hemDepthCm": 15.34321840144386,
+      "meshes": 8,
+      "triangles": 20136,
+      "bufferBytes": 427024
+    }
+  },
+  {
+    "height": 166,
+    "chest": 94,
+    "hip": 96,
+    "before": {
+      "chestYcm": 6.76694192177008,
+      "headBottomYcm": 39.69256503522889,
+      "hemWidthCm": 11.907774554796456,
+      "hemDepthCm": 13.1664264300638,
+      "meshes": 8,
+      "triangles": 19912,
+      "bufferBytes": 422032
+    },
+    "after": {
+      "chestYcm": 8.429086700943877,
+      "headBottomYcm": 37.497522023098526,
+      "hemWidthCm": 13.925827633250844,
+      "hemDepthCm": 15.412639586393498,
+      "meshes": 8,
+      "triangles": 19912,
+      "bufferBytes": 422032
+    }
+  }
+]

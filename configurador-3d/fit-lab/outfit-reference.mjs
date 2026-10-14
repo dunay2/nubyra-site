@@ -2,7 +2,7 @@ import {CM_PER_UNIT} from './body-surface.mjs';
 const lerp=(a,b,t)=>a+(b-a)*t;
 const clamp=x=>Math.max(0,Math.min(1,x));
 const smooth=x=>{const t=clamp(x);return t*t*t*(10+t*(-15+6*t));};
-export const OUTFIT_REFERENCE_VERSION='lower-reference/2.1';
+export const OUTFIT_REFERENCE_VERSION='lower-reference/2.2';
 
 /** Synthetic proportions only: not measured anatomy, a size recommendation or a cloth solver. */
 export function referenceLayout(body,state){
@@ -117,7 +117,7 @@ export function createOutfitReference(T,body,state,options={}){
   },true),body.material);
   smoothSharedNormals([leg,foot]);
  }
- const head=new T.SphereGeometry(1,28,20),headRadius=L.headHeight/2+.065*L.scale;
+ const head=new T.SphereGeometry(1,28,20),headRadius=L.headHeight/2+.105*L.scale;
  head.scale(.245*L.scale,headRadius,.27*L.scale);head.translate(0,L.headTop-headRadius,0);add(bodyGroup,'Cabeza neutra de referencia',head,body.material);
  const shortsBottom=L.waistY-length/CM_PER_UNIT,crotch=L.joinY-.28*L.scale;
  // Reuse the underlying body's section heights. A different row grid crossed the
@@ -142,7 +142,17 @@ export function createOutfitReference(T,body,state,options={}){
    // It opens gradually below the torso, without a branch discontinuity at joinY.
    // Reference-only underlayer: no renderOrder/depth-test trick and no cloth rescaling.
    const ease=.0008+.0212*smooth((L.joinY-y)/(.55*L.scale));
-   if(y<=L.joinY){const v=sampleLeg(y,theta);return [Math.max(0,v[0]+ease*c),y,v[1]+ease*s];}
+   if(y<=L.joinY){
+    const v=sampleLeg(y,theta);
+    // A woven-sport reference hangs from the upper thigh instead of tracing the
+    // narrowing knee. This is a geometric envelope, not a second cloth solver.
+    const hanging=smooth((L.joinY-y-.035*L.scale)/(.20*L.scale));
+    const legCenter=.46*width,hemRadiusX=.27*width+.040*L.scale,hemRadiusZ=.315*width+.035*L.scale;
+    const target=[legCenter+hemRadiusX*c,hemRadiusZ*s];
+    // An outer envelope may add ease but must not cut through the existing leg.
+    const outer=[c>=0?Math.max(v[0],target[0]):Math.min(v[0],target[0]),s>=0?Math.max(v[1],target[1]):Math.min(v[1],target[1])];
+    return [Math.max(0,lerp(v[0],outer[0],hanging)+ease*c),y,lerp(v[1],outer[1],hanging)+ease*s];
+   }
    const v=sampleBody(y,theta);return [Math.max(0,v[0]+ease*c),y,v[1]+ease*s];
   });
   // Two draw batches per leg, exclusively a vertical side band; no horizontal material ring.
