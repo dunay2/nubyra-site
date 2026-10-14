@@ -6,13 +6,13 @@
  */
 export const CLOTH_VERSION='nubyra.xpbd/1.0';
 export class ClothSolver {
- constructor({positions,edges,triangles=[],bends=[],seams=[],pins=[],collider,unitMeters=64/242,clearance=.012,compliance=1e-7,initialTranslation=[0,0,0]}){
+ constructor({positions,edges,triangles=[],bends=[],seams=[],pins=[],collider,unitMeters=64/242,clearance=.007,compliance=1e-7,initialTranslation=[0,0,0]}){
   if(positions.length%3||positions.some(v=>!Number.isFinite(v)))throw Error('Invalid cloth positions');
   this.triangles=triangles;this.rest=new Float64Array(positions);this.positions=new Float64Array(positions);this.previous=new Float64Array(positions);this.velocity=new Float64Array(positions.length);
   this.weights=new Float64Array(positions.length/3).fill(1);this.pins=pins;this.seams=seams;this.collider=collider;this.clearance=clearance;
   this.gravity=-9.81/unitMeters;this.h=1/240;this.accumulator=0;this.time=0;this.steps=0;this.wind=false;this.maxVelocity=0;
   this.edges=edges.map(([a,b])=>this.constraint(a,b,compliance));
-  this.bends=bends.map(([a,b])=>this.constraint(a,b,.003));
+  this.bends=bends.map(([a,b,c])=>this.constraint(a,b,c??.003));
   for(const pin of pins)this.weights[pin.id]=0;
   // Arrange the whole garment at shoulder height before pinning. Rest lengths
   // remain authored; moving only the support vertices creates artificial strain.
@@ -69,7 +69,9 @@ export class ClothSolver {
   for(let i=0;i<this.weights.length;i++){
    if(!this.weights[i])continue;const k=i*3;
    this.velocity[k]*=drag;this.velocity[k+1]=(this.velocity[k+1]+this.gravity*h)*drag;
-   this.velocity[k+2]=(this.velocity[k+2]+gust*h)*drag;
+   // Free hem flutters, while the shoulder band carries less wind load.
+   const freedom=Math.max(.08,Math.min(1,(1.2-this.rest[k+1])/2.4));
+   this.velocity[k+2]=(this.velocity[k+2]+gust*freedom*h)*drag;
    p[k]+=this.velocity[k]*h;p[k+1]+=this.velocity[k+1]*h;p[k+2]+=this.velocity[k+2]*h;
   }
   for(const e of this.edges)e.lambda=0;for(const e of this.bends)e.lambda=0;
