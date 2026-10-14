@@ -169,7 +169,11 @@ export function deformBody(mesh,values){
       ?profile.back*deltaChest*chest:0;
     const depth=Math.max(.40,1+rearTorsoAdjustment+1.06*deltaHip*hip);
     const frontFacing=isFront?smooth(centered/.115):0;
-    const breastEnvelope=gauss((y-.27)/.34)*gauss(x/.40)*frontFacing;
+    // Volumen horizontal redondeado: sección ancha con meseta central,
+    // transición suave en extremos y mayor extensión vertical que el punto original.
+    const horizontal=Math.max(0,1-Math.pow(Math.abs(x)/.58,4));
+    const vertical=gauss((y-.25)/.43);
+    const breastEnvelope=Math.pow(horizontal,.7)*vertical*frontFacing;
     // PRINCIPIO FÍSICO DEL ENSAYO: el relieve es 0 o positivo.
     // No se utiliza deltaChest negativo para empujar vértices al interior.
     const outwardRelief=protrusion*breastEnvelope;
