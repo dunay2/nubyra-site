@@ -60,6 +60,10 @@ jobs:
         env:
           EVIDENCE_DIR: artifacts/cut-a
         run: node scripts/fit-lab-cut-a-review.mjs | tee artifacts/cut-a-tests.txt
+      - name: Referencia holgada y cuello-espalda-pecho
+        env:
+          EVIDENCE_DIR: artifacts/contained-shape
+        run: node scripts/fit-lab-shape-review.mjs | tee artifacts/shape-tests.txt
       - name: Medir contacto, capturar vistas y revisar materiales
         env:
           EVIDENCE_DIR: artifacts/natural-contact
