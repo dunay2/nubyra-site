@@ -226,7 +226,7 @@ function calibrateCircumferences(object,chestCm,hipCm){
     if(!pos)return;
     for(let i=0;i<pos.count;i++){
       const x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i);
-      const chest=Math.exp(-((y-.27)/.52)**2),hip=Math.exp(-((y+.98)/.50)**2);
+      const chest=Math.exp(-Math.pow((y-.27)/.52,2)),hip=Math.exp(-Math.pow((y+.98)/.50,2));
       const weight=chest+hip;
       const ratio=weight>1e-8?(chest*ratios[0]+hip*ratios[1])/weight:1;
       const strength=Math.min(1,weight);
