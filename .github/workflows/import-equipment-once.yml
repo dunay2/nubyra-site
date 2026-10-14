@@ -1,0 +1,48 @@
+name: Import Fit Lab equipment once
+on:
+  push:
+    branches: ['feat/fit-lab-commit-inputs-equipment-design']
+    paths: ['.github/workflows/import-equipment-once.yml']
+permissions:
+  contents: write
+jobs:
+  persist:
+    if: github.actor == 'dunay2'
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/fit-lab-commit-inputs-equipment-design
+          fetch-depth: 0
+      - name: Verify and apply precisely scoped source
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 1c86fa500c23928b3ca1f4d79006df1006d54248 HEAD
+          curl --fail --silent --show-error --max-time 50 'https://sb-4q70xpu5p7w4.vercel.run/source.patch' -o /tmp/source.patch
+          echo '69390580e6f0baf8b32ec89a9ba06940f46712a6d0bc89c468e8954a9521c913  /tmp/source.patch' | sha256sum -c -
+          git apply --numstat /tmp/source.patch | cut -f3 | while read -r path; do
+            case "$path" in
+              configurador-3d/fit-lab/app.mjs|configurador-3d/fit-lab/commit-fields.mjs|configurador-3d/fit-lab/fit-viewer.mjs|configurador-3d/fit-lab/kit-design.mjs|configurador-3d/fit-lab/outfit-reference.mjs|configurador-3d/fit-lab/index.html|configurador-3d/fit-lab/styles.css|scripts/fit-lab-e2e.mjs|scripts/fit-lab-equipment-e2e.mjs|scripts/fit-lab-visual-review.mjs|tests/fit-lab.equipment.test.mjs|docs/fit-lab/COMMIT_INPUTS_EQUIPMENT_RELEASE.md) ;;
+              *) echo "Unexpected path: $path"; exit 1 ;;
+            esac
+          done
+          git apply --check /tmp/source.patch
+          git apply --index /tmp/source.patch
+      - name: Store initial screenshot evidence separately from source
+        run: |
+          curl --fail --silent --show-error --max-time 50 'https://sb-4q70xpu5p7w4.vercel.run/screenshots.zip' -o /tmp/screenshots.zip
+          echo '290aef29872ed80590a1d34f7b3291ad6a43eef379ea0862411f88c87b043c14  /tmp/screenshots.zip' | sha256sum -c -
+      - uses: actions/upload-artifact@v4
+        with:
+          name: equipment-initial-visual-review
+          path: /tmp/screenshots.zip
+          retention-days: 7
+      - name: Commit source and remove one-use transport
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/import-equipment-once.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'feat(fit-lab): commit-on-release, full-body reference and restored kit design'
+          git push origin HEAD:feat/fit-lab-commit-inputs-equipment-design
