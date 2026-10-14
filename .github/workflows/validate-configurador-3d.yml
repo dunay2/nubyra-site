@@ -56,6 +56,10 @@ jobs:
         env:
           EVIDENCE_DIR: artifacts/equipment
         run: node scripts/fit-lab-equipment-e2e.mjs | tee artifacts/equipment-tests.txt
+      - name: Pies apoyados y pantalón continuo en frontal, lateral y tres cuartos
+        env:
+          EVIDENCE_DIR: artifacts/lower-reference
+        run: node scripts/fit-lab-feet-review.mjs | tee artifacts/lower-reference-tests.txt
       - name: Medir contacto, capturar vistas y revisar materiales
         env:
           EVIDENCE_DIR: artifacts/natural-contact
