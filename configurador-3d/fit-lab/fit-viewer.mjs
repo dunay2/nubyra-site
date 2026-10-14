@@ -30,7 +30,7 @@ export function createFitViewer(canvas,initial,onFrame=()=>{}){
  function snapshot(){
   const d=adapter.solver.diagnostics(),p=adapter.solver.positions;let minY=Infinity,maxY=-Infinity;for(let i=1;i<p.length;i+=3){minY=Math.min(minY,p[i]);maxY=Math.max(maxY,p[i]);}
   const bp=body.geometry.getAttribute('position'),xs=[],zs=[];for(let i=29*57;i<30*57;i++){xs.push(bp.getX(i));zs.push(bp.getZ(i));}
-  return {state:{...state},cloth:{...d,maxPenetrationCm:Math.max(d.maxPenetrationUnits,d.maxTrianglePenetrationUnits)*CM_PER_UNIT,meanGapCm:d.meanGapUnits*CM_PER_UNIT,meanDropCm:d.meanDropUnits*CM_PER_UNIT},body:{chestCm:ringPerimeter(body,29),hipCm:ringPerimeter(body,4),widthCm:(Math.max(...xs)-Math.min(...xs))*CM_PER_UNIT,frontDepthCm:Math.max(...zs)*CM_PER_UNIT,backDepthCm:-Math.min(...zs)*CM_PER_UNIT},garment:{code:state.activeConfiguration,restLengthCm:state.garmentLengthCm,hangingHeightCm:(maxY-minY)*CM_PER_UNIT},cmPerUnit:CM_PER_UNIT,paused,frames};
+  return {state:{...state},cloth:{...d,maxPenetrationCm:Math.max(d.maxPenetrationUnits,d.maxTrianglePenetrationUnits)*CM_PER_UNIT,meanGapCm:d.meanGapUnits*CM_PER_UNIT,meanDropCm:d.meanDropUnits*CM_PER_UNIT},body:{surfaceVersion:body.userData.version,shoulderWidthCm:2*body.userData.shoulderHalfWidth*CM_PER_UNIT,neckBaseY:body.userData.neckBaseY,shoulderY:body.userData.shoulderY,chestCm:ringPerimeter(body,29),hipCm:ringPerimeter(body,4),widthCm:(Math.max(...xs)-Math.min(...xs))*CM_PER_UNIT,frontDepthCm:Math.max(...zs)*CM_PER_UNIT,backDepthCm:-Math.min(...zs)*CM_PER_UNIT},garment:{code:state.activeConfiguration,restLengthCm:state.garmentLengthCm,hangingHeightCm:(maxY-minY)*CM_PER_UNIT},cmPerUnit:CM_PER_UNIT,paused,frames};
  }
  function outline(meshes,axis,center){
   const points=[],coord=axis==='x'?0:2;let top=-Infinity,bottom=Infinity;
@@ -48,7 +48,7 @@ export function createFitViewer(canvas,initial,onFrame=()=>{}){
   return points.length?'M'+points.map(b=>f(b.min,b.y)).join(' L')+' L'+points.reverse().map(b=>f(b.max,b.y)).join(' L')+'Z':'';
  }
  function reference(){return {bodyFront:outline([body],'x',57),bodySide:outline([body],'z',157),shirtFront:outline(adapter.surfaces,'x',57),shirtSide:outline(adapter.surfaces,'z',157)};}
- function resize(){const {clientWidth:w,clientHeight:h}=canvas.parentElement;if(!w||!h)return;renderer.setSize(w,h,false);const half=1.8;camera.left=-half*w/h;camera.right=half*w/h;camera.top=half;camera.bottom=-half;camera.updateProjectionMatrix();}
+ function resize(){const {clientWidth:w,clientHeight:h}=canvas.parentElement;if(!w||!h)return;renderer.setSize(w,h,false);const half=2.05;camera.left=-half*w/h;camera.right=half*w/h;camera.top=half;camera.bottom=-half;camera.updateProjectionMatrix();}
  const observer=new ResizeObserver(resize);observer.observe(canvas.parentElement);resize();
  function emitLabels(){
   const labels=[['ruler-label',-1.12,-.22,0],['length-label',.9,-1.25,.05]];

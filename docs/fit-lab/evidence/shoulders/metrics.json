@@ -1,0 +1,220 @@
+[
+  {
+    "input": {
+      "bodyChestCm": 88,
+      "bodyHipCm": 96,
+      "bodyHeightCm": 160,
+      "desiredLengthCm": 64,
+      "frontVolume": 3,
+      "sideVolume": 5,
+      "backVolume": 5,
+      "selectionMode": "auto",
+      "activeConfiguration": "N1-2",
+      "activeBase": "N1",
+      "garmentChestCm": 102,
+      "garmentHipCm": 110,
+      "garmentLengthCm": 64,
+      "recommendation": {
+        "previewCode": "N1-2",
+        "previewBase": "N1",
+        "score": 0,
+        "hasDemoCoverage": true,
+        "lateralPosition": null,
+        "industrialApproved": false,
+        "status": "simulation-only",
+        "candidates": [
+          {
+            "code": "N1-2",
+            "score": 0,
+            "demoCoverage": true
+          },
+          {
+            "code": "N1-1",
+            "score": 0.5,
+            "demoCoverage": true
+          },
+          {
+            "code": "N1-3",
+            "score": 0.5,
+            "demoCoverage": true
+          },
+          {
+            "code": "N2-1",
+            "score": 7.090277777777778,
+            "demoCoverage": true
+          },
+          {
+            "code": "N2-2",
+            "score": 10.840277777777779,
+            "demoCoverage": false
+          },
+          {
+            "code": "N2-3",
+            "score": 15.590277777777779,
+            "demoCoverage": false
+          }
+        ],
+        "note": "Solo selección entre seis maquetas fijas de ensayo; no valida talla, ajuste, elasticidad ni posición lateral industrial."
+      },
+      "reviewRequired": false
+    },
+    "steps": 480,
+    "bodyVertices": 3992,
+    "shoulderWidthCm": 39.404958677685954,
+    "before": {
+      "version": "nubyra.xpbd/1.0",
+      "particles": 1031,
+      "stretchConstraints": 2847,
+      "bendingConstraints": 2601,
+      "seams": 56,
+      "pins": 8,
+      "steps": 0,
+      "simulationTime": 0,
+      "gravity": -37.0940625,
+      "fixedStep": 0.004166666666666667,
+      "maxPenetrationUnits": 0,
+      "maxTrianglePenetrationUnits": 0,
+      "contactVertices": 25,
+      "meanGapUnits": 0.10066963327864811,
+      "p95Strain": 9.992007221626409e-16,
+      "maxStrain": 3.45462248718213,
+      "pinErrorUnits": 0,
+      "meanDropUnits": -0.058240061797247354,
+      "maxVelocity": 0,
+      "materialCalibrated": false,
+      "selfCollision": false
+    },
+    "after": {
+      "version": "nubyra.xpbd/1.0",
+      "particles": 1031,
+      "stretchConstraints": 2847,
+      "bendingConstraints": 2601,
+      "seams": 56,
+      "pins": 8,
+      "steps": 480,
+      "simulationTime": 1.9999999999999942,
+      "gravity": -37.0940625,
+      "fixedStep": 0.004166666666666667,
+      "maxPenetrationUnits": 0,
+      "maxTrianglePenetrationUnits": 0,
+      "contactVertices": 424,
+      "meanGapUnits": 0.04600158675060802,
+      "p95Strain": 0.06866321052842794,
+      "maxStrain": 0.3771409863074672,
+      "pinErrorUnits": 0,
+      "meanDropUnits": 0.01610771607732745,
+      "maxVelocity": 0,
+      "materialCalibrated": false,
+      "selfCollision": false
+    }
+  },
+  {
+    "input": {
+      "bodyChestCm": 72,
+      "bodyHipCm": 74,
+      "bodyHeightCm": 160,
+      "desiredLengthCm": 84,
+      "frontVolume": 1,
+      "sideVolume": 6,
+      "backVolume": 0,
+      "selectionMode": "manual",
+      "activeConfiguration": "N2-3",
+      "activeBase": "N2",
+      "garmentChestCm": 124,
+      "garmentHipCm": 135,
+      "garmentLengthCm": 72,
+      "recommendation": {
+        "previewCode": "N1-1",
+        "previewBase": "N1",
+        "score": 16.25111111111111,
+        "hasDemoCoverage": false,
+        "lateralPosition": null,
+        "industrialApproved": false,
+        "status": "review-outside-demo",
+        "candidates": [
+          {
+            "code": "N1-1",
+            "score": 16.25111111111111,
+            "demoCoverage": false
+          },
+          {
+            "code": "N1-2",
+            "score": 19.95111111111111,
+            "demoCoverage": false
+          },
+          {
+            "code": "N1-3",
+            "score": 24.651111111111113,
+            "demoCoverage": false
+          },
+          {
+            "code": "N2-1",
+            "score": 31.7525,
+            "demoCoverage": false
+          },
+          {
+            "code": "N2-2",
+            "score": 39.7025,
+            "demoCoverage": false
+          },
+          {
+            "code": "N2-3",
+            "score": 48.6525,
+            "demoCoverage": false
+          }
+        ],
+        "note": "Solo selección entre seis maquetas fijas de ensayo; no valida talla, ajuste, elasticidad ni posición lateral industrial."
+      },
+      "reviewRequired": true
+    },
+    "steps": 480,
+    "bodyVertices": 3992,
+    "shoulderWidthCm": 36.73231626334581,
+    "before": {
+      "version": "nubyra.xpbd/1.0",
+      "particles": 1031,
+      "stretchConstraints": 2847,
+      "bendingConstraints": 2601,
+      "seams": 56,
+      "pins": 8,
+      "steps": 0,
+      "simulationTime": 0,
+      "gravity": -37.0940625,
+      "fixedStep": 0.004166666666666667,
+      "maxPenetrationUnits": 0,
+      "maxTrianglePenetrationUnits": 0,
+      "contactVertices": 6,
+      "meanGapUnits": 0.3303096074049395,
+      "p95Strain": 0,
+      "maxStrain": 7.605990573711418,
+      "pinErrorUnits": 0,
+      "meanDropUnits": -0.06630687046923187,
+      "maxVelocity": 0,
+      "materialCalibrated": false,
+      "selfCollision": false
+    },
+    "after": {
+      "version": "nubyra.xpbd/1.0",
+      "particles": 1031,
+      "stretchConstraints": 2847,
+      "bendingConstraints": 2601,
+      "seams": 56,
+      "pins": 8,
+      "steps": 480,
+      "simulationTime": 1.9999999999999942,
+      "gravity": -37.0940625,
+      "fixedStep": 0.004166666666666667,
+      "maxPenetrationUnits": 0,
+      "maxTrianglePenetrationUnits": 0,
+      "contactVertices": 141,
+      "meanGapUnits": 0.13688629983035158,
+      "p95Strain": 0.06361961489116097,
+      "maxStrain": 0.36344586211138763,
+      "pinErrorUnits": 0,
+      "meanDropUnits": 0.0200149774514424,
+      "maxVelocity": 0,
+      "materialCalibrated": false,
+      "selfCollision": false
+    }
+  }
+]

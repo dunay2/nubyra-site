@@ -2,55 +2,11 @@
 import {createFreeTestJersey} from '../free-test-jersey.mjs';
 import {ClothSolver} from './cloth-solver.mjs';
 import {bindTrimToSurface,syncSurfaceTrim} from './surface-bindings.mjs';
-export const CM_PER_UNIT=64/2.42;
+import {CM_PER_UNIT,createCollider} from './body-surface.mjs';
+export {CM_PER_UNIT,createBody,updateBody,createCollider,ringPerimeter} from './body-surface.mjs';
 const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
 const lerp=(a,b,t)=>a+(b-a)*t;
-const gauss=x=>Math.exp(-x*x);
 const ellipseA=(c,k=.58)=>c/(Math.PI*(3*(1+k)-Math.sqrt((3+k)*(1+3*k))))/CM_PER_UNIT;
-export function createBody(T){
- const rows=44,around=56,positions=new Float32Array((rows+1)*(around+1)*3),indices=[];
- for(let r=0;r<rows;r++)for(let a=0;a<around;a++){const i=r*(around+1)+a,j=i+around+1;indices.push(i,j,i+1,i+1,j,j+1);}
- const g=new T.BufferGeometry();g.setAttribute('position',new T.BufferAttribute(positions,3));g.setIndex(indices);
- const mesh=new T.Mesh(g,new T.MeshStandardMaterial({color:0x68adbd,roughness:.72,side:T.DoubleSide}));mesh.userData={rows,around,fitRole:'body'};return mesh;
-}
-export function updateBody(mesh,state){
- const {rows,around}=mesh.userData,p=mesh.geometry.getAttribute('position'),chestRow=29,hipRow=4,scale=state.bodyHeightCm/160;
- for(let r=0;r<=rows;r++){
-  const y0=-1.16+2.2*r/rows,y=1.20+(y0-1.20)*scale,t=clamp((r-hipRow)/(chestRow-hipRow));
-  const target=r>chestRow?state.bodyChestCm*(1-.08*clamp((r-chestRow)/(rows-chestRow))):lerp(state.bodyHipCm,state.bodyChestCm,t)*(1-.07*Math.pow(Math.sin(t*Math.PI),2));
-  const chest=gauss((y0-.28)/.48),hip=gauss((y0+1.0)/.45),ring=[];
-  for(let a=0;a<around;a++){
-   const angle=2*Math.PI*a/around,c=Math.cos(angle),s=Math.sin(angle);
-   const x=c*(.43+.035*hip)*(1+(state.sideVolume-5)*.045*chest);
-   const broad=Math.pow(Math.max(0,1-Math.pow(Math.abs(c),6)),.35);
-   const forward=state.frontVolume*.028*gauss((y0-.27)/(.34+state.frontVolume*.014))*broad*Math.max(0,s);
-   const z=s*(.22+.025*hip)*(1+(s<0?(state.backVolume-5)*.055*chest:0))+forward;
-   ring.push([x,z]);
-  }
-  let perimeter=0;for(let a=0;a<around;a++){const b=(a+1)%around;perimeter+=Math.hypot(ring[a][0]-ring[b][0],ring[a][1]-ring[b][1]);}
-  const factor=target/(perimeter*CM_PER_UNIT);
-  for(let a=0;a<=around;a++){const [x,z]=ring[a%around];p.setXYZ(r*(around+1)+a,x*factor,y,z*factor);}
- }
- p.needsUpdate=true;mesh.geometry.computeVertexNormals();mesh.geometry.computeBoundingSphere();mesh.geometry.computeBoundingBox();
- mesh.userData.chestY=p.getY(chestRow*(around+1));mesh.userData.hipY=p.getY(hipRow*(around+1));
- return mesh;
-}
-export function createCollider(body){
- const p=body.geometry.getAttribute('position'),{rows,around}=body.userData,ys=[],rings=[];
- for(let r=0;r<=rows;r++){
-  ys.push(p.getY(r*(around+1)));const ring=[];
-  for(let a=0;a<around;a++){const i=r*(around+1)+a,x=p.getX(i),z=p.getZ(i);ring.push([Math.atan2(z,x),Math.hypot(x,z)]);}
-  ring.sort((a,b)=>a[0]-b[0]);rings.push(ring);
- }
- const radial=(ring,theta)=>{
-  let lo=0,hi=ring.length;while(lo<hi){const m=(lo+hi)>>1;if(ring[m][0]<theta)lo=m+1;else hi=m;}
-  const a=ring[(lo-1+ring.length)%ring.length],b=ring[lo%ring.length];let ta=a[0],tb=b[0],q=theta;if(lo===0)ta-=2*Math.PI;if(lo===ring.length)tb+=2*Math.PI;
-  return lerp(a[1],b[1],clamp((q-ta)/(tb-ta)));
- };
- const radius=(y,theta)=>{const f=clamp((y-ys[0])/(ys.at(-1)-ys[0]))*rows,r=Math.min(rows-1,Math.floor(f));return lerp(radial(rings[r],theta),radial(rings[r+1],theta),f-r);};
- const gap=(x,y,z)=>y<ys[0]-.08||y>ys.at(-1)+.03?Infinity:Math.hypot(x,z)-radius(y,Math.atan2(z,x));
- return {ys,radius,gap,project(x,y,z,margin){const g=gap(x,y,z);if(g>=margin)return null;const d=Math.hypot(x,z);if(d<1e-10)return [radius(y,0)+margin,y,0];const r=d-g+margin;return [x*r/d,y,z*r/d];}};
-}
 export function createRestGarment(T,configuration){
  const garment=createFreeTestJersey(T);
  // Resolution budget: retain the authored topology, sample a regular simulation grid.
@@ -85,13 +41,12 @@ export function shoulderPins(rest,groups,collider){
  const pins=[];
  for(const ids of groups){
   const center=[0,1,2].map(axis=>ids.reduce((sum,id)=>sum+rest[id*3+axis],0)/ids.length);
-  const angle=Math.atan2(center[2],center[0]),nx=Math.cos(angle),nz=Math.sin(angle);
-  const radius=collider.radius(collider.ys.at(-1),angle)+.02;
-  const delta=[radius*nx-center[0],collider.ys.at(-1)+.025-center[1],radius*nz-center[2]];
+    const x=Math.sign(center[0])*collider.shoulderHalfWidth*.64,z=Math.sign(center[2])*.125;
+  const delta=[x-center[0],collider.surfaceHeight(x,z)+.025-center[1],z-center[2]];
   for(let i=0;i<3;i++){
    const minGap=Math.min(...ids.map(id=>collider.gap(rest[id*3]+delta[0],rest[id*3+1]+delta[1],rest[id*3+2]+delta[2])));
    if(minGap>=.015)break;
-   delta[0]+=(.015-minGap)*nx;delta[2]+=(.015-minGap)*nz;
+   delta[1]+=(.015-minGap)*1.6;
   }
   for(const id of ids)pins.push({id,position:[0,1,2].map(axis=>rest[id*3+axis]+delta[axis])});
  }
@@ -129,7 +84,8 @@ export function createClothAdapter(garment,body){
  }
  const collider=createCollider(body),pins=shoulderPins(positions,supportGroups,collider);
  const bends=[...opposites.values()].filter(v=>v.length===2&&v[0]!==v[1]);
- const solver=new ClothSolver({positions,triangles,edges:[...edges.values()],bends,seams,pins,collider});
+ const initialTranslation=[0,pins.reduce((sum,p)=>sum+p.position[1]-positions[p.id*3+1],0)/pins.length,0];
+ const solver=new ClothSolver({positions,triangles,edges:[...edges.values()],bends,seams,pins,collider,initialTranslation});
  const trims=[];
  for(const mesh of garment.children.filter(m=>m.isMesh&&m.name.startsWith('trim-'))){
   const panel=garment.getObjectByName('NUBYRA_Test_Jersey_'+(mesh.name.includes('front')?'Front':'Back'));
@@ -144,4 +100,3 @@ export function createClothAdapter(garment,body){
   retarget(nextBody){const nextCollider=createCollider(nextBody);solver.setCollider(nextCollider,shoulderPins(solver.rest,supportGroups,nextCollider));}
  };
 }
-export function ringPerimeter(body,row){const {around}=body.userData,p=body.geometry.getAttribute('position');let c=0;for(let i=0;i<around;i++){const a=row*(around+1)+i,b=a+1;c+=Math.hypot(p.getX(a)-p.getX(b),p.getZ(a)-p.getZ(b));}return c*CM_PER_UNIT;}
