@@ -122,7 +122,8 @@ export function createClothAdapter(garment,body){
   }
  }
  const collider=createCollider(body),pins=shoulderPins(positions,supportGroups,collider);
- const bends=[...opposites.values()].filter(v=>v.length===2&&v[0]!==v[1]);
+ const shoulderIds=new Set(garment.children.filter(m=>m.userData.kind==='shoulder-fabric').flatMap(m=>maps.get(m.name)));
+ const bends=[...opposites.values()].filter(v=>v.length===2&&v[0]!==v[1]).map(v=>[v[0],v[1],shoulderIds.has(v[0])||shoulderIds.has(v[1]) ? .0015 : .003]);
  const initialTranslation=[0,pins.reduce((sum,p)=>sum+p.position[1]-positions[p.id*3+1],0)/pins.length,0];
  const solver=new ClothSolver({positions,triangles,edges:[...edges.values()],bends,seams,pins,collider,initialTranslation});
  const trims=[];
