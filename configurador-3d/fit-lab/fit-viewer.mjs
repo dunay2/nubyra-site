@@ -69,6 +69,36 @@ export function createFitViewer(canvas,initial){
     front:[0,.10,5.8],side:[5.8,.14,0],quarter:[3.4,.18,4.9],back:[0,.12,-5.8],rearquarter:[3.5,.2,-4.9]
   };
   let disposed=false,frameId=0;
+  let motionEnabled=false, motionBase=[];
+  function captureMotionBase(){
+    motionBase=['NUBYRA_Test_Jersey_Front','NUBYRA_Test_Jersey_Back'].map(name=>{
+      const mesh=garment.getObjectByName(name);
+      return mesh?{mesh,base:new Float32Array(mesh.geometry.getAttribute('position').array),
+        sign:name.endsWith('Front')?1:-1}:null;
+    }).filter(Boolean);
+  }
+  function animateMotion(time){
+    if(!motionEnabled||window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
+    for(const {mesh,base,sign} of motionBase){
+      const attr=mesh.geometry.getAttribute('position');
+      for(let i=0;i<attr.count;i++){
+        const k=i*3,x=base[k],y=base[k+1],z=base[k+2];
+        const hem=Math.max(0,Math.min(1,(-.30-y)/.85));
+        const wave=Math.sin(time*.0019+x*3.1+y*1.6);
+        attr.setXYZ(i,x,y,z+sign*hem*hem*.012*wave);
+      }
+      attr.needsUpdate=true;
+      mesh.geometry.computeVertexNormals();
+    }
+  }
+  function restoreMotion(){
+    for(const {mesh,base} of motionBase){
+      const attr=mesh.geometry.getAttribute('position');
+      attr.array.set(base);attr.needsUpdate=true;
+      mesh.geometry.computeVertexNormals();
+    }
+  }
+
   const updateSize=()=>{
     const p=canvas.parentElement;
     const width=Math.max(1,p.clientWidth),height=Math.max(1,p.clientHeight);
@@ -97,8 +127,9 @@ export function createFitViewer(canvas,initial){
     });
   }
   applyMaterialMode();
-  function tick(){
+  function tick(time){
     if(disposed)return;
+    if(motionEnabled)animateMotion(time);
     controls.update();
     renderer.render(scene,camera);
     frameId=requestAnimationFrame(tick);
@@ -108,8 +139,13 @@ export function createFitViewer(canvas,initial){
     update(values){
       // Único controlador común: las etiquetas nunca se pierden en esta frontera.
       lastFit=applyFitToModels(mannequin,garment,values);
+      captureMotionBase();
       refreshRearGuide();
       return {body:mannequin,garment};
+    },
+    setMotion(on){
+      motionEnabled=Boolean(on);
+      if(!motionEnabled)restoreMotion();
     },
     setVisual(flags){
       for(const key of Object.keys(visual))if(key in flags)visual[key]=Boolean(flags[key]);
