@@ -75,3 +75,6 @@ Barrido léxico de exports sin referencia en **otros módulos de Fit Lab** (cand
 - `scale-diagram.mjs`: `estimatedEllipseHalfWidthCm`.
 
 **No eliminar aún:** el barrido no resuelve consumidores fuera de Fit Lab, uso desde tests ni importaciones externas. Gate de retirada: grep del repositorio completo + revisión de tests + una PR específica pequeña con no regresión.
+
+
+> Sustituido para el nuevo motor: véase [XPBD_RELEASE.md](XPBD_RELEASE.md) y sus pruebas reproducibles. Este documento conserva el estado histórico de UX v2.

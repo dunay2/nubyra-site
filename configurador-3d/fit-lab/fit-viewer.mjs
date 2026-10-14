@@ -1,209 +1,71 @@
-/** Visor aislado del configurador productivo. Sin datos personales ni servicios externos. */
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { createFreeTestJersey } from '../free-test-jersey.mjs';
-import { createReferenceBody, applyFitToModels, measureCrossSection, backSurfaceProfile } from './fit-geometry.mjs';
-
-export function createFitViewer(canvas,initial){
-  if(!canvas || !canvas.parentElement)throw Error('Canvas de laboratorio requerido');
-  const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
-  renderer.outputColorSpace=THREE.SRGBColorSpace;
-  renderer.toneMapping=THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure=1.38;
-  renderer.setClearColor(0xffffff,0);
-  const scene=new THREE.Scene();
-  scene.add(new THREE.HemisphereLight(0xe5f4ff,0x34475f,2.3));
-  const key=new THREE.DirectionalLight(0xffffff,3.2);
-  key.position.set(-3,5,6);scene.add(key);
-  const fill=new THREE.DirectionalLight(0x90a8d9,1.15);
-  fill.position.set(4,1,-5);scene.add(fill);
-  const pivot=new THREE.Group();scene.add(pivot);
-  const mannequin=createReferenceBody(THREE);
-  const garment=createFreeTestJersey(THREE);
-  mannequin.name='BodyMesh · sintético (independiente)';
-  garment.name='GarmentMesh · camiseta NUBYRA (independiente)';
-  pivot.add(mannequin,garment);
-  const backPanel=garment.getObjectByName('NUBYRA_Test_Jersey_Back');
-  if(!backPanel)throw Error('Se necesita el panel trasero para comparar el volumen');
-  const guides=new THREE.Group();
-  guides.name='Comparación de sección posterior original vs actual';
-  pivot.add(guides);
-  const outlineGeometry=points=>new THREE.BufferGeometry().setFromPoints(
-    points.map(({x,y,z})=>new THREE.Vector3(x,y,z))
-  );
-  const originalProfiles={
-    body:backSurfaceProfile(mannequin),
-    garment:backSurfaceProfile(backPanel)
-  };
-  let guideTarget='body',viewName='quarter',lastFit=null;
-  const originalLine=new THREE.Line(outlineGeometry(originalProfiles.body),
-    new THREE.LineBasicMaterial({color:0xc38712,depthTest:false,transparent:true,opacity:.95}));
-  originalLine.renderOrder=99;
-  const currentLine=new THREE.Line(outlineGeometry(originalProfiles.body),
-    new THREE.LineBasicMaterial({color:0x127da9,depthTest:false,transparent:true,opacity:1}));
-  currentLine.renderOrder=100;
-  guides.add(originalLine,currentLine);
-  guides.visible=false;
-  function refreshRearGuide(){
-    originalLine.geometry.dispose();
-    currentLine.geometry.dispose();
-    originalLine.geometry=outlineGeometry(originalProfiles[guideTarget]);
-    currentLine.geometry=outlineGeometry(backSurfaceProfile(guideTarget==='body'?mannequin:backPanel));
-    guides.visible=['back','rearquarter','side'].includes(viewName);
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {createBody,updateBody,createCollider,createRestGarment,createClothAdapter,ringPerimeter,CM_PER_UNIT} from './fit-mesh.mjs';
+import {GARMENT_CATALOG} from './garment-catalog.mjs';
+export function createFitViewer(canvas,initial,onFrame=()=>{}){
+ const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.35;
+ const scene=new THREE.Scene();scene.add(new THREE.HemisphereLight(0xeefaff,0x283c51,2.2));
+ for(const [x,y,z,power] of [[-3,5,4,3],[4,1,-4,1.8]]){const light=new THREE.DirectionalLight(0xffffff,power);light.position.set(x,y,z);scene.add(light);}
+ const body=updateBody(createBody(THREE),initial);scene.add(body);let garment,adapter,state=initial,flags={body:true,garment:true,transparent:false,dimensions:true,motion:false};
+ const camera=new THREE.OrthographicCamera(-1.8,1.8,1.8,-1.8,.1,40);camera.position.set(3,0,6);
+ const controls=new OrbitControls(camera,canvas);controls.target.set(0,-.15,0);controls.enablePan=false;controls.enableDamping=true;controls.minZoom=.65;controls.maxZoom=1.7;controls.minPolarAngle=.8;controls.maxPolarAngle=2.3;
+ const dimensions=new THREE.Group();scene.add(dimensions);const dimensionMaterial=new THREE.LineBasicMaterial({color:0x4a8297,transparent:true,opacity:.65,depthTest:false});
+ const rulerPoints=[];for(let cm=0;cm<=80;cm+=10){const y=1.2-cm/CM_PER_UNIT;rulerPoints.push(new THREE.Vector3(-1.12,y,0),new THREE.Vector3(-1.17,y,0));}rulerPoints.push(new THREE.Vector3(-1.12,1.2,0),new THREE.Vector3(-1.12,1.2-80/CM_PER_UNIT,0));
+ dimensions.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(rulerPoints),dimensionMaterial));
+ const ringLines=[];for(let n=0;n<2;n++){const line=new THREE.LineLoop(new THREE.BufferGeometry(),dimensionMaterial);dimensions.add(line);ringLines.push(line);}
+ let disposed=false,raf=0,lastTime=null,frames=0,quietFrames=0,paused=false,lastEmit=0;
+ const reduced=matchMedia('(prefers-reduced-motion: reduce)');
+ function disposeGarment(){if(!garment)return;scene.remove(garment);const mats=new Set();garment.traverse(m=>{if(m.isMesh){m.geometry.dispose();(Array.isArray(m.material)?m.material:[m.material]).forEach(v=>mats.add(v));}});mats.forEach(m=>m.dispose());}
+ function updateRings(){const p=body.geometry.getAttribute('position');[29,4].forEach((row,n)=>{const points=[];for(let a=0;a<56;a++){const i=row*57+a;points.push(new THREE.Vector3(p.getX(i)*1.016,p.getY(i),p.getZ(i)*1.016));}ringLines[n].geometry.dispose();ringLines[n].geometry=new THREE.BufferGeometry().setFromPoints(points);});}
+ function visual(){body.visible=flags.body;garment.visible=flags.garment;dimensions.visible=flags.dimensions;garment.traverse(m=>{if(!m.isMesh)return;const materials=Array.isArray(m.material)?m.material:[m.material];for(const mat of materials){mat.transparent=flags.transparent;mat.opacity=flags.transparent?.5:1;mat.depthWrite=!flags.transparent;mat.needsUpdate=true;}});adapter.solver.wind=flags.motion&&!reduced.matches;}
+ function update(next){
+  state=next;updateBody(body,state);updateRings();
+  if(!adapter||garment.userData.configuration!==state.activeConfiguration){
+   disposeGarment();garment=createRestGarment(THREE,GARMENT_CATALOG[state.activeConfiguration]);garment.userData.configuration=state.activeConfiguration;scene.add(garment);adapter=createClothAdapter(garment,body);adapter.solver.settle(55);
+  }else{
+   const collider=createCollider(body),pins=adapter.solver.pins.map(pin=>{const k=pin.id*3,x=adapter.solver.rest[k],z=adapter.solver.rest[k+2],angle=Math.atan2(z,x),r=collider.radius(collider.ys.at(-1),angle)+.015;return {id:pin.id,position:[r*Math.cos(angle),pin.position[1],r*Math.sin(angle)]};});
+   adapter.solver.setCollider(collider,pins);if(reduced.matches)adapter.solver.settle(40);
   }
-  const camera=new THREE.PerspectiveCamera(33,1,.1,50);
-  camera.position.set(3.2,.24,4.9);
-  const controls=new OrbitControls(camera,canvas);
-  controls.target.set(0,.01,0);
-  controls.enableDamping=true;
-  controls.dampingFactor=.075;
-  controls.enablePan=false;
-  controls.minDistance=3.1;
-  controls.maxDistance=8.4;
-  controls.minPolarAngle=.58;
-  controls.maxPolarAngle=2.60;
-  controls.update();
-  const visual={body:true,garment:true,transparent:true,wire:false};
-  const viewAngles={
-    front:[0,.10,5.8],side:[5.8,.14,0],quarter:[3.4,.18,4.9],back:[0,.12,-5.8],rearquarter:[3.5,.2,-4.9]
-  };
-  let disposed=false,frameId=0;
-  let motionEnabled=false, motionBase=[];
-  function captureMotionBase(){
-    motionBase=['NUBYRA_Test_Jersey_Front','NUBYRA_Test_Jersey_Back'].map(name=>{
-      const mesh=garment.getObjectByName(name);
-      return mesh?{mesh,base:new Float32Array(mesh.geometry.getAttribute('position').array),
-        sign:name.endsWith('Front')?1:-1}:null;
-    }).filter(Boolean);
-  }
-  function animateMotion(time){
-    if(!motionEnabled||window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
-    for(const {mesh,base,sign} of motionBase){
-      const attr=mesh.geometry.getAttribute('position');
-      for(let i=0;i<attr.count;i++){
-        const k=i*3,x=base[k],y=base[k+1],z=base[k+2];
-        const hem=Math.max(0,Math.min(1,(-.30-y)/.85));
-        const wave=Math.sin(time*.0019+x*3.1+y*1.6);
-        attr.setXYZ(i,x,y,z+sign*hem*hem*.012*wave);
-      }
-      attr.needsUpdate=true;
-      mesh.geometry.computeVertexNormals();
+  quietFrames=0;adapter.sync();visual();onFrame(snapshot());
+ }
+ function snapshot(){
+  const d=adapter.solver.diagnostics(),p=adapter.solver.positions;let minY=Infinity,maxY=-Infinity;for(let i=1;i<p.length;i+=3){minY=Math.min(minY,p[i]);maxY=Math.max(maxY,p[i]);}
+  const bp=body.geometry.getAttribute('position'),xs=[],zs=[];for(let i=29*57;i<30*57;i++){xs.push(bp.getX(i));zs.push(bp.getZ(i));}
+  return {state:{...state},cloth:{...d,maxPenetrationCm:Math.max(d.maxPenetrationUnits,d.maxTrianglePenetrationUnits)*CM_PER_UNIT,meanGapCm:d.meanGapUnits*CM_PER_UNIT,meanDropCm:d.meanDropUnits*CM_PER_UNIT},body:{chestCm:ringPerimeter(body,29),hipCm:ringPerimeter(body,4),widthCm:(Math.max(...xs)-Math.min(...xs))*CM_PER_UNIT,frontDepthCm:Math.max(...zs)*CM_PER_UNIT,backDepthCm:-Math.min(...zs)*CM_PER_UNIT},garment:{code:state.activeConfiguration,restLengthCm:state.garmentLengthCm,hangingHeightCm:(maxY-minY)*CM_PER_UNIT},cmPerUnit:CM_PER_UNIT,paused,frames};
+ }
+ function outline(meshes,axis,center){
+  const points=[],coord=axis==='x'?0:2;let top=-Infinity,bottom=Infinity;
+  for(const m of meshes){const a=m.geometry.getAttribute('position').array;for(let i=1;i<a.length;i+=3){top=Math.max(top,a[i]);bottom=Math.min(bottom,a[i]);}}
+  for(let row=0;row<=40;row++){
+   const y=top-.00001-(top-bottom-.00002)*row/40;let min=Infinity,max=-Infinity;
+   for(const m of meshes){const a=m.geometry.getAttribute('position').array,index=m.geometry.index.array;
+    for(let i=0;i<index.length;i+=3)for(let e=0;e<3;e++){
+     const u=index[i+e]*3,v=index[i+(e+1)%3]*3,y0=a[u+1],y1=a[v+1];if((y-y0)*(y-y1)>0||Math.abs(y1-y0)<1e-9)continue;
+     const value=a[u+coord]+(a[v+coord]-a[u+coord])*(y-y0)/(y1-y0);min=Math.min(min,value);max=Math.max(max,value);
     }
+   }if(Number.isFinite(min))points.push({y,min,max});
   }
-  function restoreMotion(){
-    for(const {mesh,base} of motionBase){
-      const attr=mesh.geometry.getAttribute('position');
-      attr.array.set(base);attr.needsUpdate=true;
-      mesh.geometry.computeVertexNormals();
-    }
+  const f=(v,y)=>`${(center+v*45).toFixed(1)},${(25+(1.2-y)*45).toFixed(1)}`;
+  return points.length?'M'+points.map(b=>f(b.min,b.y)).join(' L')+' L'+points.reverse().map(b=>f(b.max,b.y)).join(' L')+'Z':'';
+ }
+ function reference(){return {bodyFront:outline([body],'x',57),bodySide:outline([body],'z',157),shirtFront:outline(adapter.surfaces,'x',57),shirtSide:outline(adapter.surfaces,'z',157)};}
+ function resize(){const {clientWidth:w,clientHeight:h}=canvas.parentElement;if(!w||!h)return;renderer.setSize(w,h,false);const half=1.8;camera.left=-half*w/h;camera.right=half*w/h;camera.top=half;camera.bottom=-half;camera.updateProjectionMatrix();}
+ const observer=new ResizeObserver(resize);observer.observe(canvas.parentElement);resize();
+ function emitLabels(){
+  const labels=[['ruler-label',-1.12,-.22,0],['length-label',.9,-1.25,.05]];
+  for(const [id,x,y,z] of labels){const el=document.getElementById(id);if(!el)continue;const p=new THREE.Vector3(x,y,z).project(camera);el.style.left=Math.max(12,Math.min(88,(p.x+1)*50))+'%';el.style.top=(1-p.y)*50+'%';el.hidden=!flags.dimensions||p.z>1;}
+ }
+ function tick(time){
+  if(disposed)return;const dt=lastTime===null?0:Math.min((time-lastTime)/1000,1/30);lastTime=time;
+  if(!document.hidden&&!paused&&!reduced.matches&&(adapter.solver.wind||quietFrames<160)){
+   adapter.solver.advance(dt);adapter.sync();quietFrames=adapter.solver.maxVelocity<.02?quietFrames+1:0;
   }
-
-  const updateSize=()=>{
-    const p=canvas.parentElement;
-    const width=Math.max(1,p.clientWidth),height=Math.max(1,p.clientHeight);
-    renderer.setSize(width,height,false);
-    camera.aspect=width/height;
-    camera.updateProjectionMatrix();
-  };
-  const observer=new ResizeObserver(updateSize);
-  observer.observe(canvas.parentElement);updateSize();
-  function applyMaterialMode(){
-    mannequin.visible=visual.body;
-    garment.visible=visual.garment;
-    mannequin.material.opacity=.83;
-    garment.traverse(obj=>{
-      if(!obj.isMesh)return;
-      const materials=Array.isArray(obj.material)?obj.material:[obj.material];
-      for(const mat of materials){
-        if(!mat)continue;
-        mat.transparent=visual.transparent;
-        mat.opacity=visual.transparent ? 0.43 : 1;
-        mat.depthWrite=!visual.transparent;
-        mat.side=THREE.DoubleSide;
-        mat.wireframe=visual.wire;
-        mat.needsUpdate=true;
-      }
-    });
-  }
-  applyMaterialMode();
-  function tick(time){
-    if(disposed)return;
-    if(motionEnabled)animateMotion(time);
-    controls.update();
-    renderer.render(scene,camera);
-    frameId=requestAnimationFrame(tick);
-  }
-  tick();
-  const api={
-    update(values){
-      // Único controlador común: las etiquetas nunca se pierden en esta frontera.
-      lastFit=applyFitToModels(mannequin,garment,values);
-      captureMotionBase();
-      refreshRearGuide();
-      return {body:mannequin,garment};
-    },
-    setMotion(on){
-      motionEnabled=Boolean(on);
-      if(!motionEnabled)restoreMotion();
-    },
-    setVisual(flags){
-      for(const key of Object.keys(visual))if(key in flags)visual[key]=Boolean(flags[key]);
-      applyMaterialMode();
-    },
-    view(name){
-      viewName=name in viewAngles?name:'quarter';
-      const coords=viewAngles[viewName];
-      camera.position.set(...coords);
-      controls.target.set(0,0,0);
-      controls.update();
-      guides.visible=['back','rearquarter','side'].includes(viewName);
-    },
-    setGuideTarget(mode){
-      if(!['body','garment'].includes(mode))return;
-      guideTarget=mode;
-      refreshRearGuide();
-    },
-    // Estimador geométrico, no medición de gravedad, fricción ni elasticidad real.
-    drapeDiagnostics(){
-      return lastFit?.drape??null;
-    },
-    currentRestConfiguration(){
-      return lastFit?.restConfiguration??null;
-    },
-    // Cálculo sobre vértices, sin equivalencia antropométrica en centímetros.
-    measureChestSections(){
-      return {
-        body:measureCrossSection(mannequin,.27),
-        garment:measureCrossSection(garment,.27)
-      };
-    },
-    // Únicamente referencia geométrica. No interpretar como separación de tejido medida en cm.
-    geometryDiagnostics(){
-      return {
-        bodyVertexCount:mannequin.geometry.getAttribute('position').count,
-        garmentPieces:garment.children.filter(x=>x.isMesh).length,
-        independentMeshReferences:mannequin!==garment,
-        bodyGeometryId:mannequin.geometry.uuid,
-        garmentGeometryId:garment.children[0].geometry.uuid
-      };
-    },
-    destroy(){
-      disposed=true;cancelAnimationFrame(frameId);
-      observer.disconnect();controls.dispose();
-      mannequin.geometry.dispose();mannequin.material.dispose();
-      originalLine.geometry.dispose();originalLine.material.dispose();
-      currentLine.geometry.dispose();currentLine.material.dispose();
-      garment.traverse(x=>{
-        if(x.isMesh){
-          x.geometry.dispose();
-          const mats=Array.isArray(x.material)?x.material:[x.material];
-          mats.forEach(m=>m?.dispose());
-        }
-      });
-      renderer.dispose();
-    }
-  };
-  api.update(initial);
-  return api;
+  controls.update();emitLabels();renderer.render(scene,camera);frames++;
+  if(time-lastEmit>350){onFrame(snapshot());lastEmit=time;}
+  raf=requestAnimationFrame(tick);
+ }
+ const visibility=()=>{lastTime=null;};document.addEventListener('visibilitychange',visibility);
+ const preference=()=>{adapter.solver.wind=flags.motion&&!reduced.matches;if(reduced.matches){adapter.solver.settle(30);adapter.sync();}lastTime=null;onFrame(snapshot());};reduced.addEventListener('change',preference);
+ update(initial);controls.update();raf=requestAnimationFrame(tick);
+ return {update,snapshot,reference,setVisual(next){Object.assign(flags,next);if(!flags.body&&!flags.garment)flags.garment=true;visual();quietFrames=0;},view(name){const v={front:[0,0,6],side:[6,0,0],back:[0,0,-6],quarter:[3,0,6]}[name]||[3,0,6];camera.position.set(...v);controls.update();},impulse(){if(!reduced.matches){adapter.solver.impulse();quietFrames=0;}},settle(){adapter.solver.settle(60);adapter.sync();quietFrames=160;onFrame(snapshot());},pause(value){paused=Boolean(value);lastTime=null;},destroy(){disposed=true;cancelAnimationFrame(raf);observer.disconnect();controls.dispose();document.removeEventListener('visibilitychange',visibility);reduced.removeEventListener('change',preference);disposeGarment();body.geometry.dispose();body.material.dispose();dimensions.children.forEach(x=>x.geometry.dispose());dimensionMaterial.dispose();renderer.dispose();}};
 }

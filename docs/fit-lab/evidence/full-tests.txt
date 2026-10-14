@@ -1,0 +1,537 @@
+
+> nubyra-login-frontend@0.1.0 test
+> node --test tests/*.test.mjs
+
+TAP version 13
+# NUBYRA_TOPOLOGY_V2={"triangles":11680,"fabricTriangles":6880,"trimTriangles":4800,"meshCount":12,"ratioFabric":0.589,"byPiece":{"NUBYRA_Test_Jersey_Front":2880,"NUBYRA_Test_Jersey_Back":2880,"NUBYRA_Test_Side_Left":560,"NUBYRA_Test_Side_Right":560,"trim-front-neck":888,"trim-front-armhole-left":552,"trim-front-armhole-right":552,"trim-front-hem":408,"trim-back-neck":888,"trim-back-armhole-left":552,"trim-back-armhole-right":552,"trim-back-hem":408}}
+# Subtest: malla femenina visual abierta: mallas separadas y UV/normales correctas
+ok 1 - malla femenina visual abierta: mallas separadas y UV/normales correctas
+  ---
+  duration_ms: 89.277229
+  type: 'test'
+  ...
+# Subtest: topología v2: pecho, cintura, cadera y gradientes de superficie suaves
+ok 2 - topología v2: pecho, cintura, cadera y gradientes de superficie suaves
+  ---
+  duration_ms: 0.679565
+  type: 'test'
+  ...
+# Subtest: malla v2 regular y triangulada: centros continuos y normales coherentes
+ok 3 - malla v2 regular y triangulada: centros continuos y normales coherentes
+  ---
+  duration_ms: 59.439359
+  type: 'test'
+  ...
+# Subtest: distribución geométrica v2: menos coste relativo de ribetes y presupuesto móvil acotado
+ok 4 - distribución geométrica v2: menos coste relativo de ribetes y presupuesto móvil acotado
+  ---
+  duration_ms: 25.981843
+  type: 'test'
+  ...
+# Subtest: exportación GLB 2.0 del modelo de ensayo auditable e importable
+ok 5 - exportación GLB 2.0 del modelo de ensayo auditable e importable
+  ---
+  duration_ms: 91.269552
+  type: 'test'
+  ...
+# Subtest: los dorsales admitidos son 0, 00, 1..99; se excluyen tres dígitos y letras
+ok 6 - los dorsales admitidos son 0, 00, 1..99; se excluyen tres dígitos y letras
+  ---
+  duration_ms: 1.749447
+  type: 'test'
+  ...
+# Subtest: texto normalizado y límites de color evitan entradas arbitrarias
+ok 7 - texto normalizado y límites de color evitan entradas arbitrarias
+  ---
+  duration_ms: 0.358268
+  type: 'test'
+  ...
+# Subtest: las reservas estáticas del frontal y la espalda no se cruzan ni a 18 px
+ok 8 - las reservas estáticas del frontal y la espalda no se cruzan ni a 18 px
+  ---
+  duration_ms: 0.897803
+  type: 'test'
+  ...
+# Subtest: nombre largo y sponsor extremo activan error de ajuste, nunca overflow silencioso
+ok 9 - nombre largo y sponsor extremo activan error de ajuste, nunca overflow silencioso
+  ---
+  duration_ms: 0.738781
+  type: 'test'
+  ...
+# Subtest: la configuración serializada no contiene imágenes ni aprueba fabricación
+ok 10 - la configuración serializada no contiene imágenes ni aprueba fabricación
+  ---
+  duration_ms: 1.98227
+  type: 'test'
+  ...
+# Subtest: el visor 3D y el editor son reales pero aislados de la landing y login
+ok 11 - el visor 3D y el editor son reales pero aislados de la landing y login
+  ---
+  duration_ms: 0.435699
+  type: 'test'
+  ...
+# Subtest: presets explícitos en vez de colores inventados por HTML
+ok 12 - presets explícitos en vez de colores inventados por HTML
+  ---
+  duration_ms: 0.22276
+  type: 'test'
+  ...
+# Subtest: auditoría GLB 2.0: inspecciona triángulos, materiales y cobertura UV
+ok 13 - auditoría GLB 2.0: inspecciona triángulos, materiales y cobertura UV
+  ---
+  duration_ms: 0.796663
+  type: 'test'
+  ...
+# Subtest: auditoría GLB rechaza cabeceras falsas, tamaños inconsistentes y versiones distintas de 2
+ok 14 - auditoría GLB rechaza cabeceras falsas, tamaños inconsistentes y versiones distintas de 2
+  ---
+  duration_ms: 0.969389
+  type: 'test'
+  ...
+# Subtest: GLB excesivo o con compresión no soportada no entra en GLTFLoader
+ok 15 - GLB excesivo o con compresión no soportada no entra en GLTFLoader
+  ---
+  duration_ms: 21.367881
+  type: 'test'
+  ...
+# Subtest: atlas: la parte frontal y trasera ocupan mitades separadas y texto queda derecha arriba
+ok 16 - atlas: la parte frontal y trasera ocupan mitades separadas y texto queda derecha arriba
+  ---
+  duration_ms: 0.532031
+  type: 'test'
+  ...
+# Subtest: GLB importado aplica atlas como material y desactiva planos flotantes
+ok 17 - GLB importado aplica atlas como material y desactiva planos flotantes
+  ---
+  duration_ms: 0.225411
+  type: 'test'
+  ...
+# Subtest: ClothingAxis registrado como candidato, sin presumir adquisición o autorización WebGL pública
+ok 18 - ClothingAxis registrado como candidato, sin presumir adquisición o autorización WebGL pública
+  ---
+  duration_ms: 0.128597
+  type: 'test'
+  ...
+# Subtest: GLB autocontenido: único archivo, límite de tamaño y mezclas bloqueadas
+ok 19 - GLB autocontenido: único archivo, límite de tamaño y mezclas bloqueadas
+  ---
+  duration_ms: 0.663366
+  type: 'test'
+  ...
+# Subtest: glTF externo con BIN y texturas: dependencias detectadas y cobertura UV
+ok 20 - glTF externo con BIN y texturas: dependencias detectadas y cobertura UV
+  ---
+  duration_ms: 0.932829
+  type: 'test'
+  ...
+# Subtest: glTF bloquea URLs externas, path traversal, recursos faltantes y paquetes excesivos
+ok 21 - glTF bloquea URLs externas, path traversal, recursos faltantes y paquetes excesivos
+  ---
+  duration_ms: 0.490236
+  type: 'test'
+  ...
+# Subtest: integración del paquete y orientación presentes sin modificar la landing pública
+ok 22 - integración del paquete y orientación presentes sin modificar la landing pública
+  ---
+  duration_ms: 0.214693
+  type: 'test'
+  ...
+# Subtest: marcajes del SVG ajustados al torso y render frontal/trasera sin fallos
+ok 23 - marcajes del SVG ajustados al torso y render frontal/trasera sin fallos
+  ---
+  duration_ms: 0.732943
+  type: 'test'
+  ...
+# Subtest: candidatos de tejido distinguen camiseta, pantalón y ribete sin modificar materiales
+ok 24 - candidatos de tejido distinguen camiseta, pantalón y ribete sin modificar materiales
+  ---
+  duration_ms: 0.928005
+  type: 'test'
+  ...
+# Subtest: selección de mallas es explícita y valida identidad, repetidos y límite
+ok 25 - selección de mallas es explícita y valida identidad, repetidos y límite
+  ---
+  duration_ms: 0.428055
+  type: 'test'
+  ...
+# Subtest: el importador no altera automáticamente la malla y exige confirmar los marcajes
+ok 26 - el importador no altera automáticamente la malla y exige confirmar los marcajes
+  ---
+  duration_ms: 0.213868
+  type: 'test'
+  ...
+# Subtest: modelo de prueba sin descarga: geometría propia NUBYRA y separada de ClothingAxis
+ok 27 - modelo de prueba sin descarga: geometría propia NUBYRA y separada de ClothingAxis
+  ---
+  duration_ms: 0.334243
+  type: 'test'
+  ...
+# Subtest: camiseta libre de ensayo recorre exportador glTF, importador y mallas seleccionadas
+ok 28 - camiseta libre de ensayo recorre exportador glTF, importador y mallas seleccionadas
+  ---
+  duration_ms: 0.16446
+  type: 'test'
+  ...
+# Subtest: el visor 3D y la vista SVG no dibujan logotipos fijos N/NC
+ok 29 - el visor 3D y la vista SVG no dibujan logotipos fijos N/NC
+  ---
+  duration_ms: 0.558851
+  type: 'test'
+  ...
+# Subtest: la paleta sigue modificando ribetes y paneles de la nueva malla, no los GLB de terceros
+ok 30 - la paleta sigue modificando ribetes y paneles de la nueva malla, no los GLB de terceros
+  ---
+  duration_ms: 0.160914
+  type: 'test'
+  ...
+# Subtest: el configurador inicia con la malla NUBYRA v2 en lugar del volumen temporal
+ok 31 - el configurador inicia con la malla NUBYRA v2 en lugar del volumen temporal
+  ---
+  duration_ms: 0.162767
+  type: 'test'
+  ...
+# Subtest: la propuesta 03 se referencia en portada y acceso, con invalidación de caché
+ok 32 - la propuesta 03 se referencia en portada y acceso, con invalidación de caché
+  ---
+  duration_ms: 1.41959
+  type: 'test'
+  ...
+# Subtest: el favicon ICO contiene siete resoluciones cuadradas verificables
+ok 33 - el favicon ICO contiene siete resoluciones cuadradas verificables
+  ---
+  duration_ms: 2.475087
+  type: 'test'
+  ...
+# Subtest: SVG conserva la silueta femenina y el balón, con rutas vectoriales internas
+ok 34 - SVG conserva la silueta femenina y el balón, con rutas vectoriales internas
+  ---
+  duration_ms: 0.645932
+  type: 'test'
+  ...
+# Subtest: PNG y original seleccionado conservan sus dimensiones
+ok 35 - PNG y original seleccionado conservan sus dimensiones
+  ---
+  duration_ms: 1.496737
+  type: 'test'
+  ...
+# Subtest: manifiesto web apunta a iconos existentes y no introduce servicios
+ok 36 - manifiesto web apunta a iconos existentes y no introduce servicios
+  ---
+  duration_ms: 0.402259
+  type: 'test'
+  ...
+# Subtest: chest and hip polygon circumferences match input at every profile extreme
+ok 37 - chest and hip polygon circumferences match input at every profile extreme
+  ---
+  duration_ms: 120.318298
+  type: 'test'
+  ...
+# Subtest: each of the three sliders changes geometry without changing body circumference
+ok 38 - each of the three sliders changes geometry without changing body circumference
+  ---
+  duration_ms: 35.725714
+  type: 'test'
+  ...
+# Subtest: height changes torso proportion; fixed garment rest stays body-independent
+ok 39 - height changes torso proportion; fixed garment rest stays body-independent
+  ---
+  duration_ms: 446.260458
+  type: 'test'
+  ...
+# Subtest: gravity causes sag and contact without mutating fixed rest or pins
+ok 40 - gravity causes sag and contact without mutating fixed rest or pins
+  ---
+  duration_ms: 1665.095742
+  type: 'test'
+  ...
+# Subtest: same input and steps give identical solutions
+ok 41 - same input and steps give identical solutions
+  ---
+  duration_ms: 1237.812864
+  type: 'test'
+  ...
+# Subtest: impulse/wind produce dynamics; damping settles without decorative vertex animation
+ok 42 - impulse/wind produce dynamics; damping settles without decorative vertex animation
+  ---
+  duration_ms: 2597.801829
+  type: 'test'
+  ...
+# Subtest: extreme body/sliders stay finite; contact corrections applied to enlarged torso
+ok 43 - extreme body/sliders stay finite; contact corrections applied to enlarged torso
+  ---
+  duration_ms: 1302.998258
+  type: 'test'
+  ...
+# Subtest: invalid solver geometry rejected
+ok 44 - invalid solver geometry rejected
+  ---
+  duration_ms: 4.57546
+  type: 'test'
+  ...
+# Subtest: no scroll containers nested in panels
+ok 45 - no scroll containers nested in panels
+  ---
+  duration_ms: 1.342912
+  type: 'test'
+  ...
+# Subtest: reference and 3D are colocated; diagnostics secondary
+ok 46 - reference and 3D are colocated; diagnostics secondary
+  ---
+  duration_ms: 0.494388
+  type: 'test'
+  ...
+# Subtest: old exclusive profile buttons, duplicate body forms and magic deformation paths are absent from runtime
+ok 47 - old exclusive profile buttons, duplicate body forms and magic deformation paths are absent from runtime
+  ---
+  duration_ms: 0.416889
+  type: 'test'
+  ...
+# Subtest: auto starts N1-2 and applies the recommender exactly
+ok 48 - auto starts N1-2 and applies the recommender exactly
+  ---
+  duration_ms: 14.534561
+  type: 'test'
+  ...
+# Subtest: manual holds selected garment while all body measurements change
+ok 49 - manual holds selected garment while all body measurements change
+  ---
+  duration_ms: 0.575788
+  type: 'test'
+  ...
+# Subtest: outside range never auto applies an unsuitable candidate
+ok 50 - outside range never auto applies an unsuitable candidate
+  ---
+  duration_ms: 0.209115
+  type: 'test'
+  ...
+# Subtest: shape variables combine, preserve centimeters, and reset consistently
+ok 51 - shape variables combine, preserve centimeters, and reset consistently
+  ---
+  duration_ms: 1.278306
+  type: 'test'
+  ...
+# Subtest: invalid numbers and boundary values are finite and clamped
+ok 52 - invalid numbers and boundary values are finite and clamped
+  ---
+  duration_ms: 1.022524
+  type: 'test'
+  ...
+# Subtest: six catalog rest configurations remain distinct, fixed and not certified
+ok 53 - six catalog rest configurations remain distinct, fixed and not certified
+  ---
+  duration_ms: 0.35891
+  type: 'test'
+  ...
+# Subtest: controller shares transitions rather than recomputing catalog rules
+ok 54 - controller shares transitions rather than recomputing catalog rules
+  ---
+  duration_ms: 1.099452
+  type: 'test'
+  ...
+# Subtest: all shape controls are generated with range 0..10
+ok 55 - all shape controls are generated with range 0..10
+  ---
+  duration_ms: 0.226384
+  type: 'test'
+  ...
+# Subtest: export contains both selection inputs and actual simulation diagnostics
+ok 56 - export contains both selection inputs and actual simulation diagnostics
+  ---
+  duration_ms: 0.27653
+  type: 'test'
+  ...
+# Subtest: los recursos locales de la landing y su ruta 3D existen
+ok 57 - los recursos locales de la landing y su ruta 3D existen
+  ---
+  duration_ms: 1.492133
+  type: 'test'
+  ...
+# Subtest: los seis modelos de galería usan el bucket público y conservan copia local
+ok 58 - los seis modelos de galería usan el bucket público y conservan copia local
+  ---
+  duration_ms: 0.443026
+  type: 'test'
+  ...
+# Subtest: la portada mantiene Storage, el catálogo y los estilos de marca
+ok 59 - la portada mantiene Storage, el catálogo y los estilos de marca
+  ---
+  duration_ms: 0.159718
+  type: 'test'
+  ...
+# Subtest: la portada refleja el titular vigente en Figma
+ok 60 - la portada refleja el titular vigente en Figma
+  ---
+  duration_ms: 0.265065
+  type: 'test'
+  ...
+# Subtest: la navegación enlaza exclusivamente anclas existentes
+ok 61 - la navegación enlaza exclusivamente anclas existentes
+  ---
+  duration_ms: 0.427924
+  type: 'test'
+  ...
+# Subtest: el acceso privado no se anuncia públicamente y la landing no duplica la autenticación
+ok 62 - el acceso privado no se anuncia públicamente y la landing no duplica la autenticación
+  ---
+  duration_ms: 0.256847
+  type: 'test'
+  ...
+# Subtest: el configurador 3D sustituye la demo 2D como entrada del sitio
+ok 63 - el configurador 3D sustituye la demo 2D como entrada del sitio
+  ---
+  duration_ms: 0.518249
+  type: 'test'
+  ...
+# Subtest: no quedan referencias a imágenes temporales de Figma
+ok 64 - no quedan referencias a imágenes temporales de Figma
+  ---
+  duration_ms: 0.178842
+  type: 'test'
+  ...
+# Subtest: en ultrawide la fotografía y el velo usan el mismo lienzo centrado
+ok 65 - en ultrawide la fotografía y el velo usan el mismo lienzo centrado
+  ---
+  duration_ms: 0.566574
+  type: 'test'
+  ...
+# Subtest: en escritorio la fotografía queda fusionada detrás del titular
+ok 66 - en escritorio la fotografía queda fusionada detrás del titular
+  ---
+  duration_ms: 0.585706
+  type: 'test'
+  ...
+# Subtest: Hablemos sustituye Contacto en la navegación de escritorio y móvil
+ok 67 - Hablemos sustituye Contacto en la navegación de escritorio y móvil
+  ---
+  duration_ms: 0.38047
+  type: 'test'
+  ...
+# Subtest: vacant config stays closed, creates no client, removes callback query
+ok 68 - vacant config stays closed, creates no client, removes callback query
+  ---
+  duration_ms: 14.717173
+  type: 'test'
+  ...
+# Subtest: wrong origin or callback path stays closed
+ok 69 - wrong origin or callback path stays closed
+  ---
+  duration_ms: 3.457057
+  type: 'test'
+  ...
+# Subtest: secret-like API key is rejected
+ok 70 - secret-like API key is rejected
+  ---
+  duration_ms: 3.145466
+  type: 'test'
+  ...
+# Subtest: no session exposes Google login but makes no access RPC
+ok 71 - no session exposes Google login but makes no access RPC
+  ---
+  duration_ms: 3.223257
+  type: 'test'
+  ...
+# Subtest: approved role only comes from access RPC
+ok 72 - approved role only comes from access RPC
+  ---
+  duration_ms: 3.305203
+  type: 'test'
+  ...
+# Subtest: pending and denied hide private state
+ok 73 - pending and denied hide private state
+  ---
+  duration_ms: 4.604839
+  type: 'test'
+  ...
+# Subtest: unknown roles, malformed responses and RPC errors fail closed
+ok 74 - unknown roles, malformed responses and RPC errors fail closed
+  ---
+  duration_ms: 4.45047
+  type: 'test'
+  ...
+# Subtest: OAuth error does not reuse a previous session after focus or retry
+ok 75 - OAuth error does not reuse a previous session after focus or retry
+  ---
+  duration_ms: 2.509796
+  type: 'test'
+  ...
+# Subtest: OAuth error in fragment also blocks an existing session and cleans callback
+ok 76 - OAuth error in fragment also blocks an existing session and cleans callback
+  ---
+  duration_ms: 2.709094
+  type: 'test'
+  ...
+# Subtest: all OAuth error fields block prior sessions in query and fragment
+ok 77 - all OAuth error fields block prior sessions in query and fragment
+  ---
+  duration_ms: 8.896277
+  type: 'test'
+  ...
+# Subtest: callback cleanup preserves unrelated query parameters and fragments
+ok 78 - callback cleanup preserves unrelated query parameters and fragments
+  ---
+  duration_ms: 10.405001
+  type: 'test'
+  ...
+# Subtest: initialization errors cannot fall back to previous session without a code
+ok 79 - initialization errors cannot fall back to previous session without a code
+  ---
+  duration_ms: 3.311906
+  type: 'test'
+  ...
+# Subtest: PKCE without verifier cannot silently reuse old session
+ok 80 - PKCE without verifier cannot silently reuse old session
+  ---
+  duration_ms: 2.227882
+  type: 'test'
+  ...
+# Subtest: PKCE exchange error remains closed with prior session
+ok 81 - PKCE exchange error remains closed with prior session
+  ---
+  duration_ms: 1.501446
+  type: 'test'
+  ...
+# Subtest: successful PKCE callback validates through access RPC and clears code
+ok 82 - successful PKCE callback validates through access RPC and clears code
+  ---
+  duration_ms: 3.143818
+  type: 'test'
+  ...
+# Subtest: revocation on focus clears role and private view
+ok 83 - revocation on focus clears role and private view
+  ---
+  duration_ms: 7.078957
+  type: 'test'
+  ...
+# Subtest: late RPC result cannot restore access after SIGNED_OUT
+ok 84 - late RPC result cannot restore access after SIGNED_OUT
+  ---
+  duration_ms: 2.936906
+  type: 'test'
+  ...
+# Subtest: logout succeeds locally and failure does not display private view
+ok 85 - logout succeeds locally and failure does not display private view
+  ---
+  duration_ms: 5.019254
+  type: 'test'
+  ...
+# Subtest: real SDK: failed fragment callback cannot authorize previous session
+ok 86 - real SDK: failed fragment callback cannot authorize previous session
+  ---
+  duration_ms: 67.711492
+  type: 'test'
+  ...
+# Subtest: real SDK: valid previous session still resolves authorization normally
+ok 87 - real SDK: valid previous session still resolves authorization normally
+  ---
+  duration_ms: 18.238783
+  type: 'test'
+  ...
+1..87
+# tests 87
+# suites 0
+# pass 87
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 8982.612001
