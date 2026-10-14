@@ -257,3 +257,5 @@ html,body{overflow-x:clip}
 /* No mostrar barras nativas; se conserva scroll vertical con rueda, teclado y táctil. */
 html,body{scrollbar-width:none;-ms-overflow-style:none}
 html::-webkit-scrollbar,body::-webkit-scrollbar{display:none;width:0;height:0}
+
+.scene-measures{position:absolute;z-index:3;top:14px;right:14px;display:flex;flex-direction:column;gap:5px;max-width:min(46%,210px);background:#ffffffed;border:1px solid #d3e3ec;border-radius:12px;padding:12px;box-shadow:0 8px 20px #09233b12;font-size:11px;color:#23445e;font-variant-numeric:tabular-nums;pointer-events:none}.scene-measures strong{font-size:10px;letter-spacing:.09em;color:#9a700d;margin-bottom:4px}.scene-measures span{line-height:1.35}@media(max-width:680px){.scene-measures{top:9px;right:9px;padding:8px;font-size:10px;max-width:48%}}
