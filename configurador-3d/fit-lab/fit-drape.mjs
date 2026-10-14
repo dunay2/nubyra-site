@@ -74,7 +74,10 @@ export function estimateDrapeFromGeometry(body,garment,garmentLengthCm){
  const bodyFront=meshFrontAt(body);
  const garmentFront=meshFrontAt(front);
  // Separación solo ilustrativa en unidades de la malla, no cm de holgura.
- const requiredShift=Math.max(0,bodyFront+.025-garmentFront);
+ // La tela en reposo también puede estar demasiado separada del torso.
+ // Aproximación: acercar el panel delantero, pero mantener una separación visible
+ // y limitar el desplazamiento para no fingir una solución de colisiones 3D.
+ const requiredShift=Math.max(-.18,Math.min(.32,bodyFront+.045-garmentFront));
  const source=Array.from(front.geometry.getAttribute('position').array);
  const restLength=fixedFrontLength(front,source,0,0);
  const drapedUnlifted=fixedFrontLength(front,source,requiredShift,0);
@@ -98,6 +101,8 @@ export function estimateDrapeFromGeometry(body,garment,garmentLengthCm){
  const hemLiftCm=lift*Math.max(0,garmentLengthCm)/(1.20-(-1.22));
  return {
   frontProjectionUnits:requiredShift,
+  contactMethod:'limited-front-proximity-offset',
+  approximatesGravity:true,
   frontHemLiftUnits:lift,
   estimatedFrontHemLiftCm:hemLiftCm,
   pathLengthRestUnits:restLength,
