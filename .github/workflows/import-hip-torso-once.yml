@@ -1,0 +1,49 @@
+name: Import hip and torso cut once
+on:
+  push:
+    branches: ['fix/fit-lab-hip-drape-upper-torso']
+    paths: ['.github/workflows/import-hip-torso-once.yml']
+permissions:
+  contents: write
+jobs:
+  persist:
+    if: github.actor == 'dunay2'
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/fit-lab-hip-drape-upper-torso
+          fetch-depth: 0
+      - name: Verify and apply scoped source
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 417ae760b87caf9bc815dfd91c4d7fe22e728f94 HEAD
+          curl --fail --silent --show-error --max-time 60 'https://sb-6e1nu673qlt4.vercel.run/source.patch' -o /tmp/source.patch
+          echo '05deef0e639e7586fa4abab9b9c5007d383aab3e01e1a7a5a97a365912136571  /tmp/source.patch' | sha256sum -c -
+          git apply --numstat /tmp/source.patch | cut -f3 | while read -r path; do
+            case "$path" in
+              configurador-3d/fit-lab/body-surface.mjs|configurador-3d/fit-lab/outfit-reference.mjs|scripts/fit-lab-e2e.mjs|scripts/fit-lab-hip-torso-review.mjs|tests/fit-lab.hip-torso.test.mjs|docs/fit-lab/HIP_TORSO_RELEASE.md|docs/fit-lab/evidence/hip-torso/metrics.json|.github/workflows/validate-configurador-3d.yml) ;;
+              *) echo "Unexpected path: $path"; exit 1 ;;
+            esac
+          done
+          git apply --check /tmp/source.patch
+          git apply --index /tmp/source.patch
+      - name: Fetch reviewed-version evidence for inspection
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --max-time 60 'https://sb-6e1nu673qlt4.vercel.run/before-refined.zip' -o /tmp/before-refined.zip
+          echo '38e7926332285f6b41c8bbf97b4ad14d05bb38f41aae9dc9d577682a66adcc6f  /tmp/before-refined.zip' | sha256sum -c -
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hip-torso-before-refined
+          path: /tmp/before-refined.zip
+          retention-days: 7
+      - name: Persist source and remove one-use transport
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/import-hip-torso-once.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'feat(fit-lab): hip alignment, loose leg openings and refined upper torso'
+          git push origin HEAD:fix/fit-lab-hip-drape-upper-torso
