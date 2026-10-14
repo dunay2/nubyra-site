@@ -29,6 +29,8 @@ jobs:
           done
           git apply --check /tmp/source.patch
           git apply --index /tmp/source.patch
+          # Workflow changes are submitted separately through the authorized repository connector.
+          git restore --source=HEAD --staged --worktree .github/workflows/validate-configurador-3d.yml
       - name: Fetch reviewed-version evidence for inspection
         run: |
           set -euo pipefail
