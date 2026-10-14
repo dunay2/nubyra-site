@@ -4,7 +4,7 @@
  * Shoulder/neck proportions are design assumptions, not inferred measurements.
  */
 export const CM_PER_UNIT = 64 / 2.42;
-export const BODY_VERSION = 'nubyra.shoulder-torso/1.0';
+export const BODY_VERSION = 'nubyra.shoulder-torso/1.1';
 export const BODY_LAYOUT = Object.freeze({rows: 69, around: 56, chestRow: 29, hipRow: 4});
 const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -57,7 +57,12 @@ export function updateBody(mesh, state) {
   }
   const {rows, around, chestRow, hipRow} = mesh.userData;
   const p = mesh.geometry.getAttribute('position'), scale = state.bodyHeightCm / 160;
-  const yFrom = y => 1.2 + (y - 1.2) * scale;
+  // Raise the chest region only, with zero change below the lower rib cage
+  // and above the shoulders. Measured rings keep exactly the same perimeter.
+  const yFrom = y => {
+    const u=clamp((y+.06)/.86),lift=.065*16*u*u*(1-u)*(1-u);
+    return 1.2+(y+lift-1.2)*scale;
+  };
   // Chest/hip rings remain exact; unspecified shoulder dimensions are a neutral preset.
   const breadth = clamp(.745 * Math.pow(state.bodyChestCm / 88, .35), .65, .86);
   const neck = clamp(.218 * Math.pow(state.bodyChestCm / 88, .2), .198, .24);
@@ -89,15 +94,15 @@ export function updateBody(mesh, state) {
         upper = [
           [.24, Math.max(...previousRing.map(v=>v[0])), Math.max(...previousRing.map(v=>v[1])), -Math.min(...previousRing.map(v=>v[1]))],
           [.29, chestWidth, chestFront, chestBack],
-          [.48, chestWidth*.98, chestFront*.89, chestBack*.97],
-          [.72, breadth*.9, chestFront*.68, chestBack*.9],
+          [.48, chestWidth*.98, chestFront*.94, chestBack*1.015],
+          [.72, breadth*.9, chestFront*.69, chestBack*.96],
           [.93, breadth, .207, .224],
           [1.08, breadth*.96, .182, .207],
           [1.20, breadth*.8, .17, .20],
-          [1.31, breadth*.49, .176, .203],
-          [1.41, neck*1.08, .18, .202],
-          [1.51, neck, .177, .194],
-          [1.62, neck*.97, .179, .19]
+          [1.31, breadth*.52, .178, .203],
+          [1.41, neck*1.16, .181, .198],
+          [1.51, neck*.98, .168, .180],
+          [1.62, neck*.93, .162, .174]
         ];
       }
     } else {
