@@ -24,7 +24,7 @@ jobs:
   checks:
     name: Sintaxis y pruebas Node 22
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 18
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -52,6 +52,10 @@ jobs:
         env:
           EVIDENCE_DIR: artifacts/fit-lab
         run: npm run test:e2e:fit-lab | tee artifacts/browser-tests.txt
+      - name: Confirmación de medidas, equipación y personalización
+        env:
+          EVIDENCE_DIR: artifacts/equipment
+        run: node scripts/fit-lab-equipment-e2e.mjs | tee artifacts/equipment-tests.txt
       - name: Medir contacto, capturar vistas y revisar materiales
         env:
           EVIDENCE_DIR: artifacts/natural-contact
