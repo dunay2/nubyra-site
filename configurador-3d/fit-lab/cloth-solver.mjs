@@ -6,7 +6,7 @@
  */
 export const CLOTH_VERSION='nubyra.xpbd/1.0';
 export class ClothSolver {
- constructor({positions,edges,triangles=[],bends=[],seams=[],pins=[],collider,unitMeters=64/242,clearance=.012,compliance=1e-7}){
+ constructor({positions,edges,triangles=[],bends=[],seams=[],pins=[],collider,unitMeters=64/242,clearance=.012,compliance=1e-7,initialTranslation=[0,0,0]}){
   if(positions.length%3||positions.some(v=>!Number.isFinite(v)))throw Error('Invalid cloth positions');
   this.triangles=triangles;this.rest=new Float64Array(positions);this.positions=new Float64Array(positions);this.previous=new Float64Array(positions);this.velocity=new Float64Array(positions.length);
   this.weights=new Float64Array(positions.length/3).fill(1);this.pins=pins;this.seams=seams;this.collider=collider;this.clearance=clearance;
@@ -14,7 +14,11 @@ export class ClothSolver {
   this.edges=edges.map(([a,b])=>this.constraint(a,b,compliance));
   this.bends=bends.map(([a,b])=>this.constraint(a,b,.003));
   for(const pin of pins)this.weights[pin.id]=0;
-  this.applyPins();this.projectContacts();
+  // Arrange the whole garment at shoulder height before pinning. Rest lengths
+  // remain authored; moving only the support vertices creates artificial strain.
+  if(initialTranslation.length!==3||initialTranslation.some(v=>!Number.isFinite(v)))throw Error('Invalid initial cloth translation');
+  for(let i=0;i<this.positions.length;i++)this.positions[i]+=initialTranslation[i%3];
+  this.applyPins();this.projectContacts();this.previous.set(this.positions);
  }
  constraint(a,b,compliance){
   const p=this.rest,i=a*3,j=b*3;return {a,b,length:Math.hypot(p[i]-p[j],p[i+1]-p[j+1],p[i+2]-p[j+2]),compliance,lambda:0};
