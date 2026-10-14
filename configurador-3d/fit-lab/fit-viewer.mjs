@@ -48,7 +48,16 @@ export function createFitViewer(canvas,initial,onFrame=()=>{}){
   const f=(v,y)=>`${(center+v*45).toFixed(1)},${(25+(1.2-y)*45).toFixed(1)}`;
   return points.length?'M'+points.map(b=>f(b.min,b.y)).join(' L')+' L'+points.reverse().map(b=>f(b.max,b.y)).join(' L')+'Z':'';
  }
- function reference(){return {bodyFront:outline([body],'x',57),bodySide:outline([body],'z',157),shirtFront:outline(adapter.surfaces,'x',57),shirtSide:outline(adapter.surfaces,'z',157)};}
+ let bodyReference=null,garmentReference=null,referenceDirty=true,lastReferenceMs=-Infinity,referenceSteps=-1;
+ function reference(){
+  if(!bodyReference)bodyReference={bodyFront:outline([body],'x',57),bodySide:outline([body],'z',157)};
+  const now=performance.now();
+  if(referenceDirty||!garmentReference||(adapter.solver.steps!==referenceSteps&&now-lastReferenceMs>=700)){
+   garmentReference={shirtFront:outline(adapter.surfaces,'x',57),shirtSide:outline(adapter.surfaces,'z',157)};
+   lastReferenceMs=now;referenceSteps=adapter.solver.steps;referenceDirty=false;
+  }
+  return {...bodyReference,...garmentReference};
+ }
  function resize(){const {clientWidth:w,clientHeight:h}=canvas.parentElement;if(!w||!h)return;renderer.setSize(w,h,false);const half=2.05;camera.left=-half*w/h;camera.right=half*w/h;camera.top=half;camera.bottom=-half;camera.updateProjectionMatrix();}
  const observer=new ResizeObserver(resize);observer.observe(canvas.parentElement);resize();
  function emitLabels(){
