@@ -124,6 +124,21 @@ export function createReferenceBody(T){
     transparent:true,opacity:.80,depthWrite:false,side:T.DoubleSide
   });
   const mesh=new T.Mesh(geo,material);
+  // Referencia femenina sintética: hombros y cintura suavizados, sin atribuir
+  // medidas anatómicas a una jugadora real. La escala métrica sigue siendo común.
+  const position=geo.getAttribute('position');
+  for(let i=0;i<position.count;i++){
+    const x=position.getX(i),y=position.getY(i),z=position.getZ(i);
+    const waist=Math.exp(-Math.pow((y+.48)/.36,2));
+    const shoulder=Math.exp(-Math.pow((y-.86)/.29,2));
+    const hip=Math.exp(-Math.pow((y+.91)/.38,2));
+    const factor=1-.13*waist+.06*shoulder+.075*hip;
+    position.setXYZ(i,x*factor,y,z*(1-.055*waist+.045*hip));
+  }
+  position.needsUpdate=true;
+  geo.computeVertexNormals();
+  geo.computeBoundingBox();
+  geo.computeBoundingSphere();
   mesh.name='NUBYRA / torso sintético independiente';
   mesh.userData.fitRole='body';mesh.renderOrder=0;
   return mesh;
