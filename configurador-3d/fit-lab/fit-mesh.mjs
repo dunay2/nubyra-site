@@ -7,6 +7,45 @@ export {CM_PER_UNIT,createBody,updateBody,createCollider,ringPerimeter} from './
 const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
 const lerp=(a,b,t)=>a+(b-a)*t;
 const ellipseA=(c,k=.58)=>c/(Math.PI*(3*(1+k)-Math.sqrt((3+k)*(1+3*k))))/CM_PER_UNIT;
+/**
+ * Two physical shoulder bridges: they share both upper edge loops of the
+ * sampled front/back meshes, not a solver-only invisible triangle shortcut.
+ * Their material rest shape is independent of the current body.
+ */
+function appendShoulderBridges(T,garment){
+ const front=garment.getObjectByName('NUBYRA_Test_Jersey_Front');
+ const back=garment.getObjectByName('NUBYRA_Test_Jersey_Back');
+ const {gridRows:rows,halfColumns:cols}=front.geometry.userData;
+ const f=front.geometry.getAttribute('position'),b=back.geometry.getAttribute('position');
+ const depthRows=6,verticesPerHalf=(rows+1)*(cols+1);
+ for(let half=0;half<2;half++){
+  const pos=[],uv=[],indices=[];
+  const sourceOffset=half*verticesPerHalf+rows*(cols+1);
+  for(let depth=0;depth<=depthRows;depth++){
+   const t=depth/depthRows;
+   for(let col=0;col<=cols;col++){
+    const id=sourceOffset+col;
+    const x=lerp(f.getX(id),b.getX(id),t);
+    const y=lerp(f.getY(id),b.getY(id),t)+.045*Math.sin(Math.PI*t);
+    const z=lerp(f.getZ(id),b.getZ(id),t);
+    pos.push(x,y,z);uv.push(col/cols,t);
+   }
+  }
+  for(let depth=0;depth<depthRows;depth++)for(let col=0;col<cols;col++){
+   const a=depth*(cols+1)+col,d=a+cols+1;
+   if(half===1)indices.push(a,a+1,d,a+1,d+1,d);
+   else indices.push(a,d,a+1,a+1,d,d+1);
+  }
+  const geometry=new T.BufferGeometry();
+  geometry.setAttribute('position',new T.Float32BufferAttribute(pos,3));
+  geometry.setAttribute('uv',new T.Float32BufferAttribute(uv,2));
+  geometry.setIndex(indices);geometry.computeVertexNormals();
+  const mesh=new T.Mesh(geometry,front.material);
+  mesh.name=half===0?'NUBYRA_Test_Shoulder_Left':'NUBYRA_Test_Shoulder_Right';
+  mesh.userData={kind:'shoulder-fabric',half,depthRows,columns:cols};
+  garment.add(mesh);
+ }
+}
 export function createRestGarment(T,configuration){
  const garment=createFreeTestJersey(T);
  // Resolution budget: retain the authored topology, sample a regular simulation grid.
@@ -34,7 +73,7 @@ export function createRestGarment(T,configuration){
    p.setXYZ(i,a*Math.cos(angle),1.20-(1.20-y0)*configuration.lengthCm/64,a*.58*Math.sin(angle));
   }
   p.needsUpdate=true;mesh.geometry.computeVertexNormals();mesh.geometry.computeBoundingSphere();
- });return garment;
+ });appendShoulderBridges(T,garment);return garment;
 }
 /** Move each support patch rigidly. Pairwise rest lengths never shrink to body size. */
 export function shoulderPins(rest,groups,collider){
@@ -73,18 +112,6 @@ export function createClothAdapter(garment,body){
    const s=sideMap[row*6+(front?0:5)],a=panel[offset+k*9+8],b=panel[offset+(k+1)*9+8];if(s!==a&&s!==b)seams.push({s,a,b,t:q-k});
   }
  }
- // Join front and back shoulder edges as load-bearing straps in the XPBD constraints.
- for(let half=0;half<2;half++){
-  const front=surfaces.find(m=>m.name==='NUBYRA_Test_Jersey_Front');
-  const back=surfaces.find(m=>m.name==='NUBYRA_Test_Jersey_Back');
-  const {gridRows:rows,halfColumns:cols}=front.geometry.userData;
-  const fm=maps.get(front.name),bm=maps.get(back.name),offset=half*(rows+1)*(cols+1)+rows*(cols+1);
-  for(let col=0;col<=cols;col++){
-   const a=fm[offset+col],b=bm[offset+col];
-   if(a!==b){const key=a<b?a+':'+b:b+':'+a;edges.set(key,[a,b]);}
-   if(col<cols){const c=fm[offset+col+1],d=bm[offset+col+1];triangles.push([a,b,c],[c,b,d]);}
-  }
- }
  const supportGroups=[];
  for(const panel of surfaces.filter(m=>m.name.includes('Jersey_'))){
   const map=maps.get(panel.name),{gridRows:rows,halfColumns:cols}=panel.geometry.userData;
@@ -103,9 +130,33 @@ export function createClothAdapter(garment,body){
   const panel=garment.getObjectByName('NUBYRA_Test_Jersey_'+(mesh.name.includes('front')?'Front':'Back'));
   trims.push({mesh,bindings:bindTrimToSurface(mesh,panel,maps.get(panel.name),positions)});
  }
+ function reconcileSurfaceNormals(){
+  // Mesh halves render independently but can share one simulated particle.
+  // Reuse the same averaged normal on welded vertices to avoid a fake centre seam.
+  const totals=new Map();
+  for(const mesh of surfaces){
+   const n=mesh.geometry.getAttribute('normal'),map=maps.get(mesh.name);
+   for(let i=0;i<map.length;i++){
+    const id=map[i],current=totals.get(id)??[0,0,0,0];
+    current[0]+=n.getX(i);current[1]+=n.getY(i);current[2]+=n.getZ(i);current[3]++;
+    totals.set(id,current);
+   }
+  }
+  for(const mesh of surfaces){
+   const n=mesh.geometry.getAttribute('normal'),map=maps.get(mesh.name);
+   for(let i=0;i<map.length;i++){
+    const [nx,ny,nz,count]=totals.get(map[i]);
+    if(count<2)continue;
+    const len=Math.hypot(nx,ny,nz)||1;
+    n.setXYZ(i,nx/len,ny/len,nz/len);
+   }
+   n.needsUpdate=true;
+  }
+ }
  function sync(){
   const s=solver.positions;
   for(const mesh of surfaces){const p=mesh.geometry.getAttribute('position'),map=maps.get(mesh.name);for(let i=0;i<map.length;i++){const k=map[i]*3;p.setXYZ(i,s[k],s[k+1],s[k+2]);}p.needsUpdate=true;mesh.geometry.computeVertexNormals();mesh.geometry.computeBoundingSphere();}
+  reconcileSurfaceNormals();
   for(const {mesh,bindings} of trims){syncSurfaceTrim(mesh.geometry.getAttribute('position'),bindings,s);mesh.geometry.computeVertexNormals();mesh.geometry.computeBoundingSphere();}
  }
  return {solver,sync,maps,surfaces,trims,supportGroups,
