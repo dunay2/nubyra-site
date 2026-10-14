@@ -8,7 +8,7 @@ const cases=[['A',{},'N1-2'],['U1',{bodyChestCm:79,bodyHipCm:88,desiredLengthCm:
 try{
  await page.goto(url);await page.waitForFunction(()=>document.getElementById('render-status').textContent.includes('contacto activo'),null,{timeout:30000});
  for(const [label,values,code]of cases){
-  await page.locator('#reset-all').click();for(const [key,value]of Object.entries(values))await page.locator('#'+key+'-range').evaluate((e,v)=>{e.value=String(v);e.dispatchEvent(new Event('input',{bubbles:true}));},value);
+  await page.locator('#reset-all').click();for(const [key,value]of Object.entries(values))await page.locator('#'+key+'-range').evaluate((e,v)=>{e.value=String(v);e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}));},value);
   await page.locator('[data-garment="'+code+'"]').click();await page.locator('#advanced').evaluate(e=>e.open=true);await page.locator('#settle-cloth').click();await page.locator('#advanced').evaluate(e=>e.open=false);
   if(await page.locator('#pause-motion').getAttribute('aria-pressed')!=='true')await page.locator('#pause-motion').click();await page.locator('#show-dimensions').uncheck();
   for(const view of ['front','side','quarter','back']){
