@@ -2,7 +2,7 @@ import {CM_PER_UNIT} from './body-surface.mjs';
 const lerp=(a,b,t)=>a+(b-a)*t;
 const clamp=x=>Math.max(0,Math.min(1,x));
 const smooth=x=>{const t=clamp(x);return t*t*t*(10+t*(-15+6*t));};
-export const OUTFIT_REFERENCE_VERSION='lower-reference/2.1';
+export const OUTFIT_REFERENCE_VERSION='lower-reference/2.2';
 
 /** Synthetic proportions only: not measured anatomy, a size recommendation or a cloth solver. */
 export function referenceLayout(body,state){
@@ -91,17 +91,17 @@ export function createOutfitReference(T,body,state,options={}){
  const length=Number.isFinite(options.shortsLengthCm)?Math.max(25,Math.min(60,options.shortsLengthCm)):40;
  const primary=new T.MeshStandardMaterial({color:options.base||'#173e64',roughness:.85,side:T.DoubleSide}),accent=primary.clone();accent.color.set(options.accent||'#f8c12e');
  const add=(g,name,geo,mat)=>{const m=new T.Mesh(geo,mat);m.name=name;g.add(m);return m;};
- const ankleY=L.floor+.32*L.scale,lowerLength=L.joinY-ankleY,shank=L.scale*Math.pow(state.bodyHipCm/96,.2),center=.46*width;
+ const ankleY=L.floor+.32*L.scale,lowerLength=L.joinY-ankleY,shank=L.scale*Math.pow(state.bodyHipCm/96,.2),center=.42*width;
  // Compact upper-thigh reference: do not flare outward/deepen below the hip.
  // Knees, calves, ankles and feet keep their previous sections and positions.
  const legProfile=profile([
-  [0,.44*width,.38*width,.40*width,0], [.14,.43*width,.30*width,.36*width,0],
+  [0,.44*width,.38*width,.40*width,0], [.14,center,.30*width,.36*width,0],
   [.37,center,.185*shank,.195*shank,.016*L.scale], [.47,center,.145*shank,.15*shank,.016*L.scale],
   [.63,center,.205*shank,.215*shank,-.028*L.scale], [.78,center,.168*shank,.173*shank,-.03*L.scale],
   [.93,center,.108*shank,.125*shank,-.004*L.scale], [1,center,.10*shank,.12*shank,0]
  ]);
  const legRing=(t,theta)=>{
-  const y=lerp(L.joinY,ankleY,t),[cx,rx,rz,cz]=legProfile(t),c=Math.cos(theta),s=Math.sin(theta),blend=smooth(t/.045),upper=sampleBody(y,theta);
+  const y=lerp(L.joinY,ankleY,t),[cx,rx,rz,cz]=legProfile(t),c=Math.cos(theta),s=Math.sin(theta),blend=smooth(t/.065),upper=sampleBody(y,theta);
   return [lerp(Math.max(0,upper[0]),cx+rx*c,blend),y,lerp(upper[1],cz+rz*s,blend)];
  };
  // Plantigrade reference: heel, instep and toe share one flat supporting sole.
@@ -117,8 +117,15 @@ export function createOutfitReference(T,body,state,options={}){
   },true),body.material);
   smoothSharedNormals([leg,foot]);
  }
- const head=new T.SphereGeometry(1,28,20),headRadius=L.headHeight/2+.065*L.scale;
- head.scale(.245*L.scale,headRadius,.27*L.scale);head.translate(0,L.headTop-headRadius,0);add(bodyGroup,'Cabeza neutra de referencia',head,body.material);
+ // Neutral head with a jaw/cranium transition. Same crown height, not an anatomical scan.
+ const headBottom=L.neckTop-.055*L.scale,headShape=profile([
+  [0,.18,.17,.17],[.15,.205,.225,.185],[.38,.277,.272,.265],
+  [.65,.285,.265,.285],[.84,.235,.23,.25],[.96,.125,.125,.14],[1,0,0,0]
+ ]);
+ const head=halfTube(T,1,20,28,(t,theta)=>{const [w,f,b]=headShape(t),v=Math.sin(theta);return [w*L.scale*Math.cos(theta),lerp(headBottom,L.headTop,t),(v>=0?f:b)*L.scale*v];});
+ // halfTube is wound for descending surfaces, while this head grows upward.
+ const hi=head.index.array;for(let i=0;i<hi.length;i+=3){const t=hi[i+1];hi[i+1]=hi[i+2];hi[i+2]=t;}head.computeVertexNormals();
+ const headMesh=add(bodyGroup,'Cabeza neutra de referencia',head,body.material);smoothSharedNormals([headMesh]);
  const shortsBottom=L.waistY-length/CM_PER_UNIT,crotch=L.joinY-.28*L.scale;
  // Reuse the underlying body's section heights. A different row grid crossed the
  // sharp hip-to-thigh transition and exposed skin through a thinner underlayer.
@@ -142,7 +149,15 @@ export function createOutfitReference(T,body,state,options={}){
    // It opens gradually below the torso, without a branch discontinuity at joinY.
    // Reference-only underlayer: no renderOrder/depth-test trick and no cloth rescaling.
    const ease=.0008+.0212*smooth((L.joinY-y)/(.55*L.scale));
-   if(y<=L.joinY){const v=sampleLeg(y,theta);return [Math.max(0,v[0]+ease*c),y,v[1]+ease*s];}
+   if(y<=L.joinY){
+    const v=sampleLeg(y,theta),fall=smooth((L.joinY-.18*L.scale-y)/(.42*L.scale));
+    const [cx,rx,rz,cz]=legProfile(clamp((L.joinY-y)/lowerLength));
+    // The free leg opening hangs nearly vertically instead of following the shrinking thigh.
+    // Reference drape only: no force or extra cloth solver, and no hidden/clipped geometry.
+    const freeX=cx+Math.max(.31*width+.04*L.scale,rx+.012*L.scale)*c;
+    const freeZ=cz+Math.max(.35*width+.04*L.scale,rz+.012*L.scale)*s;
+    return [Math.max(0,lerp(v[0]+ease*c,freeX,fall)),y,lerp(v[1]+ease*s,freeZ,fall)];
+   }
    const v=sampleBody(y,theta);return [Math.max(0,v[0]+ease*c),y,v[1]+ease*s];
   });
   // Two draw batches per leg, exclusively a vertical side band; no horizontal material ring.
@@ -159,7 +174,7 @@ export function createOutfitReference(T,body,state,options={}){
  ruler.add(new T.Line(new T.BufferGeometry().setFromPoints([new T.Vector3(-1,L.floor,0),new T.Vector3(1,L.floor,0)]),rulerMat));
  const bodyMeshes=bodyGroup.children,shortsMeshes=shortsGroup.children;
  return {group,bodyGroup,shortsGroup,ruler,bodyMeshes,shortsMeshes,layout:L,
-  snapshot:()=>({version:OUTFIT_REFERENCE_VERSION,mode:'visual-reference',anthropometryValidated:false,clothSimulated:false,heightCm:state.bodyHeightCm,shortsLengthCm:length,floorY:L.floor,headTopY:L.headTop,crotchY:crotch}),
+  snapshot:()=>({version:OUTFIT_REFERENCE_VERSION,mode:'visual-reference',anthropometryValidated:false,clothSimulated:false,shortsShape:'free-leg-opening',heightCm:state.bodyHeightCm,shortsLengthCm:length,floorY:L.floor,headTopY:L.headTop,crotchY:crotch}),
   colors(base,second){primary.color.set(base);accent.color.set(second);},
   destroy(){group.traverse(m=>m.geometry?.dispose());primary.dispose();accent.dispose();rulerMat.dispose();}
  };
