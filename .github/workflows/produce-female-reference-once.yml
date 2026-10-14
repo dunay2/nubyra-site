@@ -1,0 +1,50 @@
+name: Produce NUBYRA CC0 female reference once
+on:
+  push:
+    branches: ['research/female-anthropometry-reference']
+    paths: ['.github/workflows/produce-female-reference-once.yml']
+permissions:
+  contents: write
+jobs:
+  make-reference:
+    if: github.actor == 'dunay2'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: research/female-anthropometry-reference
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Download CC0 source and verify original bytes
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location --max-time 90 'https://www.innerscene.com/api/library/riley-3d-person-woman-standing-8d40398f/download' -o /tmp/nubyra-female-reference-source.glb
+          echo 'c9c84386d6c019a8d4c415cc5d6ed9111c27d624189b1a2e0676f2b276a086e6  /tmp/nubyra-female-reference-source.glb' | sha256sum -c -
+      - name: Install isolated glTF processing dependencies
+        run: |
+          npm install --prefix "$RUNNER_TEMP/nubyra-reference-tools" --no-save --ignore-scripts --no-audit --no-fund @gltf-transform/core@4.5.1 @gltf-transform/functions@4.5.1 gltf-validator@2.0.0-dev.3.10
+          cp research/anthropometry/convert.mjs "$RUNNER_TEMP/nubyra-reference-tools/convert.mjs"
+      - name: Generate and validate anatomy reference
+        run: |
+          set -euo pipefail
+          node "$RUNNER_TEMP/nubyra-reference-tools/convert.mjs"
+          test -s assets/mannequins/adult-female-reference-cc0.glb
+          echo 'f500960b315f01c2b48e70cdd7782a762ac4f55f51427d4323148e117f31b8f3  assets/mannequins/adult-female-reference-cc0.glb' | sha256sum -c -
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NUBYRA-female-anatomical-reference-CC0
+          path: assets/mannequins/adult-female-reference-cc0.glb
+          if-no-files-found: error
+          retention-days: 30
+      - name: Commit only verified output and remove one-use workflow
+        run: |
+          set -euo pipefail
+          git add assets/mannequins/adult-female-reference-cc0.glb
+          git rm .github/workflows/produce-female-reference-once.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'research(fit-lab): add verified CC0 adult female reference GLB'
+          git push origin HEAD:research/female-anthropometry-reference
