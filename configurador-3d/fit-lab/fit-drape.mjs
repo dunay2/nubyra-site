@@ -74,7 +74,10 @@ export function estimateDrapeFromGeometry(body,garment,garmentLengthCm){
  const bodyFront=meshFrontAt(body);
  const garmentFront=meshFrontAt(front);
  // Separación solo ilustrativa en unidades de la malla, no cm de holgura.
- const requiredShift=Math.max(0,bodyFront+.025-garmentFront);
+ // La tela en reposo también puede estar demasiado separada del torso.
+ // Aproximación: acercar el panel delantero, pero mantener una separación visible
+ // y limitar el desplazamiento para no fingir una solución de colisiones 3D.
+ const requiredShift=Math.max(-.18,Math.min(.32,bodyFront+.045-garmentFront));
  const source=Array.from(front.geometry.getAttribute('position').array);
  const restLength=fixedFrontLength(front,source,0,0);
  const drapedUnlifted=fixedFrontLength(front,source,requiredShift,0);
@@ -98,6 +101,8 @@ export function estimateDrapeFromGeometry(body,garment,garmentLengthCm){
  const hemLiftCm=lift*Math.max(0,garmentLengthCm)/(1.20-(-1.22));
  return {
   frontProjectionUnits:requiredShift,
+  contactMethod:'limited-front-proximity-offset',
+  approximatesGravity:true,
   frontHemLiftUnits:lift,
   estimatedFrontHemLiftCm:hemLiftCm,
   pathLengthRestUnits:restLength,
@@ -109,6 +114,55 @@ export function estimateDrapeFromGeometry(body,garment,garmentLengthCm){
   referenceGarmentLengthCm:garmentLengthCm
  };
 }
+
+// Aproximación de contacto sobre el torso sintético: reconstruye sus
+// secciones elípticas por fila. No es un solver de tela ni de colisiones.
+function bodySlices(body){
+ const p=body.geometry.getAttribute('position'),slices=new Map();
+ for(let i=0;i<p.count;i++){
+   const y=p.getY(i),key=Math.round(y*10000),x=p.getX(i),z=p.getZ(i);
+   const section=slices.get(key)??{y,maxX:0,minZ:Infinity,maxZ:-Infinity};
+   section.maxX=Math.max(section.maxX,Math.abs(x));
+   section.minZ=Math.min(section.minZ,z);
+   section.maxZ=Math.max(section.maxZ,z);
+   slices.set(key,section);
+ }
+ return [...slices.values()].sort((a,b)=>a.y-b.y);
+}
+function nearestSlice(slices,y){
+ let best=slices[0],delta=Infinity;
+ for(const slice of slices){
+   const next=Math.abs(slice.y-y);
+   if(next<delta){best=slice;delta=next;}
+ }
+ return best;
+}
+function relaxGarmentAgainstTorso(body,garment){
+ const sections=bodySlices(body),clearance=.028;
+ let resolved=0;
+ garment.traverse(mesh=>{
+   if(!mesh.isMesh||mesh.name?.startsWith('trim-'))return;
+   const p=mesh.geometry?.getAttribute('position');if(!p)return;
+   for(let i=0;i<p.count;i++){
+     const x=p.getX(i),y=p.getY(i),z=p.getZ(i);
+     if(y<sections[0].y||y>sections[sections.length-1].y)continue;
+     const section=nearestSlice(sections,y),width=section.maxX;
+     if(Math.abs(x)>width*.99)continue;
+     const arc=Math.sqrt(Math.max(0,1-(x/width)**2));
+     const front=z>=0;
+     const surface=front?section.maxZ*arc:section.minZ*arc;
+     const target=surface+(front?clearance:-clearance);
+     const contactFactor=.78*Math.max(0,Math.min(1,(y+.97)/1.2));
+     let next=z+(target-z)*contactFactor;
+     next=front?Math.max(next,target):Math.min(next,target);
+     if(Number.isFinite(next)){p.setZ(i,next);resolved++;}
+   }
+   p.needsUpdate=true;mesh.geometry.computeVertexNormals();
+   mesh.geometry.computeBoundingSphere();
+ });
+ return resolved;
+}
+
 export function drapeFixedGarment(body,garment,garmentLengthCm){
  const diagnostics=estimateDrapeFromGeometry(body,garment,garmentLengthCm);
  const {frontProjectionUnits:shift,frontHemLiftUnits:lift}=diagnostics;
@@ -125,5 +179,6 @@ export function drapeFixedGarment(body,garment,garmentLengthCm){
   mesh.geometry.computeBoundingBox();
   mesh.geometry.computeBoundingSphere();
  });
+ diagnostics.contactApproximationVertices=relaxGarmentAgainstTorso(body,garment);
  return diagnostics;
 }

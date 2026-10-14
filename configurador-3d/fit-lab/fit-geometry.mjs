@@ -169,7 +169,11 @@ export function deformBody(mesh,values){
       ?profile.back*deltaChest*chest:0;
     const depth=Math.max(.40,1+rearTorsoAdjustment+1.06*deltaHip*hip);
     const frontFacing=isFront?smooth(centered/.115):0;
-    const breastEnvelope=gauss((y-.27)/.34)*gauss(x/.40)*frontFacing;
+    // Volumen horizontal redondeado: sección ancha con meseta central,
+    // transición suave en extremos y mayor extensión vertical que el punto original.
+    const horizontal=Math.max(0,1-Math.pow(Math.abs(x)/.58,4));
+    const vertical=gauss((y-.25)/.43);
+    const breastEnvelope=Math.pow(horizontal,.7)*vertical*frontFacing;
     // PRINCIPIO FÍSICO DEL ENSAYO: el relieve es 0 o positivo.
     // No se utiliza deltaChest negativo para empujar vértices al interior.
     const outwardRelief=protrusion*breastEnvelope;
@@ -206,6 +210,38 @@ export function deformGarment(group,values){
   return count;
 }
 /**
+ * Escala métrica COMÚN al torso y a la camiseta. El factor se fija una vez
+ * con el largo nominal de la camiseta base; jamás se reescala la escena
+ * de manera independiente para acomodar las mallas a la pantalla.
+ * La altura completa introducida es informativa: esta POC dibuja solo torso.
+ */
+export const CM_PER_UNIT=64/2.42;
+const ellipseCircumference=(a,b)=>Math.PI*(3*(a+b)-Math.sqrt((3*a+b)*(a+3*b)));
+function calibrateCircumferences(object,chestCm,hipCm){
+  const targets=[[.27,chestCm],[-.98,hipCm]];
+  const ratios=targets.map(([y,target])=>{
+    const section=measureCrossSection(object,y,.075);
+    const actual=ellipseCircumference(section.width/2,section.depth/2)*CM_PER_UNIT;
+    return target/actual;
+  });
+  object.traverse(mesh=>{
+    if(!mesh.isMesh||mesh.name?.startsWith('trim-'))return;
+    const pos=mesh.geometry.getAttribute('position');
+    if(!pos)return;
+    for(let i=0;i<pos.count;i++){
+      const x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i);
+      const chest=Math.exp(-Math.pow((y-.27)/.52,2)),hip=Math.exp(-Math.pow((y+.98)/.50,2));
+      const weight=chest+hip;
+      const ratio=weight>1e-8?(chest*ratios[0]+hip*ratios[1])/weight:1;
+      const strength=Math.min(1,weight);
+      const radial=1+(ratio-1)*strength;
+      pos.setXYZ(i,x*radial,y,z*radial);
+    }
+    pos.needsUpdate=true;mesh.geometry.computeVertexNormals();
+    mesh.geometry.computeBoundingSphere();
+  });
+}
+/**
  * Único punto de entrada de la interacción A/B (barras y botones discretos).
  * Convierte estado de UI en un contrato compartido, no elimina las etiquetas.
  * Las dos mallas conservan sus propias referencias y posiciones iniciales.
@@ -213,6 +249,7 @@ export function deformGarment(group,values){
 export function applyFitToModels(body,garment,state){
   const v=normalizeRenderFit(state);
   deformBody(body,{...v,bodyProfile:state?.bodyProfile,bustProjectionLevel:state?.bustProjectionLevel});
+  calibrateCircumferences(body,v.bodyChestCm,v.bodyHipCm);
   // El reposo de la camiseta se elige entre las seis configuraciones de ensayo.
   // Ningún valor corporal entra directamente en las dimensiones de fabricación.
   const configuration=getGarmentConfiguration(state?.activeConfiguration??'N1-2');
@@ -222,6 +259,7 @@ export function applyFitToModels(body,garment,state){
     garmentLengthCm:configuration.lengthCm
   };
   deformGarment(garment,garmentRest);
+  calibrateCircumferences(garment,configuration.chestCm,configuration.hipCm);
   const drape=drapeFixedGarment(body,garment,configuration.lengthCm);
   return {...v,restConfiguration:configuration.code,drape};
 }

@@ -26,53 +26,32 @@
   <div class="intro">
    <div><p class="eyebrow">ESTUDIO 01 · DOS GEOMETRÍAS INDEPENDIENTES</p>
    <h1>Primero las medidas.<br><em>El patrón llega al final.</em></h1>
-   <p class="lead">Tres pasos en un mismo espacio: introduce medidas, comprueba el ajuste 3D y recibe una propuesta de patrón. Puedes mantener la camiseta fija al modificar el cuerpo.</p></div>
-   <div class="intro-tip">No hay fotos, medidas de jugadoras ni cálculo de tensión textil. Los valores de ejemplo son sintéticos.</div>
+</div>
+
   </div>
   <div class="workspace">
    <section class="view-panel" aria-label="Prueba tridimensional">
     <div class="panel-header">
-     <div><p class="panel-overline">VISTA 3D EN DIRECTO</p><h2>Comparación cuerpo / camiseta</h2></div>
+     <div><p class="panel-overline">VISTA 3D EN DIRECTO</p><h2>Camiseta y referencia corporal</h2></div>
      <span class="pill" id="render-status">INICIANDO VISOR</span>
     </div>
+    <div class="visual-comparison">
     <div class="scene" id="scene-wrapper">
      <canvas id="fit-canvas" aria-label="Dos mallas independientes: cuerpo abstracto y camiseta 3D giratorios"></canvas>
      <div class="scene-error" id="scene-error" hidden></div>
-     <div class="scene-label">Malla de cuerpo sintético + camiseta NUBYRA v2</div>
+     <div class="scene-measures" aria-live="polite" aria-label="Medidas de las mallas 3D">
+      <strong id="scene-measure-title">MEDIDAS · CM</strong>
+      <span id="scene-body-chest">Cuerpo · pecho —</span>
+      <span id="scene-body-hip">Cuerpo · cadera —</span>
+      <span id="scene-garment-chest">Camiseta · pecho —</span>
+      <span id="scene-garment-hip">Camiseta · cadera —</span>
+      <span id="scene-garment-length">Camiseta · largo —</span>
+     </div>
+     <div class="scene-label">Torso sintético + camiseta · escala 3D compartida</div>
     </div>
-    <div class="camera-controls" role="group" aria-label="Vistas de cámara">
-     <button type="button" data-view="quarter" aria-pressed="true">3/4</button>
-     <button type="button" data-view="front" aria-pressed="false">Frontal</button>
-     <button type="button" data-view="side" aria-pressed="false">Lateral</button>
-     <button type="button" data-view="back" aria-pressed="false">Espalda</button>
-     <button type="button" data-view="rearquarter" aria-pressed="false">3/4 posterior</button>
-    </div>
-    <p class="rear-guide-help"><strong>Verificación de espalda:</strong> pulsa <b>Espalda</b>. La línea <span class="guide-base">ámbar</span> marca el contorno posterior inicial; la <span class="guide-live">azul</span>, el contorno realmente deformado. En las vistas Lateral y 3/4 posterior puedes observar la caída, sin hacer crecer artificialmente la espalda.</p>
-    <div class="display-options" aria-label="Capas de visualización">
-     <label><input type="checkbox" id="show-body" checked> Ver cuerpo</label>
-     <label><input type="checkbox" id="show-garment" checked> Ver camiseta</label>
-     <label><input type="checkbox" id="transparent-garment" checked> Camiseta translúcida</label>
-     <label><input type="checkbox" id="wireframe"> Ver triángulos</label>
-    </div>
-    <div class="legend">
-      <span><i class="legend-body"></i> Cuerpo sintético</span>
-      <span><i class="legend-garment"></i> Prenda independiente</span>
-    </div>
-    <section class="geometry-feedback" aria-label="Deformación realmente medida en los vértices">
-      <div class="geometry-feedback__top">
-        <span>CAMBIO REAL DE LA MALLA · SECCIÓN DE PECHO</span>
-        <strong id="mesh-mode-readout">A · Cuerpo</strong>
-      </div>
-      <div class="geometry-feedback__stats" aria-live="polite" aria-atomic="true">
-        <div><small>Anchura · izquierda y derecha</small><strong id="shape-width">0,0 %</strong></div>
-        <div><small>Profundidad delantera</small><strong id="shape-front">0,0 %</strong></div>
-        <div><small>Profundidad trasera</small><strong id="shape-back">0,0 %</strong></div>
-      </div>
-      <p>Variación calculada de los vértices frente a la malla inicial, no centímetros ni ajuste físico certificado. Un botón ±1 debe modificar aquí los porcentajes, además del 3D.</p>
-    </section>
     <section class="scale-card" aria-label="Imagen 2D del perfil sintético a escala vertical">
       <div class="scale-card__title">
-        <div><p class="panel-overline">REFERENCIA 2D · ESCALA VERTICAL COMÚN</p><h3>Proporción de cuerpo y camiseta</h3></div>
+        <div><p class="panel-overline">REFERENCIA CORPORAL · ESCALA EN CM</p><h3>Escala y dimensiones</h3></div>
         <span id="diagram-body-profile">Proyección frontal</span>
       </div>
       <svg id="fit-scale-diagram" viewBox="0 0 340 315" role="img" aria-labelledby="diagram-title diagram-desc">
@@ -106,21 +85,55 @@
           <text id="scale-length-label" x="204" y="310">Camiseta: 64 cm</text>
         </g>
       </svg>
+      <p class="scale-notice">Misma escala 3D: 1 unidad ≈ 26,45 cm. Contornos geométricos de ensayo; altura total solo informativa.</p>
       <div class="scale-metrics" aria-live="polite">
         <div><small>Altura corporal</small><strong id="scale-body-height">160 cm</strong></div>
         <div><small>Largo de camiseta</small><strong id="scale-shirt-length">64 cm</strong></div>
         <div><small>Subida frontal estimada</small><strong id="scale-hem-lift">—</strong></div>
         <div><small>Proyección del busto</small><strong id="scale-bust-level">3 / 10</strong></div>
       </div>
-      <p>Altura y largo comparten escala vertical. La proyección del busto nunca es negativa: <strong>0 = plano</strong>. La referencia de hombro, la silueta y la caída son aproximaciones geométricas de ensayo, <strong>no mediciones anatómicas ni simulación textil validada</strong>.</p>
+
     </section>
+    </div>
+    <div class="camera-controls" role="group" aria-label="Vistas de cámara">
+     <button type="button" data-view="quarter" aria-pressed="true">3/4</button>
+     <button type="button" data-view="front" aria-pressed="false">Frontal</button>
+     <button type="button" data-view="side" aria-pressed="false">Lateral</button>
+     <button type="button" data-view="back" aria-pressed="false">Espalda</button>
+     <button type="button" data-view="rearquarter" aria-pressed="false">3/4 posterior</button>
+    </div>
+
+    <div class="display-options" aria-label="Capas de visualización">
+     <label><input type="checkbox" id="show-body" checked> Ver cuerpo</label>
+     <label><input type="checkbox" id="show-garment" checked> Ver camiseta</label>
+     <label><input type="checkbox" id="transparent-garment" checked> Camiseta translúcida</label>
+     <label><input type="checkbox" id="wireframe"> Ver triángulos</label>
+     <label><input type="checkbox" id="show-motion"> Movimiento ilustrativo</label>
+    </div>
+    <div class="legend">
+      <span><i class="legend-body"></i> Cuerpo sintético</span>
+      <span><i class="legend-garment"></i> Prenda independiente</span>
+    </div>
+    <section class="geometry-feedback" aria-label="Deformación realmente medida en los vértices">
+      <div class="geometry-feedback__top">
+        <span>CAMBIO REAL DE LA MALLA · SECCIÓN DE PECHO</span>
+        <strong id="mesh-mode-readout">A · Cuerpo</strong>
+      </div>
+      <div class="geometry-feedback__stats" aria-live="polite" aria-atomic="true">
+        <div><small>Anchura · izquierda y derecha</small><strong id="shape-width">0,0 %</strong></div>
+        <div><small>Profundidad delantera</small><strong id="shape-front">0,0 %</strong></div>
+        <div><small>Profundidad trasera</small><strong id="shape-back">0,0 %</strong></div>
+      </div>
+
+    </section>
+
    </section>
 
    <section class="editor" aria-label="Proceso de ajuste de camiseta NUBYRA">
     <div class="editor-head">
       <p class="panel-overline">LABORATORIO DE AJUSTE</p>
       <h2>De las medidas a la propuesta</h2>
-      <p>Introduce las medidas, examina las dos mallas y revisa el patrón recomendado. El visor permanece visible mientras cambias de pestaña.</p>
+
     </div>
     <div class="editor-tabs" role="tablist" aria-label="Pasos del configurador">
       <button type="button" id="tab-measures" class="editor-tab" role="tab" aria-controls="panel-measures" aria-selected="true" tabindex="0" data-tab="measures"><span>01</span> Medidas</button>
@@ -138,7 +151,7 @@
             <button type="button" data-body-profile="lateral" aria-pressed="false">Lateral</button>
             <button type="button" data-body-profile="thorax" aria-pressed="false">Torácico</button>
           </div>
-          <small>No son clases de personas. La distribución del volumen no puede deducirse solo del perímetro de pecho.</small>
+
         </div>
         <div class="bust-control" aria-label="Proyección del busto limitada a valores no negativos">
           <div class="field-top">
@@ -146,9 +159,9 @@
             <div><input id="bustProjectionLevel-number" type="number" min="0" max="10" step="1" value="3" aria-label="Proyección del busto, de 0 plano a 10"> <span>/ 10</span></div>
           </div>
           <input id="bustProjectionLevel-range" type="range" min="0" max="10" step="1" value="3">
-          <p><strong>0 = plano</strong> · 1–10 = proyección hacia delante. <strong>No existe un nivel negativo ni una cavidad.</strong> El −1 que aparece en los grupos de centímetros significa «por debajo del intervalo de referencia», no un busto que crece hacia dentro.</p>
+
         </div>
-        <p class="step-copy">El patrón todavía no se elige. Las medidas y el largo solicitado son las entradas del recomendador; las etiquetas de ajuste se calculan después.</p>
+
     <fieldset class="param-panel" id="body-fields">
      <legend><span class="number">01</span> Medidas del cuerpo <span class="panel-tag">MALLA A</span></legend>
      <p class="section-hint">Introduce los contornos de referencia. Estos valores son sintéticos y podrán contrastarse con mediciones reales cuando exista protocolo.</p>

@@ -202,8 +202,21 @@ function updateGeometry(){
     }
   });
 }
+function updateSceneMeasures(){
+ const configuration=GARMENT_CATALOG[state.activeConfiguration];
+ if(!configuration)return;
+ const entries={
+  'scene-body-chest':'Cuerpo · pecho '+cmText(state.bodyChestCm)+' cm',
+  'scene-body-hip':'Cuerpo · cadera '+cmText(state.bodyHipCm)+' cm',
+  'scene-garment-chest':'Camiseta · pecho '+cmText(configuration.chestCm)+' cm',
+  'scene-garment-hip':'Camiseta · cadera '+cmText(configuration.hipCm)+' cm',
+  'scene-garment-length':'Camiseta · largo '+cmText(configuration.lengthCm)+' cm'
+ };
+ for(const [id,value] of Object.entries(entries))$(id).textContent=value;
+}
 function redraw(){
   syncInputs();
+  updateSceneMeasures();
   syncDiscreteControls();
   updateReadings();
   updateProposalUI();
@@ -353,9 +366,10 @@ function updateDisplay(event){
     transparent:$('transparent-garment').checked,
     wire:$('wireframe').checked
   });
+  viewer?.setMotion($('show-motion').checked);
   updateScaleDiagram();
 }
-for(const id of ['show-body','show-garment','transparent-garment','wireframe']){
+for(const id of ['show-body','show-garment','transparent-garment','wireframe','show-motion']){
   $(id).addEventListener('change',updateDisplay);
 }
 $('save-json').addEventListener('click',()=>{
