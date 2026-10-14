@@ -1,18 +1,26 @@
+import {lumpedMasses} from './cloth-material.mjs';
 /**
  * Small, DOM/Three-independent XPBD solver, original implementation.
  * Macklin et al. 2016, eq. 18; fixed substeps, unilateral contact and damping.
- * Relative particle masses / material compliance are NOT textile calibration.
+ * Area-lumped masses and SI spring compliance; DEMO values, not calibrated textile data.
  * No cloth self-collision or continuous triangle collision detection.
  */
-export const CLOTH_VERSION='nubyra.xpbd/1.0';
+export const CLOTH_VERSION='nubyra.xpbd/2.0-contact';
 export class ClothSolver {
- constructor({positions,edges,triangles=[],bends=[],seams=[],pins=[],collider,unitMeters=64/242,clearance=.007,compliance=1e-7,initialTranslation=[0,0,0]}){
+ constructor({positions,edges,triangles=[],bends=[],seams=[],pins=[],collider,unitMeters=64/242,clearance=.007,compliance=1e-7,initialTranslation=[0,0,0],material=null}){
   if(positions.length%3||positions.some(v=>!Number.isFinite(v)))throw Error('Invalid cloth positions');
   this.triangles=triangles;this.rest=new Float64Array(positions);this.positions=new Float64Array(positions);this.previous=new Float64Array(positions);this.velocity=new Float64Array(positions.length);
+  this.contactPush=new Float64Array(positions.length/3);this.contactNormal=new Float64Array(positions.length);this.friction=material?.friction??0;this.material=material;this.unitMeters=unitMeters;
   this.weights=new Float64Array(positions.length/3).fill(1);this.pins=pins;this.seams=seams;this.collider=collider;this.clearance=clearance;
-  this.gravity=-9.81/unitMeters;this.h=1/240;this.accumulator=0;this.time=0;this.steps=0;this.wind=false;this.maxVelocity=0;
-  this.edges=edges.map(([a,b])=>this.constraint(a,b,compliance));
-  this.bends=bends.map(([a,b,c])=>this.constraint(a,b,c??.003));
+  this.massData=material?lumpedMasses(this.rest,triangles,unitMeters,material.arealDensityKgM2):null;
+  // Scale ALL inverse masses and compliances by the same reference mass.
+  // This is algebraically equivalent to kg^-1 weights; it is not equal mass per vertex.
+  this.massScale=this.massData?.referenceKg??1;
+  this.freeWeights=Float64Array.from(this.weights,(_,i)=>this.massData?this.massScale/this.massData.masses[i]:1);
+  this.weights.set(this.freeWeights);this.iterations=material?.iterations??3;
+  this.airDrag=3.5;this.gravity=-9.81/unitMeters;this.h=material?.stepSeconds??1/240;this.accumulator=0;this.time=0;this.steps=0;this.wind=false;this.maxVelocity=0;
+  this.edges=edges.map(([a,b])=>this.constraint(a,b,material?material.distanceComplianceMPerN*this.massScale:compliance));
+  this.bends=bends.map(([a,b,c])=>this.constraint(a,b,material?(c??material.bendDistanceComplianceMPerN)*this.massScale:(c??.003)));
   for(const pin of pins)this.weights[pin.id]=0;
   // Arrange the whole garment at shoulder height before pinning. Rest lengths
   // remain authored; moving only the support vertices creates artificial strain.
@@ -20,18 +28,25 @@ export class ClothSolver {
   for(let i=0;i<this.positions.length;i++)this.positions[i]+=initialTranslation[i%3];
   this.applyPins();this.projectContacts();this.previous.set(this.positions);
  }
+ resetRestPose(translation){
+  if(translation.length!==3||translation.some(v=>!Number.isFinite(v)))throw Error('Invalid dressing translation');
+  this.positions.set(this.rest);
+  for(let i=0;i<this.positions.length;i++)this.positions[i]+=translation[i%3];
+  this.velocity.fill(0);this.accumulator=0;this.maxVelocity=0;
+  this.applyPins();this.projectContacts();this.previous.set(this.positions);
+ }
  constraint(a,b,compliance){
   const p=this.rest,i=a*3,j=b*3;return {a,b,length:Math.hypot(p[i]-p[j],p[i+1]-p[j+1],p[i+2]-p[j+2]),compliance,lambda:0};
  }
  applyPins(){for(const pin of this.pins){const k=3*pin.id;for(let a=0;a<3;a++)this.positions[k+a]=pin.position[a];}}
- setCollider(collider,pins=this.pins){this.collider=collider;this.pins=pins;this.applyPins();this.projectContacts();this.velocity.fill(0);}
+ setCollider(collider,pins=this.pins){this.collider=collider;this.pins=pins;this.weights.set(this.freeWeights);for(const pin of pins)this.weights[pin.id]=0;this.applyPins();this.projectContacts();this.velocity.fill(0);}
  projectContacts(){
   if(!this.collider)return;
   const p=this.positions;
   for(let i=0;i<this.weights.length;i++){
    if(!this.weights[i])continue;
    const k=i*3,hit=this.collider.project(p[k],p[k+1],p[k+2],this.clearance);
-   if(hit){p[k]=hit[0];p[k+1]=hit[1];p[k+2]=hit[2];}
+   if(hit){const dx=hit[0]-p[k],dy=hit[1]-p[k+1],dz=hit[2]-p[k+2],length=Math.hypot(dx,dy,dz);if(length>1e-10){this.contactPush[i]+=length;this.contactNormal[k]=dx/length;this.contactNormal[k+1]=dy/length;this.contactNormal[k+2]=dz/length;}p[k]=hit[0];p[k+1]=hit[1];p[k+2]=hit[2];}
   }
  }
  projectFaces(){
@@ -63,8 +78,20 @@ export class ClothSolver {
    }
   }
  }
+ solveFriction(){
+  const p=this.positions,prev=this.previous,n=this.contactNormal;
+  for(let i=0;i<this.weights.length;i++){
+   if(!this.weights[i]||this.contactPush[i]<=1e-12)continue;
+   const k=i*3,gap=this.collider?.gap(p[k],p[k+1],p[k+2]);if(gap>this.clearance*1.6)continue;
+   const dx=p[k]-prev[k],dy=p[k+1]-prev[k+1],dz=p[k+2]-prev[k+2],dn=dx*n[k]+dy*n[k+1]+dz*n[k+2];
+   const tx=dx-dn*n[k],ty=dy-dn*n[k+1],tz=dz-dn*n[k+2],length=Math.hypot(tx,ty,tz);
+   const factor=Math.min(1,this.friction*this.contactPush[i]/Math.max(length,1e-12));
+   p[k]-=tx*factor;p[k+1]-=ty*factor;p[k+2]-=tz*factor;
+  }
+ }
  substep(){
-  const p=this.positions,h=this.h,drag=Math.exp(-3.5*h);this.previous.set(p);
+  this.contactPush.fill(0);
+  const p=this.positions,h=this.h,drag=Math.exp(-this.airDrag*h);this.previous.set(p);
   const gust=this.wind?2.8*Math.sin(this.time*2.1)+1.1*Math.sin(this.time*4.7):0;
   for(let i=0;i<this.weights.length;i++){
    if(!this.weights[i])continue;const k=i*3;
@@ -75,11 +102,11 @@ export class ClothSolver {
    p[k]+=this.velocity[k]*h;p[k+1]+=this.velocity[k+1]*h;p[k+2]+=this.velocity[k+2]*h;
   }
   for(const e of this.edges)e.lambda=0;for(const e of this.bends)e.lambda=0;
-  for(let iteration=0;iteration<3;iteration++){this.solveLinks(this.edges);this.solveLinks(this.bends);this.solveSeams();this.applyPins();this.projectContacts();}
-  this.projectFaces();this.solveSeams();this.projectContacts();
+  for(let iteration=0;iteration<this.iterations;iteration++){this.solveLinks(this.edges);this.solveLinks(this.bends);this.solveSeams();this.applyPins();this.projectContacts();}
+  this.projectFaces();this.solveSeams();this.projectContacts();this.solveFriction();this.projectContacts();
   let max=0;
   for(let i=0;i<p.length;i++){
-   const v=(p[i]-this.previous[i])/h;this.velocity[i]=Math.max(-12,Math.min(12,v));max=Math.max(max,Math.abs(this.velocity[i]));
+   const v=(p[i]-this.previous[i])/h;this.velocity[i]=v;max=Math.max(max,Math.abs(this.velocity[i]));
    if(!Number.isFinite(p[i]))throw Error('Non-finite cloth solution');
   }
   this.time+=h;this.steps++;this.maxVelocity=max;
@@ -87,9 +114,9 @@ export class ClothSolver {
  advance(seconds){
   if(!Number.isFinite(seconds)||seconds<=0)return;
   this.accumulator+=Math.min(seconds,1/30);let count=0;
-  while(this.accumulator>=this.h&&count++<8){this.substep();this.accumulator-=this.h;}
+  while(this.accumulator>=this.h&&count++<Math.ceil((1/30)/this.h)){this.substep();this.accumulator-=this.h;}
  }
- settle(frames=90){const wind=this.wind;this.wind=false;for(let i=0;i<frames*4;i++)this.substep();this.velocity.fill(0);this.maxVelocity=0;this.wind=wind;}
+ settle(frames=90){const wind=this.wind;this.wind=false;for(let i=0;i<Math.ceil((frames/60)/this.h);i++)this.substep();this.velocity.fill(0);this.maxVelocity=0;this.wind=wind;}
  impulse(strength=.7){for(let i=0;i<this.weights.length;i++){const k=i*3;if(this.weights[i])this.velocity[k+2]+=strength*Math.max(0,Math.min(1,(.2-this.positions[k+1])/1.3));}}
  diagnostics(){
   const p=this.positions,strain=[];let maxPenetration=0,contacts=0,gapSum=0,samples=0,pinError=0,meanDrop=0;
@@ -102,6 +129,6 @@ export class ClothSolver {
   let maxTrianglePenetration=0;
   for(const tri of this.triangles){const center=[0,1,2].map(axis=>tri.reduce((sum,id)=>sum+p[id*3+axis],0)/3);const gap=this.collider?.gap(...center);if(Number.isFinite(gap))maxTrianglePenetration=Math.max(maxTrianglePenetration,-gap);}
   strain.sort((a,b)=>a-b);
-  return {version:CLOTH_VERSION,particles:this.weights.length,stretchConstraints:this.edges.length,bendingConstraints:this.bends.length,seams:this.seams.length,pins:this.pins.length,steps:this.steps,simulationTime:this.time,gravity:this.gravity,fixedStep:this.h,maxPenetrationUnits:maxPenetration,maxTrianglePenetrationUnits:maxTrianglePenetration,contactVertices:contacts,meanGapUnits:samples?gapSum/samples:0,p95Strain:strain[Math.floor(strain.length*.95)]??0,maxStrain:strain.at(-1)??0,pinErrorUnits:pinError,meanDropUnits:meanDrop/this.weights.length,maxVelocity:this.maxVelocity,materialCalibrated:false,selfCollision:false};
+  return {version:CLOTH_VERSION,supportMode:this.pins.length?'fixed-pins':'body-contact',massKg:this.massData?.totalKg??null,areaM2:this.massData?.areaM2??null,friction:this.friction,iterations:this.iterations,particles:this.weights.length,stretchConstraints:this.edges.length,bendingConstraints:this.bends.length,seams:this.seams.length,pins:this.pins.length,steps:this.steps,simulationTime:this.time,gravity:this.gravity,fixedStep:this.h,maxPenetrationUnits:maxPenetration,maxTrianglePenetrationUnits:maxTrianglePenetration,contactVertices:contacts,meanGapUnits:samples?gapSum/samples:0,p95Strain:strain[Math.floor(strain.length*.95)]??0,maxStrain:strain.at(-1)??0,pinErrorUnits:pinError,meanDropUnits:meanDrop/this.weights.length,maxVelocity:this.maxVelocity,materialCalibrated:false,selfCollision:false};
  }
 }
