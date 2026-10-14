@@ -1,0 +1,28 @@
+name: Prepare Fit Lab review environment once
+on:
+  push:
+    branches: ['fix/fit-lab-contact-supported-gravity']
+    paths: ['.github/workflows/prepare-fitlab-review-once.yml']
+permissions:
+  contents: read
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Bundle source and locked development dependencies
+        run: |
+          tar --exclude=.git --exclude=node_modules --exclude=.github -czf /tmp/fitlab-review-source.tgz .
+          tar -czf /tmp/fitlab-review-dependencies.tgz node_modules
+          sha256sum /tmp/fitlab-review-*.tgz > /tmp/fitlab-review-checksums.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fitlab-physics-review-environment
+          path: /tmp/fitlab-review-*
+          if-no-files-found: error
+          retention-days: 1
