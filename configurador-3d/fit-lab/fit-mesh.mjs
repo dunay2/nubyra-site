@@ -73,6 +73,18 @@ export function createClothAdapter(garment,body){
    const s=sideMap[row*6+(front?0:5)],a=panel[offset+k*9+8],b=panel[offset+(k+1)*9+8];if(s!==a&&s!==b)seams.push({s,a,b,t:q-k});
   }
  }
+ // Join front and back shoulder edges as load-bearing straps in the XPBD constraints.
+ for(let half=0;half<2;half++){
+  const front=surfaces.find(m=>m.name==='NUBYRA_Test_Jersey_Front');
+  const back=surfaces.find(m=>m.name==='NUBYRA_Test_Jersey_Back');
+  const {gridRows:rows,halfColumns:cols}=front.geometry.userData;
+  const fm=maps.get(front.name),bm=maps.get(back.name),offset=half*(rows+1)*(cols+1)+rows*(cols+1);
+  for(let col=0;col<=cols;col++){
+   const a=fm[offset+col],b=bm[offset+col];
+   if(a!==b){const key=a<b?a+':'+b:b+':'+a;edges.set(key,[a,b]);}
+   if(col<cols){const c=fm[offset+col+1],d=bm[offset+col+1];triangles.push([a,b,c],[c,b,d]);}
+  }
+ }
  const supportGroups=[];
  for(const panel of surfaces.filter(m=>m.name.includes('Jersey_'))){
   const map=maps.get(panel.name),{gridRows:rows,halfColumns:cols}=panel.geometry.userData;
