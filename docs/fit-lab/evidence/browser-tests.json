@@ -1,0 +1,183 @@
+{
+  "passed": 9,
+  "checks": [
+    "WebGL inicializado y selección automática inicial",
+    "Recomendación, tarjeta y camiseta 3D sincronizadas",
+    "Selección manual conserva la prenda",
+    "Tres deslizadores independientes actualizan geometría y SVG sin alterar perímetros",
+    "Pausa congela y movimiento reactiva el solver",
+    "Contacto medido sobre vértices y centroides; penetración inferior a 1 mm",
+    "Sin overflow horizontal ni scroll anidado a 1440/1280/768/390/320 px",
+    "Movimiento reducido respeta el dispositivo",
+    "Sin excepciones JavaScript"
+  ],
+  "errors": [],
+  "viewportWidths": [
+    1440,
+    1280,
+    768,
+    390,
+    320
+  ],
+  "snapshot": {
+    "state": {
+      "bodyChestCm": 88,
+      "bodyHipCm": 96,
+      "bodyHeightCm": 160,
+      "desiredLengthCm": 64,
+      "frontVolume": 3,
+      "sideVolume": 5,
+      "backVolume": 5,
+      "selectionMode": "auto",
+      "activeConfiguration": "N1-2",
+      "activeBase": "N1",
+      "garmentChestCm": 102,
+      "garmentHipCm": 110,
+      "garmentLengthCm": 64,
+      "recommendation": {
+        "previewCode": "N1-2",
+        "previewBase": "N1",
+        "score": 0,
+        "hasDemoCoverage": true,
+        "lateralPosition": null,
+        "industrialApproved": false,
+        "status": "simulation-only",
+        "candidates": [
+          {
+            "code": "N1-2",
+            "score": 0,
+            "demoCoverage": true
+          },
+          {
+            "code": "N1-1",
+            "score": 0.5,
+            "demoCoverage": true
+          },
+          {
+            "code": "N1-3",
+            "score": 0.5,
+            "demoCoverage": true
+          },
+          {
+            "code": "N2-1",
+            "score": 7.090277777777778,
+            "demoCoverage": true
+          },
+          {
+            "code": "N2-2",
+            "score": 10.840277777777779,
+            "demoCoverage": false
+          },
+          {
+            "code": "N2-3",
+            "score": 15.590277777777779,
+            "demoCoverage": false
+          }
+        ],
+        "note": "Solo selección entre seis maquetas fijas de ensayo; no valida talla, ajuste, elasticidad ni posición lateral industrial."
+      },
+      "reviewRequired": false
+    },
+    "lastFrame": {
+      "state": {
+        "bodyChestCm": 88,
+        "bodyHipCm": 96,
+        "bodyHeightCm": 160,
+        "desiredLengthCm": 64,
+        "frontVolume": 3,
+        "sideVolume": 5,
+        "backVolume": 5,
+        "selectionMode": "auto",
+        "activeConfiguration": "N1-2",
+        "activeBase": "N1",
+        "garmentChestCm": 102,
+        "garmentHipCm": 110,
+        "garmentLengthCm": 64,
+        "recommendation": {
+          "previewCode": "N1-2",
+          "previewBase": "N1",
+          "score": 0,
+          "hasDemoCoverage": true,
+          "lateralPosition": null,
+          "industrialApproved": false,
+          "status": "simulation-only",
+          "candidates": [
+            {
+              "code": "N1-2",
+              "score": 0,
+              "demoCoverage": true
+            },
+            {
+              "code": "N1-1",
+              "score": 0.5,
+              "demoCoverage": true
+            },
+            {
+              "code": "N1-3",
+              "score": 0.5,
+              "demoCoverage": true
+            },
+            {
+              "code": "N2-1",
+              "score": 7.090277777777778,
+              "demoCoverage": true
+            },
+            {
+              "code": "N2-2",
+              "score": 10.840277777777779,
+              "demoCoverage": false
+            },
+            {
+              "code": "N2-3",
+              "score": 15.590277777777779,
+              "demoCoverage": false
+            }
+          ],
+          "note": "Solo selección entre seis maquetas fijas de ensayo; no valida talla, ajuste, elasticidad ni posición lateral industrial."
+        },
+        "reviewRequired": false
+      },
+      "cloth": {
+        "version": "nubyra.xpbd/1.0",
+        "particles": 1031,
+        "stretchConstraints": 2847,
+        "bendingConstraints": 2601,
+        "seams": 56,
+        "pins": 48,
+        "steps": 596,
+        "simulationTime": 2.4833333333333516,
+        "gravity": -37.0940625,
+        "fixedStep": 0.004166666666666667,
+        "maxPenetrationUnits": 0,
+        "maxTrianglePenetrationUnits": 0,
+        "contactVertices": 400,
+        "meanGapUnits": 0.04726537183931558,
+        "p95Strain": 0.050556623172675286,
+        "maxStrain": 0.1566762635573018,
+        "pinErrorUnits": 0,
+        "meanDropUnits": 0.14842301813464848,
+        "maxVelocity": 0,
+        "materialCalibrated": false,
+        "selfCollision": false,
+        "maxPenetrationCm": 0,
+        "meanGapCm": 1.2499933048414038,
+        "meanDropCm": 3.925236843230373
+      },
+      "body": {
+        "chestCm": 87.9999997771982,
+        "hipCm": 95.99999949692116,
+        "widthCm": 34.37386504874742,
+        "frontDepthCm": 12.141573724667888,
+        "backDepthCm": 8.793391077971656
+      },
+      "garment": {
+        "code": "N1-2",
+        "restLengthCm": 64,
+        "hangingHeightCm": 66.23222412741505
+      },
+      "cmPerUnit": 26.446280991735538,
+      "paused": false,
+      "frames": 52
+    }
+  }
+}

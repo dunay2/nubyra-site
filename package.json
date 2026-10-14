@@ -6,12 +6,17 @@
   "scripts": {
     "build": "esbuild src/login.js --bundle --format=esm --target=es2020 --minify --outfile=dist/nubyra-login.js",
     "check": "node --check src/login.js",
-    "test": "node --test tests/*.test.mjs"
+    "test": "node --test tests/*.test.mjs",
+    "build:fit-lab": "node scripts/build-fit-lab.mjs",
+    "test:fit-lab": "node --test tests/fit-lab*.test.mjs",
+    "test:e2e:fit-lab": "node scripts/fit-lab-e2e.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.117.3"
   },
   "devDependencies": {
-    "esbuild": "0.28.2"
+    "esbuild": "0.28.2",
+    "playwright": "1.55.1",
+    "three": "0.180.0"
   }
 }

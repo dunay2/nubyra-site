@@ -1,1 +1,5 @@
 node_modules/
+
+fit-dist/
+fit-lab-delivery.patch
+nubyra-source.tar.gz

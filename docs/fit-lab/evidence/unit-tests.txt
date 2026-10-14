@@ -1,0 +1,134 @@
+
+> nubyra-login-frontend@0.1.0 test:fit-lab
+> node --test tests/fit-lab*.test.mjs
+
+TAP version 13
+# Subtest: chest and hip polygon circumferences match input at every profile extreme
+ok 1 - chest and hip polygon circumferences match input at every profile extreme
+  ---
+  duration_ms: 130.761195
+  type: 'test'
+  ...
+# Subtest: each of the three sliders changes geometry without changing body circumference
+ok 2 - each of the three sliders changes geometry without changing body circumference
+  ---
+  duration_ms: 33.723074
+  type: 'test'
+  ...
+# Subtest: height changes torso proportion; fixed garment rest stays body-independent
+ok 3 - height changes torso proportion; fixed garment rest stays body-independent
+  ---
+  duration_ms: 429.023131
+  type: 'test'
+  ...
+# Subtest: gravity causes sag and contact without mutating fixed rest or pins
+ok 4 - gravity causes sag and contact without mutating fixed rest or pins
+  ---
+  duration_ms: 1768.122088
+  type: 'test'
+  ...
+# Subtest: same input and steps give identical solutions
+ok 5 - same input and steps give identical solutions
+  ---
+  duration_ms: 1199.953475
+  type: 'test'
+  ...
+# Subtest: impulse/wind produce dynamics; damping settles without decorative vertex animation
+ok 6 - impulse/wind produce dynamics; damping settles without decorative vertex animation
+  ---
+  duration_ms: 2852.386728
+  type: 'test'
+  ...
+# Subtest: extreme body/sliders stay finite; contact corrections applied to enlarged torso
+ok 7 - extreme body/sliders stay finite; contact corrections applied to enlarged torso
+  ---
+  duration_ms: 1534.304279
+  type: 'test'
+  ...
+# Subtest: invalid solver geometry rejected
+ok 8 - invalid solver geometry rejected
+  ---
+  duration_ms: 0.992756
+  type: 'test'
+  ...
+# Subtest: no scroll containers nested in panels
+ok 9 - no scroll containers nested in panels
+  ---
+  duration_ms: 1.446608
+  type: 'test'
+  ...
+# Subtest: reference and 3D are colocated; diagnostics secondary
+ok 10 - reference and 3D are colocated; diagnostics secondary
+  ---
+  duration_ms: 0.523326
+  type: 'test'
+  ...
+# Subtest: old exclusive profile buttons, duplicate body forms and magic deformation paths are absent from runtime
+ok 11 - old exclusive profile buttons, duplicate body forms and magic deformation paths are absent from runtime
+  ---
+  duration_ms: 0.488011
+  type: 'test'
+  ...
+# Subtest: auto starts N1-2 and applies the recommender exactly
+ok 12 - auto starts N1-2 and applies the recommender exactly
+  ---
+  duration_ms: 15.825633
+  type: 'test'
+  ...
+# Subtest: manual holds selected garment while all body measurements change
+ok 13 - manual holds selected garment while all body measurements change
+  ---
+  duration_ms: 0.669772
+  type: 'test'
+  ...
+# Subtest: outside range never auto applies an unsuitable candidate
+ok 14 - outside range never auto applies an unsuitable candidate
+  ---
+  duration_ms: 0.312515
+  type: 'test'
+  ...
+# Subtest: shape variables combine, preserve centimeters, and reset consistently
+ok 15 - shape variables combine, preserve centimeters, and reset consistently
+  ---
+  duration_ms: 1.340997
+  type: 'test'
+  ...
+# Subtest: invalid numbers and boundary values are finite and clamped
+ok 16 - invalid numbers and boundary values are finite and clamped
+  ---
+  duration_ms: 1.072477
+  type: 'test'
+  ...
+# Subtest: six catalog rest configurations remain distinct, fixed and not certified
+ok 17 - six catalog rest configurations remain distinct, fixed and not certified
+  ---
+  duration_ms: 0.428355
+  type: 'test'
+  ...
+# Subtest: controller shares transitions rather than recomputing catalog rules
+ok 18 - controller shares transitions rather than recomputing catalog rules
+  ---
+  duration_ms: 1.214641
+  type: 'test'
+  ...
+# Subtest: all shape controls are generated with range 0..10
+ok 19 - all shape controls are generated with range 0..10
+  ---
+  duration_ms: 0.223774
+  type: 'test'
+  ...
+# Subtest: export contains both selection inputs and actual simulation diagnostics
+ok 20 - export contains both selection inputs and actual simulation diagnostics
+  ---
+  duration_ms: 0.23846
+  type: 'test'
+  ...
+1..20
+# tests 20
+# suites 0
+# pass 20
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 8399.344606
