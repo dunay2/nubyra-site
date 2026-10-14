@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
-import {createBody,updateBody,createCollider,createRestGarment,createClothAdapter,ringPerimeter,CM_PER_UNIT} from './fit-mesh.mjs';
+import {createBody,updateBody,createRestGarment,createClothAdapter,ringPerimeter,CM_PER_UNIT} from './fit-mesh.mjs';
 import {GARMENT_CATALOG} from './garment-catalog.mjs';
 export function createFitViewer(canvas,initial,onFrame=()=>{}){
  const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.35;
@@ -23,8 +23,7 @@ export function createFitViewer(canvas,initial,onFrame=()=>{}){
   if(!adapter||garment.userData.configuration!==state.activeConfiguration){
    disposeGarment();garment=createRestGarment(THREE,GARMENT_CATALOG[state.activeConfiguration]);garment.userData.configuration=state.activeConfiguration;scene.add(garment);adapter=createClothAdapter(garment,body);adapter.solver.settle(55);
   }else{
-   const collider=createCollider(body),pins=adapter.solver.pins.map(pin=>{const k=pin.id*3,x=adapter.solver.rest[k],z=adapter.solver.rest[k+2],angle=Math.atan2(z,x),r=collider.radius(collider.ys.at(-1),angle)+.015;return {id:pin.id,position:[r*Math.cos(angle),pin.position[1],r*Math.sin(angle)]};});
-   adapter.solver.setCollider(collider,pins);if(reduced.matches)adapter.solver.settle(40);
+   adapter.retarget(body);if(reduced.matches)adapter.solver.settle(40);
   }
   quietFrames=0;adapter.sync();visual();onFrame(snapshot());
  }

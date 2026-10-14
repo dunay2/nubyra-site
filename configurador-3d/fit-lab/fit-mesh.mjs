@@ -1,6 +1,7 @@
 /** Metric synthetic bodies, fixed garment rest shapes and stitched cloth topology. */
 import {createFreeTestJersey} from '../free-test-jersey.mjs';
 import {ClothSolver} from './cloth-solver.mjs';
+import {bindTrimToSurface,syncSurfaceTrim} from './surface-bindings.mjs';
 export const CM_PER_UNIT=64/2.42;
 const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
 const lerp=(a,b,t)=>a+(b-a)*t;
@@ -79,6 +80,23 @@ export function createRestGarment(T,configuration){
   p.needsUpdate=true;mesh.geometry.computeVertexNormals();mesh.geometry.computeBoundingSphere();
  });return garment;
 }
+/** Move each support patch rigidly. Pairwise rest lengths never shrink to body size. */
+export function shoulderPins(rest,groups,collider){
+ const pins=[];
+ for(const ids of groups){
+  const center=[0,1,2].map(axis=>ids.reduce((sum,id)=>sum+rest[id*3+axis],0)/ids.length);
+  const angle=Math.atan2(center[2],center[0]),nx=Math.cos(angle),nz=Math.sin(angle);
+  const radius=collider.radius(collider.ys.at(-1),angle)+.02;
+  const delta=[radius*nx-center[0],collider.ys.at(-1)+.025-center[1],radius*nz-center[2]];
+  for(let i=0;i<3;i++){
+   const minGap=Math.min(...ids.map(id=>collider.gap(rest[id*3]+delta[0],rest[id*3+1]+delta[1],rest[id*3+2]+delta[2])));
+   if(minGap>=.015)break;
+   delta[0]+=(.015-minGap)*nx;delta[2]+=(.015-minGap)*nz;
+  }
+  for(const id of ids)pins.push({id,position:[0,1,2].map(axis=>rest[id*3+axis]+delta[axis])});
+ }
+ return pins;
+}
 export function createClothAdapter(garment,body){
  const positions=[],lookup=new Map(),maps=new Map(),edges=new Map(),opposites=new Map(),seams=[],triangles=[];
  const surfaces=garment.children.filter(m=>m.isMesh&&!m.name.startsWith('trim-'));
@@ -100,28 +118,30 @@ export function createClothAdapter(garment,body){
    const s=sideMap[row*6+(front?0:5)],a=panel[offset+k*9+8],b=panel[offset+(k+1)*9+8];if(s!==a&&s!==b)seams.push({s,a,b,t:q-k});
   }
  }
- const collider=createCollider(body),pins=[];
- for(let id=0;id<positions.length/3;id++){
-  const k=id*3,x=positions[k],y=positions[k+1],z=positions[k+2];if(y<1.075||Math.abs(x)<.28)continue;
-  const angle=Math.atan2(z,x),r=collider.radius(collider.ys.at(-1),angle)+.015;
-  pins.push({id,position:[r*Math.cos(angle),y-.10,r*Math.sin(angle)]});
+ const supportGroups=[];
+ for(const panel of surfaces.filter(m=>m.name.includes('Jersey_'))){
+  const map=maps.get(panel.name),{gridRows:rows,halfColumns:cols}=panel.geometry.userData;
+  // Only a small patch on each strap: do not compress an entire upper row.
+  for(let half=0;half<2;half++){
+   const offset=half*(rows+1)*(cols+1),col=Math.floor(cols/2);
+   supportGroups.push([map[offset+rows*(cols+1)+col],map[offset+rows*(cols+1)+col+1]]);
+  }
  }
+ const collider=createCollider(body),pins=shoulderPins(positions,supportGroups,collider);
  const bends=[...opposites.values()].filter(v=>v.length===2&&v[0]!==v[1]);
  const solver=new ClothSolver({positions,triangles,edges:[...edges.values()],bends,seams,pins,collider});
  const trims=[];
  for(const mesh of garment.children.filter(m=>m.isMesh&&m.name.startsWith('trim-'))){
-  const p=mesh.geometry.getAttribute('position'),candidate=maps.get('NUBYRA_Test_Jersey_'+(mesh.name.includes('front')?'Front':'Back')),bindings=[];
-  for(let i=0;i<p.count;i++){
-   const xyz=[p.getX(i),p.getY(i),p.getZ(i)],near=[];
-   for(const id of candidate){const k=id*3,d=(positions[k]-xyz[0])**2+(positions[k+1]-xyz[1])**2+(positions[k+2]-xyz[2])**2;if(near.length<3||d<near[2].d){near.push({id,d});near.sort((a,b)=>a.d-b.d);near.length=Math.min(3,near.length);}}
-   const total=near.reduce((s,n)=>s+1/(n.d+1e-6),0);const w=near.map(n=>(1/(n.d+1e-6))/total),offset=xyz.map((v,axis)=>v-near.reduce((s,n,j)=>s+w[j]*positions[n.id*3+axis],0));bindings.push({ids:near.map(n=>n.id),w,offset});
-  }trims.push({mesh,bindings});
+  const panel=garment.getObjectByName('NUBYRA_Test_Jersey_'+(mesh.name.includes('front')?'Front':'Back'));
+  trims.push({mesh,bindings:bindTrimToSurface(mesh,panel,maps.get(panel.name),positions)});
  }
  function sync(){
   const s=solver.positions;
   for(const mesh of surfaces){const p=mesh.geometry.getAttribute('position'),map=maps.get(mesh.name);for(let i=0;i<map.length;i++){const k=map[i]*3;p.setXYZ(i,s[k],s[k+1],s[k+2]);}p.needsUpdate=true;mesh.geometry.computeVertexNormals();mesh.geometry.computeBoundingSphere();}
-  for(const {mesh,bindings} of trims){const p=mesh.geometry.getAttribute('position');for(let i=0;i<bindings.length;i++){const b=bindings[i],xyz=b.offset.map((v,a)=>v+b.ids.reduce((sum,id,j)=>sum+b.w[j]*s[id*3+a],0));p.setXYZ(i,...xyz);}p.needsUpdate=true;mesh.geometry.computeVertexNormals();mesh.geometry.computeBoundingSphere();}
+  for(const {mesh,bindings} of trims){syncSurfaceTrim(mesh.geometry.getAttribute('position'),bindings,s);mesh.geometry.computeVertexNormals();mesh.geometry.computeBoundingSphere();}
  }
- return {solver,sync,maps,surfaces};
+ return {solver,sync,maps,surfaces,trims,supportGroups,
+  retarget(nextBody){const nextCollider=createCollider(nextBody);solver.setCollider(nextCollider,shoulderPins(solver.rest,supportGroups,nextCollider));}
+ };
 }
 export function ringPerimeter(body,row){const {around}=body.userData,p=body.geometry.getAttribute('position');let c=0;for(let i=0;i<around;i++){const a=row*(around+1)+i,b=a+1;c+=Math.hypot(p.getX(a)-p.getX(b),p.getZ(a)-p.getZ(b));}return c*CM_PER_UNIT;}
