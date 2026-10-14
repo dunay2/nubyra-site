@@ -68,13 +68,13 @@ export function updateBody(mesh, state) {
     if (r <= chestRow) {
       const t = clamp((r - hipRow) / (chestRow - hipRow));
       const target = lerp(state.bodyHipCm, state.bodyChestCm, t) * (1 - .12 * Math.pow(Math.sin(t * Math.PI), 2));
-      const chest = gauss((y0 - .28) / .48), hip = gauss((y0 + 1) / .45);
+      const chest = gauss((y0 - .36) / .48), hip = gauss((y0 + 1) / .45);
       for (let a = 0; a < around; a++) {
         const angle = 2 * Math.PI * a / around, c = Math.cos(angle), s = Math.sin(angle);
         const x = c * (.43 + .035 * hip) * (1 + (state.sideVolume - 5) * .045 * chest);
         // Broad rounded anterior mass; no cone or single displaced apex.
         const broad = Math.pow(Math.max(0, 1 - Math.pow(Math.abs(c), 6)), .35);
-        const forward = state.frontVolume * .028 * gauss((y0 - .27) / (.34 + state.frontVolume * .014)) * broad * Math.max(0,s);
+        const forward = state.frontVolume * .028 * gauss((y0 - .35) / (.34 + state.frontVolume * .014)) * broad * Math.max(0,s);
         const z = s * (.22 + .025 * hip) * (1 + (s < 0 ? (state.backVolume - 5) * .055 * chest : 0)) + forward;
         ring.push([x,z]);
       }
