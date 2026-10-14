@@ -1,0 +1,39 @@
+name: Import natural contact correction once
+on:
+  push:
+    branches: ['feat/fit-lab-natural-shoulder-contact']
+    paths: ['.github/workflows/import-natural-contact-once.yml']
+permissions:
+  contents: write
+jobs:
+  persist:
+    if: github.actor == 'dunay2'
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/fit-lab-natural-shoulder-contact
+          fetch-depth: 0
+      - name: Verify exact source patch and allowed paths
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor e38d8e510ecbe8d9b3579de1dc4109a59ba93eda HEAD
+          curl --fail --silent --show-error --max-time 60 'https://sb-5sescjz9og55.vercel.run/natural-contact.patch' -o /tmp/contact.patch
+          echo '34305aecc11df9086428ea111e96bde68436c7aa1eb4b82f9530a3a7988c51a9  /tmp/contact.patch' | sha256sum -c -
+          git apply --numstat /tmp/contact.patch | cut -f3 | while read -r path; do
+            case "$path" in
+              .github/workflows/validate-configurador-3d.yml|configurador-3d/fit-lab/app.mjs|configurador-3d/fit-lab/fit-mesh.mjs|configurador-3d/fit-lab/fit-viewer.mjs|configurador-3d/fit-lab/index.html|docs/fit-lab/NATURAL_CONTACT_RELEASE.md|docs/fit-lab/evidence/natural-contact/after.json|docs/fit-lab/evidence/natural-contact/before.json|scripts/fit-lab-contact-report.mjs|scripts/fit-lab-e2e.mjs|scripts/fit-lab-visual-review.mjs|tests/fit-lab.natural-contact.test.mjs) ;;
+              *) echo "Unexpected path: $path"; exit 1 ;;
+            esac
+          done
+          git apply --check /tmp/contact.patch
+          git apply --index /tmp/contact.patch
+      - name: Persist source for normal PR validation and remove one-use workflow
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/import-natural-contact-once.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'feat(fit-lab): natural strap contact, on-demand rendering, context recovery and tests'
+          git push origin HEAD:feat/fit-lab-natural-shoulder-contact
