@@ -6,6 +6,10 @@ function field(key,label,parent){const [min,max]=FIELD_LIMITS[key],div=document.
 for(const [key,label] of [['bodyChestCm','Pecho'],['bodyHipCm','Cadera'],['desiredLengthCm','Largo deseado']])field(key,label,'measure-fields');field('bodyHeightCm','Altura corporal','height-field');
 for(const [key,label] of [['frontVolume','Frontal'],['sideVolume','Lateral'],['backVolume','Posterior']]){const div=document.createElement('div');div.className='shape-field';div.innerHTML=`<label for="${key}-range">${label}</label><input id="${key}-range" data-field="${key}" type="range" min="0" max="10" step="1"><output id="${key}-output" for="${key}-range">${state[key]}</output>`;$('shape-fields').append(div);}
 for(const code of Object.keys(GARMENT_CATALOG)){const button=document.createElement('button');button.type='button';button.dataset.garment=code;button.textContent=code;button.addEventListener('click',()=>dispatch({type:'garment',code}));$('catalog-options').append(button);}
+const FABRIC_COLORS=[['#173e64','Azul marino'],['#f2f0e9','Marfil'],['#141820','Negro'],['#b52840','Rojo'],['#197d81','Turquesa']];
+let selectedColor=FABRIC_COLORS[0][0];
+for(const [hex,name] of FABRIC_COLORS){const b=document.createElement('button');b.type='button';b.className='fabric-swatch';b.style.backgroundColor=hex;b.title=name;b.setAttribute('aria-label','Color '+name);b.dataset.color=hex;b.addEventListener('click',()=>{selectedColor=hex;document.querySelectorAll('[data-color]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));viewer?.setColor(hex);});$('fabric-colors').append(b);}
+$('fabric-colors').firstElementChild.setAttribute('aria-pressed','true');
 function syncUI(){
  const c=GARMENT_CATALOG[state.activeConfiguration];
  document.querySelectorAll('[data-field]').forEach(input=>{if(document.activeElement!==input||input.type==='range')input.value=state[input.dataset.field];});
