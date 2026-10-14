@@ -241,3 +241,15 @@ footer{font-size:11px;color:#7b8e9e;margin-top:45px;padding:22px 0;border-top:1p
 .geometry-feedback{margin-top:10px}
 @media(max-width:1000px){.visual-comparison{grid-template-columns:minmax(0,1fr) minmax(220px,.8fr)}.visual-comparison .scene{min-height:380px}}
 @media(max-width:680px){.visual-comparison{grid-template-columns:minmax(0,1fr)}.visual-comparison .scene{min-height:320px;border-right:0}.visual-comparison .scale-card{border-top:1px solid #dce6ee}.visual-comparison #fit-scale-diagram{max-height:260px}}
+
+/* UX v2: un solo desplazamiento de documento, nunca scrollbars dentro de paneles */
+@media(min-width:1081px){
+ .view-panel{max-height:none;overflow:visible;position:static}
+ .editor-panels{max-height:none;min-height:0;overflow:visible;overscroll-behavior:auto}
+}
+@media(max-width:1080px){.view-panel,.editor{overflow:visible}}
+html,body{overflow-x:clip}
+.editor-panels{max-height:none!important;overflow:visible!important;scrollbar-width:none}
+.view-panel{max-height:none!important;overflow:visible!important;scrollbar-width:none}
+.visual-comparison{overflow:hidden;border-radius:0}
+@media(prefers-reduced-motion:reduce){.scene canvas{animation:none}}
