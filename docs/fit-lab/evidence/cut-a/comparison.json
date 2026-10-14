@@ -1,0 +1,96 @@
+{
+  "rows": [
+    {
+      "hip": 72,
+      "height": 143,
+      "before": {
+        "thighWidthCm": 12.04330241384585,
+        "thighDepthCm": 17.62815664622409,
+        "meshes": 7,
+        "triangles": 10856,
+        "bytes": 251792
+      },
+      "after": {
+        "thighWidthCm": 8.906996348672662,
+        "thighDepthCm": 10.691242375649697,
+        "meshes": 7,
+        "triangles": 12744,
+        "bytes": 294160
+      }
+    },
+    {
+      "hip": 96,
+      "height": 160,
+      "before": {
+        "thighWidthCm": 16.087420026132882,
+        "thighDepthCm": 23.514230586280508,
+        "meshes": 7,
+        "triangles": 10856,
+        "bytes": 251792
+      },
+      "after": {
+        "thighWidthCm": 11.956674993530779,
+        "thighDepthCm": 14.282620642796036,
+        "meshes": 7,
+        "triangles": 12296,
+        "bytes": 284176
+      }
+    },
+    {
+      "hip": 130,
+      "height": 160,
+      "before": {
+        "thighWidthCm": 21.836168509869538,
+        "thighDepthCm": 31.86156532981179,
+        "meshes": 7,
+        "triangles": 10856,
+        "bytes": 251792
+      },
+      "after": {
+        "thighWidthCm": 16.311437039335896,
+        "thighDepthCm": 19.379090868737087,
+        "meshes": 7,
+        "triangles": 12296,
+        "bytes": 284176
+      }
+    }
+  ],
+  "layers": [
+    {
+      "name": "default",
+      "code": "N1-2",
+      "before": 0.168,
+      "after": 0,
+      "samples": 1951,
+      "addedProtrusionCm": 0,
+      "bodyIntersectionSamples": 0
+    },
+    {
+      "name": "reported",
+      "code": "N1-1",
+      "before": 2.936,
+      "after": 0.174,
+      "samples": 2133,
+      "addedProtrusionCm": 0.025,
+      "bodyIntersectionSamples": 9
+    },
+    {
+      "name": "large",
+      "code": "N2-3",
+      "before": 5.114,
+      "after": 0,
+      "samples": 2399,
+      "addedProtrusionCm": 0,
+      "bodyIntersectionSamples": 0
+    },
+    {
+      "name": "loose",
+      "code": "N2-3",
+      "before": 0.018,
+      "after": 0,
+      "samples": 2550,
+      "addedProtrusionCm": 0,
+      "bodyIntersectionSamples": 0
+    }
+  ]
+}

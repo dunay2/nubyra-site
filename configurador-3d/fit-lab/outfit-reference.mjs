@@ -2,7 +2,7 @@ import {CM_PER_UNIT} from './body-surface.mjs';
 const lerp=(a,b,t)=>a+(b-a)*t;
 const clamp=x=>Math.max(0,Math.min(1,x));
 const smooth=x=>{const t=clamp(x);return t*t*t*(10+t*(-15+6*t));};
-export const OUTFIT_REFERENCE_VERSION='lower-reference/2.0';
+export const OUTFIT_REFERENCE_VERSION='lower-reference/2.1';
 
 /** Synthetic proportions only: not measured anatomy, a size recommendation or a cloth solver. */
 export function referenceLayout(body,state){
@@ -92,14 +92,16 @@ export function createOutfitReference(T,body,state,options={}){
  const primary=new T.MeshStandardMaterial({color:options.base||'#173e64',roughness:.85,side:T.DoubleSide}),accent=primary.clone();accent.color.set(options.accent||'#f8c12e');
  const add=(g,name,geo,mat)=>{const m=new T.Mesh(geo,mat);m.name=name;g.add(m);return m;};
  const ankleY=L.floor+.32*L.scale,lowerLength=L.joinY-ankleY,shank=L.scale*Math.pow(state.bodyHipCm/96,.2),center=.46*width;
+ // Compact upper-thigh reference: do not flare outward/deepen below the hip.
+ // Knees, calves, ankles and feet keep their previous sections and positions.
  const legProfile=profile([
-  [0,.47*width,.47*width,.68*width,0], [.14,center,.39*width,.60*width,0],
+  [0,.44*width,.38*width,.40*width,0], [.14,.43*width,.30*width,.36*width,0],
   [.37,center,.185*shank,.195*shank,.016*L.scale], [.47,center,.145*shank,.15*shank,.016*L.scale],
   [.63,center,.205*shank,.215*shank,-.028*L.scale], [.78,center,.168*shank,.173*shank,-.03*L.scale],
   [.93,center,.108*shank,.125*shank,-.004*L.scale], [1,center,.10*shank,.12*shank,0]
  ]);
  const legRing=(t,theta)=>{
-  const y=lerp(L.joinY,ankleY,t),[cx,rx,rz,cz]=legProfile(t),c=Math.cos(theta),s=Math.sin(theta),blend=smooth(t/.17),upper=sampleBody(y,theta);
+  const y=lerp(L.joinY,ankleY,t),[cx,rx,rz,cz]=legProfile(t),c=Math.cos(theta),s=Math.sin(theta),blend=smooth(t/.045),upper=sampleBody(y,theta);
   return [lerp(Math.max(0,upper[0]),cx+rx*c,blend),y,lerp(upper[1],cz+rz*s,blend)];
  };
  // Plantigrade reference: heel, instep and toe share one flat supporting sole.
@@ -118,19 +120,34 @@ export function createOutfitReference(T,body,state,options={}){
  const head=new T.SphereGeometry(1,28,20),headRadius=L.headHeight/2+.065*L.scale;
  head.scale(.245*L.scale,headRadius,.27*L.scale);head.translate(0,L.headTop-headRadius,0);add(bodyGroup,'Cabeza neutra de referencia',head,body.material);
  const shortsBottom=L.waistY-length/CM_PER_UNIT,crotch=L.joinY-.28*L.scale;
+ // Reuse the underlying body's section heights. A different row grid crossed the
+ // sharp hip-to-thigh transition and exposed skin through a thinner underlayer.
+ const bodyPositions=body.geometry.attributes.position,shortsYs=[];
+ for(let r=16;r>=0;r--){const y=bodyPositions.getY(r*(body.userData.around+1));if(y>shortsBottom+1e-7)shortsYs.push(y);}
+ const legGeometry=bodyGroup.getObjectByName('Pierna sintética 1').geometry;
+ const lp=legGeometry.attributes.position,lr=legGeometry.userData.rows,la=legGeometry.userData.around;
+ for(let r=1;r<=lr;r++){const y=lp.getY(r*(la+1));if(y>shortsBottom+1e-7)shortsYs.push(y);}
+ shortsYs.push(shortsBottom);
+ const sampleLeg=(y,theta)=>{const row=clamp((L.joinY-y)/lowerLength)*lr,r=Math.min(lr-1,Math.floor(row)),v=row-r;
+  const a=((theta+Math.PI/2)/(2*Math.PI)%1+1)%1*la,col=Math.floor(a),u=a-col;
+  const point=(rr,cc)=>{const i=rr*(la+1)+(cc%la);return [lp.getX(i),lp.getZ(i)];};
+  const p00=point(r,col),p01=point(r,col+1),p10=point(r+1,col),p11=point(r+1,col+1);
+  return [lerp(lerp(p00[0],p01[0],u),lerp(p10[0],p11[0],u),v),lerp(lerp(p00[1],p01[1],u),lerp(p10[1],p11[1],u),v)];
+ };
  for(const side of [-1,1]){
-  const rows=24,around=48;
+  const rows=shortsYs.length-1,around=56;
   const geometry=halfTube(T,side,rows,around,(t,theta)=>{
-   const y=lerp(L.waistY,shortsBottom,t),c=Math.cos(theta),s=Math.sin(theta);
+   const y=shortsYs[Math.round(t*rows)],c=Math.cos(theta),s=Math.sin(theta);
    // A thin underlayer above the hips avoids an artificial ring protruding through the shirt.
    // It opens gradually below the torso, without a branch discontinuity at joinY.
-   const ease=.0035+.0415*smooth((L.joinY-y)/(.38*L.scale));
-   if(y<=L.joinY){const v=legRing(clamp((L.joinY-y)/lowerLength),theta);return [Math.max(0,v[0]+ease*c),y,v[2]+ease*s];}
+   // Reference-only underlayer: no renderOrder/depth-test trick and no cloth rescaling.
+   const ease=.0008+.0212*smooth((L.joinY-y)/(.55*L.scale));
+   if(y<=L.joinY){const v=sampleLeg(y,theta);return [Math.max(0,v[0]+ease*c),y,v[1]+ease*s];}
    const v=sampleBody(y,theta);return [Math.max(0,v[0]+ease*c),y,v[1]+ease*s];
   });
   // Two draw batches per leg, exclusively a vertical side band; no horizontal material ring.
   const original=geometry.index.array,main=[],stripe=[];
-  for(let r=0;r<rows;r++)for(let a=0;a<around;a++){const target=a>=10&&a<=14?stripe:main;for(let k=0;k<6;k++)target.push(original[(r*around+a)*6+k]);}
+  for(let r=0;r<rows;r++)for(let a=0;a<around;a++){const target=a>=around/4-2&&a<=around/4+2?stripe:main;for(let k=0;k<6;k++)target.push(original[(r*around+a)*6+k]);}
   geometry.setIndex([...main,...stripe]);geometry.clearGroups();geometry.addGroup(0,main.length,0);geometry.addGroup(main.length,stripe.length,1);
   add(shortsGroup,'Pantalón visual '+side,geometry,[primary,accent]);
  }
