@@ -1,0 +1,46 @@
+name: Refine contained shape once
+on:
+  push:
+    branches: ['feat/fit-lab-loose-shorts-upper-torso']
+    paths: ['.github/workflows/refine-contained-shape-once.yml']
+permissions:
+  contents: write
+jobs:
+  persist:
+    if: github.actor == 'dunay2'
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/fit-lab-loose-shorts-upper-torso
+          fetch-depth: 0
+      - name: Verify final correction and evidence
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 94e1f41228562e589ac5910a1700d274e980ea1a HEAD
+          curl --fail --silent --show-error --max-time 50 'https://sb-6ok5znc24ah8.vercel.run/refine.patch' -o /tmp/refine.patch
+          echo '2843c84d5bc1f5b45c6139c4ec83498e881c3287f4069f9d674b9b3a92a25684  /tmp/refine.patch' | sha256sum -c -
+          git apply --numstat /tmp/refine.patch | cut -f3 | while read -r path; do
+            case "$path" in
+              configurador-3d/fit-lab/outfit-reference.mjs|docs/fit-lab/LOOSE_SHORTS_CONTAINED_TORSO.md|docs/fit-lab/evidence/contained-shape/comparison.json) ;;
+              *) echo "Unexpected path: $path"; exit 1 ;;
+            esac
+          done
+          git apply --check /tmp/refine.patch
+          git apply --index /tmp/refine.patch
+          curl --fail --silent --show-error --max-time 50 'https://sb-6ok5znc24ah8.vercel.run/final-review.zip' -o /tmp/final-review.zip
+          echo '003021e7f75c04c74ae9a1d848507ae523c20a261302be53d5e5ea610b8d8940  /tmp/final-review.zip' | sha256sum -c -
+      - uses: actions/upload-artifact@v4
+        with:
+          name: contained-shape-final-review
+          path: /tmp/final-review.zip
+          retention-days: 7
+      - name: Persist final source and remove transport
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/refine-contained-shape-once.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix(fit-lab): straight loose leg envelope without expanding the body'
+          git push origin HEAD:feat/fit-lab-loose-shorts-upper-torso
