@@ -1,0 +1,80 @@
+{
+  "environment": "Node 22, 1 vCPU; warmed geometry construction, not FPS",
+  "cases": [
+    {
+      "chest": 88,
+      "hip": 96,
+      "height": 160,
+      "before": {
+        "chestPlaneCm": 7.669421266918341,
+        "headWidthCm": 12.958677938161802,
+        "neckTopWidthCm": 11.184660856388817,
+        "hemWidthCm": 11.4769852851048,
+        "feetCenterDistanceCm": 18.003293108349006
+      },
+      "after": {
+        "chestPlaneCm": 10.04958665075381,
+        "headWidthCm": 15.074379976130714,
+        "neckTopWidthCm": 9.985586434356437,
+        "hemWidthCm": 14.248357035896996,
+        "feetCenterDistanceCm": 16.437789034252326
+      }
+    },
+    {
+      "chest": 94,
+      "hip": 96,
+      "height": 166,
+      "before": {
+        "chestPlaneCm": 6.76694192177008,
+        "headWidthCm": 13.444627809130456,
+        "neckTopWidthCm": 11.33318183835873,
+        "hemWidthCm": 11.907774554796456,
+        "feetCenterDistanceCm": 18.003291926108115
+      },
+      "after": {
+        "chestPlaneCm": 9.236363340015254,
+        "headWidthCm": 15.63966924493963,
+        "neckTopWidthCm": 10.084871812300248,
+        "hemWidthCm": 14.327694561855852,
+        "feetCenterDistanceCm": 16.43778864017203
+      }
+    },
+    {
+      "chest": 117,
+      "hip": 72,
+      "height": 143,
+      "before": {
+        "chestPlaneCm": 10.226445946811644,
+        "headWidthCm": 11.581818131375904,
+        "neckTopWidthCm": 11.840320618684627,
+        "hemWidthCm": 8.998790260188835,
+        "feetCenterDistanceCm": 13.502468944581087
+      },
+      "after": {
+        "chestPlaneCm": 12.353718970432755,
+        "headWidthCm": 13.472727310558982,
+        "neckTopWidthCm": 10.421472344516722,
+        "hemWidthCm": 10.990398875937974,
+        "feetCenterDistanceCm": 12.328341381608947
+      }
+    }
+  ],
+  "budget": {
+    "before": {
+      "meshes": 7,
+      "triangles": 12296,
+      "bufferBytes": 284176,
+      "bodyMedianMs": 2.8503359999999702,
+      "outfitMedianMs": 10.438908000000083,
+      "outfitP95Ms": 24.927063999999973
+    },
+    "after": {
+      "meshes": 7,
+      "triangles": 12352,
+      "bufferBytes": 284512,
+      "bodyMedianMs": 3.018170000000282,
+      "outfitMedianMs": 10.59385199999997,
+      "outfitP95Ms": 13.60585600000013
+    }
+  }
+}

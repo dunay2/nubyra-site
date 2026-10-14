@@ -4,7 +4,7 @@
  * Shoulder/neck proportions are design assumptions, not inferred measurements.
  */
 export const CM_PER_UNIT = 64 / 2.42;
-export const BODY_VERSION = 'nubyra.shoulder-torso/1.0';
+export const BODY_VERSION = 'nubyra.shoulder-torso/1.1';
 export const BODY_LAYOUT = Object.freeze({rows: 69, around: 56, chestRow: 29, hipRow: 4});
 const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -60,21 +60,22 @@ export function updateBody(mesh, state) {
   const yFrom = y => 1.2 + (y - 1.2) * scale;
   // Chest/hip rings remain exact; unspecified shoulder dimensions are a neutral preset.
   const breadth = clamp(.745 * Math.pow(state.bodyChestCm / 88, .35), .65, .86);
-  const neck = clamp(.218 * Math.pow(state.bodyChestCm / 88, .2), .198, .24);
+  const neck = clamp(.203 * Math.pow(state.bodyChestCm / 88, .15), .190, .218);
   let chestWidth, chestFront, chestBack, upper, chestRing, previousRing;
   for (let r = 0; r <= rows; r++) {
-    const y0 = r <= chestRow ? -1.16 + .05 * r : .29 + (1.62 - .29) * (r - chestRow) / (rows - chestRow);
+    // Raise the measured chest section by 2.4 cm at 160 cm; pelvis/waist sections stay fixed.
+    const y0 = r <= chestRow ? -1.16 + .05 * r + .09*smooth((r-16)/(chestRow-16)) : .38 + (1.62 - .38) * (r - chestRow) / (rows - chestRow);
     const ring = [];
     if (r <= chestRow) {
       const t = clamp((r - hipRow) / (chestRow - hipRow));
       const target = lerp(state.bodyHipCm, state.bodyChestCm, t) * (1 - .12 * Math.pow(Math.sin(t * Math.PI), 2));
-      const chest = gauss((y0 - .36) / .48), hip = gauss((y0 + 1) / .45);
+      const chest = gauss((y0 - .44) / .48), hip = gauss((y0 + 1) / .45);
       for (let a = 0; a < around; a++) {
         const angle = 2 * Math.PI * a / around, c = Math.cos(angle), s = Math.sin(angle);
         const x = c * (.43 + .035 * hip) * (1 + (state.sideVolume - 5) * .045 * chest);
         // Broad rounded anterior mass; no cone or single displaced apex.
         const broad = Math.pow(Math.max(0, 1 - Math.pow(Math.abs(c), 6)), .35);
-        const forward = state.frontVolume * .028 * gauss((y0 - .35) / (.34 + state.frontVolume * .014)) * broad * Math.max(0,s);
+        const forward = state.frontVolume * .028 * gauss((y0 - .44) / (.34 + state.frontVolume * .014)) * broad * Math.max(0,s);
         const z = s * (.22 + .025 * hip) * (1 + (s < 0 ? (state.backVolume - 5) * .055 * chest : 0)) + forward;
         ring.push([x,z]);
       }
@@ -87,17 +88,17 @@ export function updateBody(mesh, state) {
         chestRing=ring.map(v=>[...v]);
         chestWidth = Math.max(...ring.map(v=>v[0])); chestFront = Math.max(...ring.map(v=>v[1])); chestBack = -Math.min(...ring.map(v=>v[1]));
         upper = [
-          [.24, Math.max(...previousRing.map(v=>v[0])), Math.max(...previousRing.map(v=>v[1])), -Math.min(...previousRing.map(v=>v[1]))],
-          [.29, chestWidth, chestFront, chestBack],
-          [.48, chestWidth*.98, chestFront*.89, chestBack*.97],
-          [.72, breadth*.9, chestFront*.68, chestBack*.9],
-          [.93, breadth, .207, .224],
-          [1.08, breadth*.96, .182, .207],
-          [1.20, breadth*.8, .17, .20],
-          [1.31, breadth*.49, .176, .203],
-          [1.41, neck*1.08, .18, .202],
-          [1.51, neck, .177, .194],
-          [1.62, neck*.97, .179, .19]
+          [.24+.09*smooth(12/13), Math.max(...previousRing.map(v=>v[0])), Math.max(...previousRing.map(v=>v[1])), -Math.min(...previousRing.map(v=>v[1]))],
+          [.38, chestWidth, chestFront, chestBack],
+          [.56, chestWidth*.98, chestFront*.91, chestBack*.99],
+          [.76, breadth*.92, chestFront*.68, chestBack*.90],
+          [.93, breadth, .233, .249],
+          [1.08, breadth*.96, .200, .230],
+          [1.20, breadth*.81, .184, .216],
+          [1.31, breadth*.51, .180, .205],
+          [1.41, neck*1.22, .181, .198],
+          [1.51, neck*1.04, .172, .182],
+          [1.62, neck*.93, .168, .169]
         ];
       }
     } else {
@@ -110,8 +111,9 @@ export function updateBody(mesh, state) {
         const reference=chestRing[a];
         const factor=s>=0?front/chestFront:back/chestBack;
         const inherited=reference[1]*factor;
-        const blend=smooth((y0-.29)/.40);
-        ring.push([x,lerp(inherited,s*(s>=0?front-clavicle:back),blend)]);
+        const blend=smooth((y0-.38)/.38);
+        const scapula=s<0?.012*gauss((y0-.81)/.20)*Math.pow(Math.sin(2*theta),2):0;
+        ring.push([x,lerp(inherited,s*(s>=0?front-clavicle:back+scapula),blend)]);
       }
     }
     for(let a=0;a<=around;a++) p.setXYZ(r*(around+1)+a,ring[a%around][0],yFrom(y0),ring[a%around][1]);
