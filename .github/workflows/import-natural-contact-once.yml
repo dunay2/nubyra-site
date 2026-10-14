@@ -19,11 +19,11 @@ jobs:
         run: |
           set -euo pipefail
           git merge-base --is-ancestor e38d8e510ecbe8d9b3579de1dc4109a59ba93eda HEAD
-          curl --fail --silent --show-error --max-time 60 'https://sb-5sescjz9og55.vercel.run/natural-contact.patch' -o /tmp/contact.patch
-          echo '34305aecc11df9086428ea111e96bde68436c7aa1eb4b82f9530a3a7988c51a9  /tmp/contact.patch' | sha256sum -c -
+          curl --fail --silent --show-error --max-time 60 'https://sb-5sescjz9og55.vercel.run/natural-contact-source.patch' -o /tmp/contact.patch
+          echo 'a277c0b204e70641cea896d9d399491dc5c9491eafc924062168e178daf5d7e6  /tmp/contact.patch' | sha256sum -c -
           git apply --numstat /tmp/contact.patch | cut -f3 | while read -r path; do
             case "$path" in
-              .github/workflows/validate-configurador-3d.yml|configurador-3d/fit-lab/app.mjs|configurador-3d/fit-lab/fit-mesh.mjs|configurador-3d/fit-lab/fit-viewer.mjs|configurador-3d/fit-lab/index.html|docs/fit-lab/NATURAL_CONTACT_RELEASE.md|docs/fit-lab/evidence/natural-contact/after.json|docs/fit-lab/evidence/natural-contact/before.json|scripts/fit-lab-contact-report.mjs|scripts/fit-lab-e2e.mjs|scripts/fit-lab-visual-review.mjs|tests/fit-lab.natural-contact.test.mjs) ;;
+              configurador-3d/fit-lab/app.mjs|configurador-3d/fit-lab/fit-mesh.mjs|configurador-3d/fit-lab/fit-viewer.mjs|configurador-3d/fit-lab/index.html|docs/fit-lab/NATURAL_CONTACT_RELEASE.md|docs/fit-lab/evidence/natural-contact/after.json|docs/fit-lab/evidence/natural-contact/before.json|scripts/fit-lab-contact-report.mjs|scripts/fit-lab-e2e.mjs|scripts/fit-lab-visual-review.mjs|tests/fit-lab.natural-contact.test.mjs) ;;
               *) echo "Unexpected path: $path"; exit 1 ;;
             esac
           done
