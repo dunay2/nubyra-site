@@ -44,3 +44,9 @@ Ensayo Chromium software 1 vCPU: cuarenta borradores se procesaron en ~2,7 ms de
 ## Deuda acotada
 
 No se declara resuelta la calibración textil, el acabado de sisa ni el patronaje de pantalón. El siguiente trabajo de pantalones requiere medidas y catálogo propios; no ampliar silenciosamente el contrato actual de pecho/cadera/largo. Tampoco se vincula una malla anatómica adulta al piloto infantil.
+
+## Segunda pasada y regresión real
+
+La revisión inicial detectó una separación visual de la cabeza y una intersección en la zona alta del pantalón de referencia. Se conectó visualmente cuello-cabeza sin cambiar la estatura total y se hizo coincidir el perfil del pantalón con las mismas secciones de piernas, con holgura explícita. El torso/collider de camiseta no cambia.
+
+Se corrigió también la invalidación de la referencia oculta: editar altura en modo Torso y volver a Equipación completa ya reconstruye la referencia correspondiente. La cámara se reencuadra al confirmar otra estatura. Pruebas ampliadas con arrastre nativo de ratón y teclas mantenidas: ningún cálculo antes de soltar, un cálculo después. Nueve comprobaciones de equipación pasan localmente, además de las 15 regresiones anteriores y 111 pruebas Node, cero omitidas.

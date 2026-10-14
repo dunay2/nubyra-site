@@ -34,14 +34,14 @@ export function createOutfitReference(T,body,state,options={}){
   add(bodyGroup,'Pierna sintética '+side,halfTube(T,side,32,48,legRing),body.material);
   const foot=new T.SphereGeometry(1,20,12);foot.scale(width*.17,.115*L.scale,.23*L.scale);foot.translate(side*width*.46,L.floor+.115*L.scale,.10*L.scale);add(bodyGroup,'Pie de referencia '+side,foot,body.material);
  }
- const head=new T.SphereGeometry(1,28,20);head.scale(.245*L.scale,L.headHeight/2,.27*L.scale);head.translate(0,L.neckTop+L.headHeight/2,0);add(bodyGroup,'Cabeza neutra de referencia',head,body.material);
+ const head=new T.SphereGeometry(1,28,20);const headRadius=L.headHeight/2+.065*L.scale;head.scale(.245*L.scale,headRadius,.27*L.scale);head.translate(0,L.headTop-headRadius,0);add(bodyGroup,'Cabeza neutra de referencia',head,body.material);
  const shortsBottom=L.waistY-length/CM_PER_UNIT,crotch=L.joinY-.28*L.scale;
  for(const side of [-1,1]){
   const geometry=halfTube(T,side,24,48,(t,theta)=>{
-   const y=lerp(L.waistY,shortsBottom,t),c=Math.cos(theta),s=Math.sin(theta),sec=bodySection(body,Math.max(y,L.joinY));
-   const split=smooth((L.joinY+.09*L.scale-y)/(.46*L.scale));
-   const w=sec[0]+.032,dep=(s>=0?sec[1]:sec[2])+.032;
-   return [lerp(Math.max(0,c)*w,width*.48+(width*.43+.025)*c,split),y,s*lerp(dep,width*.62,split)];
+   const y=lerp(L.waistY,shortsBottom,t),c=Math.cos(theta),s=Math.sin(theta),allowance=.05;
+   if(y<=L.joinY){const legT=clamp((L.joinY-y)/(L.joinY-(L.floor+.12*L.scale))),v=legRing(legT,theta);return [Math.max(0,v[0]+allowance*c),y,v[2]+allowance*s];}
+   const sec=bodySection(body,y);
+   return [Math.max(0,c)*(sec[0]+allowance),y,s*((s>=0?sec[1]:sec[2])+allowance)];
   });
   // Same two-color design, a genuine side strip in the shorts material groups.
   const original=geometry.index.array,main=[],stripe=[];for(let r=0;r<24;r++)for(let a=0;a<48;a++){const target=a>=10&&a<=14?stripe:main;for(let k=0;k<6;k++)target.push(original[(r*48+a)*6+k]);}

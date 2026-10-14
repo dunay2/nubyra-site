@@ -8,7 +8,7 @@ export function createFitViewer(canvas,initial,onFrame=()=>{}){
  const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.35;
  const scene=new THREE.Scene();scene.add(new THREE.HemisphereLight(0xeefaff,0x283c51,2.2));
  for(const [x,y,z,power] of [[-3,5,4,3],[4,1,-4,1.8]]){const light=new THREE.DirectionalLight(0xffffff,power);light.position.set(x,y,z);scene.add(light);}
- const kit=createKitDesign(THREE);let outfit=null,fullView=false,showShorts=true,shortsLengthCm=40,editing=false;
+ const kit=createKitDesign(THREE);let outfit=null,outfitKey='',fullView=false,showShorts=true,shortsLengthCm=40,editing=false;
  const body=updateBody(createBody(THREE),initial);scene.add(body);let garment,adapter,state=initial,flags={body:true,garment:true,transparent:false,dimensions:true,motion:false};
  const camera=new THREE.OrthographicCamera(-1.8,1.8,1.8,-1.8,.1,40);camera.position.set(3,0,6);
  const controls=new OrbitControls(camera,canvas);controls.target.set(0,-.15,0);controls.enablePan=false;controls.enableDamping=true;controls.minZoom=.65;controls.maxZoom=1.7;controls.minPolarAngle=.8;controls.maxPolarAngle=2.3;
@@ -29,11 +29,11 @@ export function createFitViewer(canvas,initial,onFrame=()=>{}){
  function applyFabricColor(){kit.update({base:'#'+fabricColor.toString(16).padStart(6,'0')});outfit?.colors(kit.snapshot().base,kit.snapshot().accent);}
  function visual(){if(outfit){outfit.group.visible=fullView;outfit.bodyGroup.visible=flags.body;outfit.shortsGroup.visible=showShorts;outfit.ruler.visible=flags.dimensions;}body.visible=flags.body;garment.visible=flags.garment;dimensions.visible=flags.dimensions&&!fullView;garment.traverse(m=>{if(!m.isMesh)return;const materials=Array.isArray(m.material)?m.material:[m.material];for(const mat of materials){mat.transparent=flags.transparent;mat.opacity=flags.transparent?.5:1;mat.depthWrite=!flags.transparent;mat.needsUpdate=true;}});adapter.solver.wind=flags.motion&&!reduced.matches;}
  function update(next){
-  counts.physicalUpdates++;
+  counts.physicalUpdates++;const heightChanged=state.bodyHeightCm!==next.bodyHeightCm;
   const bodyChanged=!adapter||['bodyChestCm','bodyHipCm','bodyHeightCm','frontVolume','sideVolume','backVolume'].some(key=>state[key]!==next[key]);
   const garmentChanged=!adapter||garment.userData.configuration!==next.activeConfiguration;
   state=next;
-  if(bodyChanged){updateBody(body,state);updateRings();bodyReference=null;counts.bodyBuilds++;if(fullView)rebuildOutfit();}
+  if(bodyChanged){updateBody(body,state);updateRings();bodyReference=null;counts.bodyBuilds++;if(fullView){rebuildOutfit();if(heightChanged)frameOutfit();}}
   if(garmentChanged){
    disposeGarment();garment=createRestGarment(THREE,GARMENT_CATALOG[state.activeConfiguration]);garment.userData.configuration=state.activeConfiguration;scene.add(garment);adapter=createClothAdapter(garment,body);kit.attach(garment);applyFabricColor();adapter.solver.settle(55);counts.garmentBuilds++;
   }else if(bodyChanged){adapter.retarget(body);if(reduced.matches)adapter.solver.settle(40);}
@@ -72,12 +72,13 @@ export function createFitViewer(canvas,initial,onFrame=()=>{}){
   }
   timing('reference',performance.now()-started);return {...bodyReference,...garmentReference};
  }
- function rebuildOutfit(){if(outfit){scene.remove(outfit.group);outfit.destroy();}outfit=createOutfitReference(THREE,body,state,{shortsLengthCm,...kit.snapshot()});scene.add(outfit.group);counts.outfitBuilds++;}
+ function referenceKey(){return JSON.stringify([state.bodyChestCm,state.bodyHipCm,state.bodyHeightCm,state.frontVolume,state.sideVolume,state.backVolume,shortsLengthCm]);}
+ function rebuildOutfit(){if(outfit){scene.remove(outfit.group);outfit.destroy();}outfit=createOutfitReference(THREE,body,state,{shortsLengthCm,...kit.snapshot()});scene.add(outfit.group);outfitKey=referenceKey();counts.outfitBuilds++;}
  function frameOutfit(){const previous=controls.target.clone(),next=new THREE.Vector3(0,fullView&&outfit?(outfit.layout.floor+outfit.layout.headTop)/2:-.15,0);camera.position.add(next.clone().sub(previous));controls.target.copy(next);camera.zoom=1;resize();controls.update();}
  function setOutfit(next){const needsBuild=next.shortsLengthCm!==undefined&&next.shortsLengthCm!==shortsLengthCm;
   if(next.shortsLengthCm!==undefined)shortsLengthCm=Math.max(25,Math.min(60,Number(next.shortsLengthCm)||40));
   const previous=fullView;if(next.fullView!==undefined)fullView=Boolean(next.fullView);if(next.showShorts!==undefined)showShorts=Boolean(next.showShorts);
-  if(fullView&&(!outfit||needsBuild))rebuildOutfit();
+  if(fullView&&(!outfit||needsBuild||outfitKey!==referenceKey()))rebuildOutfit();
   bodyReference=null;garmentReference=null;referenceDirty=true;visual();if(previous!==fullView)frameOutfit();invalidate();
  }
  function resize(){const {clientWidth:w,clientHeight:h}=canvas.parentElement;if(!w||!h)return;renderer.setSize(w,h,false);const half=fullView&&outfit?state.bodyHeightCm/CM_PER_UNIT*.58:2.05;camera.left=-half*w/h;camera.right=half*w/h;camera.top=half;camera.bottom=-half;camera.updateProjectionMatrix();invalidate();}

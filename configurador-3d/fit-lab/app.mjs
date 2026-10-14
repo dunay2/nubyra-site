@@ -1,7 +1,7 @@
 import {FIELD_LIMITS,resolveState,transition} from './lab-model.mjs';
 import {GARMENT_CATALOG} from './garment-catalog.mjs';
 import {bindCommitFields} from './commit-fields.mjs';
-import {DEFAULT_KIT,normalizeKit} from './kit-design.mjs';
+import {normalizeKit} from './kit-design.mjs';
 const $=id=>document.getElementById(id),fmt=n=>Number(n).toLocaleString('es-ES',{maximumFractionDigits:1});
 let state=resolveState({}),viewer=null,renderFrame=0,lastSnapshot=null;
 function field(key,label,parent){const [min,max]=FIELD_LIMITS[key],div=document.createElement('div');div.className='fit-field';div.innerHTML=`<div class="field-top"><label for="${key}-range">${label}</label><span><input id="${key}-number" data-field="${key}" type="number" min="${min}" max="${max}" step="1" aria-label="${label} en centímetros"><span>cm</span></span></div><input id="${key}-range" data-field="${key}" type="range" min="${min}" max="${max}" step="1">`;$(parent).append(div);}
@@ -9,8 +9,8 @@ for(const [key,label] of [['bodyChestCm','Pecho'],['bodyHipCm','Cadera'],['desir
 for(const [key,label] of [['frontVolume','Frontal'],['sideVolume','Lateral'],['backVolume','Posterior']]){const div=document.createElement('div');div.className='shape-field';div.innerHTML=`<label for="${key}-range">${label}</label><input id="${key}-range" data-field="${key}" type="range" min="0" max="10" step="1"><output id="${key}-output" for="${key}-range">${state[key]}</output>`;$('shape-fields').append(div);}
 for(const code of Object.keys(GARMENT_CATALOG)){const button=document.createElement('button');button.type='button';button.dataset.garment=code;button.textContent=code;button.addEventListener('click',()=>dispatch({type:'garment',code}));$('catalog-options').append(button);}
 const FABRIC_COLORS=[['#173e64','Azul marino'],['#f2f0e9','Marfil'],['#141820','Negro'],['#b52840','Rojo'],['#197d81','Turquesa']];
-let selectedColor=FABRIC_COLORS[0][0],kit=normalizeKit(),outfitOptions={fullView:false,showShorts:true,shortsLengthCm:40};
-for(const [hex,name] of FABRIC_COLORS){const b=document.createElement('button');b.type='button';b.className='fabric-swatch';b.style.backgroundColor=hex;b.title=name;b.setAttribute('aria-label','Color '+name);b.dataset.color=hex;b.addEventListener('click',()=>{selectedColor=hex;document.querySelectorAll('[data-color]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));kit=normalizeKit({...kit,base:hex});$('kit-base').value=hex;viewer?.setColor(hex);});$('fabric-colors').append(b);}
+let kit=normalizeKit(),outfitOptions={fullView:false,showShorts:true,shortsLengthCm:40};
+for(const [hex,name] of FABRIC_COLORS){const b=document.createElement('button');b.type='button';b.className='fabric-swatch';b.style.backgroundColor=hex;b.title=name;b.setAttribute('aria-label','Color '+name);b.dataset.color=hex;b.addEventListener('click',()=>{document.querySelectorAll('[data-color]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));kit=normalizeKit({...kit,base:hex});$('kit-base').value=hex;viewer?.setColor(hex);});$('fabric-colors').append(b);}
 $('fabric-colors').firstElementChild.setAttribute('aria-pressed','true');
 function syncUI(){
  const c=GARMENT_CATALOG[state.activeConfiguration];
@@ -53,7 +53,7 @@ document.querySelectorAll('[data-framing]').forEach(b=>b.addEventListener('click
 $('show-shorts').addEventListener('change',()=>{outfitOptions.showShorts=$('show-shorts').checked;syncOutfit();});
 function applyShorts(){const e=$('shorts-length');if(e.value===''||!e.validity.valid){e.value=outfitOptions.shortsLengthCm;e.setAttribute('aria-invalid','true');return;}e.removeAttribute('aria-invalid');outfitOptions.shortsLengthCm=e.valueAsNumber;syncOutfit();}
 $('shorts-length').addEventListener('change',applyShorts);$('shorts-length').addEventListener('keydown',e=>{if(e.key==='Enter')applyShorts();});
-function designChange(key,e){kit=normalizeKit({...kit,[key]:e.value});if(e.type!=='color')e.value=kit[key];viewer?.setDesign(kit);}
+function designChange(key,e){kit=normalizeKit({...kit,[key]:e.value});if(e.type!=='color')e.value=kit[key];viewer?.setDesign(kit);if(key==='base')document.querySelectorAll('[data-color]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.color===kit.base)));}
 for(const key of ['team','surname','number','sponsor','base','accent']){const e=$('kit-'+key);e.value=kit[key];e.addEventListener('change',()=>designChange(key,e));e.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();designChange(key,e);}});}
 $('save-json').addEventListener('click',()=>{const blob=new Blob([JSON.stringify({schema:'nubyra.fit-lab/1.0',...getLabSnapshot()},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='nubyra-fit-lab-ensayo.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
