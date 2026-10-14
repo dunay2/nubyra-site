@@ -146,9 +146,11 @@ export function createOutfitReference(T,body,state,options={}){
     const v=sampleLeg(y,theta);
     // A woven-sport reference hangs from the upper thigh instead of tracing the
     // narrowing knee. This is a geometric envelope, not a second cloth solver.
-    const hanging=smooth((L.joinY-y-.20*L.scale)/(.38*L.scale));
-    const legCenter=.46*width,hemRadiusX=.32*width+.040*L.scale,hemRadiusZ=.345*width+.040*L.scale;
-    const outer=[legCenter+hemRadiusX*c,hemRadiusZ*s];
+    const hanging=smooth((L.joinY-y-.035*L.scale)/(.20*L.scale));
+    const legCenter=.46*width,hemRadiusX=.27*width+.040*L.scale,hemRadiusZ=.315*width+.035*L.scale;
+    const target=[legCenter+hemRadiusX*c,hemRadiusZ*s];
+    // An outer envelope may add ease but must not cut through the existing leg.
+    const outer=[c>=0?Math.max(v[0],target[0]):Math.min(v[0],target[0]),s>=0?Math.max(v[1],target[1]):Math.min(v[1],target[1])];
     return [Math.max(0,lerp(v[0],outer[0],hanging)+ease*c),y,lerp(v[1],outer[1],hanging)+ease*s];
    }
    const v=sampleBody(y,theta);return [Math.max(0,v[0]+ease*c),y,v[1]+ease*s];

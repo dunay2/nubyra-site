@@ -18,7 +18,7 @@ Base real comprobada: `417ae760b87caf9bc815dfd91c4d7fe22e728f94` (corte A). Este
 
 ## Métricas geométricas, caso de referencia 88/96/160
 
-- Anchura de abertura de pernera: 11,48 → 15,80 cm; profundidad: 12,48 → 16,78 cm. Son medidas del volumen visual, no talla recomendada.
+- Anchura de abertura de pernera: 11,48 → 13,85 cm; profundidad: 12,48 → 15,34 cm. Son medidas del volumen visual, no talla recomendada.
 - Elevación de la sección de pecho: 1,60 cm; pecho y cadera permanecen 88/96 cm.
 - Borde inferior de cabeza: 2,12 cm más bajo; coronación y suelo no cambian.
 - Cuerpo más referencia completa: 8 mallas, 20.136 triángulos y 427.024 bytes de buffers antes y después (excluye camiseta).
@@ -40,3 +40,9 @@ Base real comprobada: `417ae760b87caf9bc815dfd91c4d7fe22e728f94` (corte A). Este
 **El pantalón sigue siendo una referencia estática con holgura, no una simulación textil.** No se anuncian caída física del pantalón, autocolisión entre prendas ni antropometría validada. La cabeza sigue siendo neutra/simplificada. Los casos fuera del catálogo mantienen sus advertencias y se reportan intersecciones previas, no se simula un ajuste garantizado. La elevación pectoral y perfiles superiores son una mejora paramétrica de ensayo, no una medición individual.
 
 El emparejamiento actual 117/72 queda fuera del catálogo; la referencia no convierte esa combinación en una recomendación válida.
+
+## Segunda revisión antes de publicar
+
+La primera envolvente abría tarde y dibujaba una ligera campana. Se adelantó la apertura y se redujo su radio objetivo para mantener una pernera recta. Se descartó una variante que añadía 2,55 mm de protrusión al caso fuera del catálogo; no se modificó el umbral del corte A. La variante elegida conserva espacio alrededor de la rodilla y no añade volumen dentro del miembro (la envolvente solo puede quedar por fuera de las secciones existentes).
+
+Las 124 pruebas Node de la primera variante pasaron; la corrección final de envolvente ha pasado además las nueve pruebas específicas, incluido el corte A. La CI final vuelve a ejecutar la suite completa y las capturas. No se interpreta la geometría del pantalón como un resultado XPBD.
