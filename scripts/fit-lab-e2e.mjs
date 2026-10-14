@@ -5,7 +5,7 @@ if(!base){server=createServer(async(req,res)=>{try{let file=path.join(root,decod
 const launch={headless:true,args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']};if(process.env.CHROMIUM_PATH)launch.executablePath=process.env.CHROMIUM_PATH;
 const browser=await chromium.launch(launch),page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[],checks=[];page.on('pageerror',e=>errors.push(e.message));const directory=process.env.EVIDENCE_DIR||'docs/fit-lab/evidence';await mkdir(directory,{recursive:true});
 const snapshot=()=>page.evaluate(async()=> (await import('./app.mjs')).getLabSnapshot());
-const set=async(key,value)=>{await page.locator('#'+key+'-range').evaluate((e,v)=>{e.value=v;e.dispatchEvent(new Event('input',{bubbles:true}));},String(value));await page.waitForTimeout(800);};
+const set=async(key,value)=>{await page.locator('#'+key+'-range').evaluate((e,v)=>{e.value=v;e.dispatchEvent(new Event('input',{bubbles:true}));},String(value));await page.evaluate(async()=>{window.__fitLabTestModule=await import('./app.mjs');});await page.waitForFunction(({key,value})=>window.__fitLabTestModule.getLabSnapshot().lastFrame.state[key]===Number(value),{key,value},{timeout:20000});await page.waitForTimeout(100);};
 const record=(name)=>checks.push(name);
 try{
  await page.goto(base);await page.waitForFunction(()=>document.getElementById('render-status').textContent.includes('contacto activo'),null,{timeout:30000});await page.waitForTimeout(1800);assert.equal((await snapshot()).state.activeConfiguration,'N1-2');record('WebGL inicializado y selección automática inicial');
@@ -28,6 +28,23 @@ try{
  for(const view of ['front','side','quarter']){await page.locator('[data-view="'+view+'"]').click();await page.waitForTimeout(700);await page.screenshot({path:directory+'/neckline-regression-'+view+'.png'});}
  record('Regresión 72/74, forma 1/6/0, N2-3 manual: medidas conservadas y vistas capturadas');
  await page.locator('#reset-all').click();await page.waitForTimeout(1800);
+ // Resting models render on demand; color changes must not rebuild geometry.
+ await page.locator('#advanced').evaluate(e=>e.open=true);await page.locator('#settle-cloth').click();await page.locator('#advanced').evaluate(e=>e.open=false);await page.waitForTimeout(500);
+ const idle=await snapshot();await page.waitForTimeout(650);const idleAfter=await snapshot();
+ assert.equal(idleAfter.lastFrame.cloth.steps,idle.lastFrame.cloth.steps);assert.equal(idleAfter.lastFrame.frames,idle.lastFrame.frames);assert.equal(idleAfter.lastFrame.sleeping,true);
+ await page.locator('[data-color="#b52840"]').click();await page.waitForTimeout(250);const colored=await snapshot();
+ assert.equal(colored.lastFrame.color,'#b52840');assert.equal(colored.lastFrame.cloth.steps,idle.lastFrame.cloth.steps);
+ assert.equal(colored.lastFrame.performance.counts.bodyBuilds,idle.lastFrame.performance.counts.bodyBuilds);assert.equal(colored.lastFrame.performance.counts.garmentBuilds,idle.lastFrame.performance.counts.garmentBuilds);
+ assert.ok(colored.lastFrame.frames>idle.lastFrame.frames,'color change did not render');
+ await page.locator('[data-color="#173e64"]').click();record('Idle rendering stops; color renders once without recalculating body or physics');
+ const outlineBefore=await page.locator('#ref-body-front').getAttribute('d');await set('bodyChestCm',92);assert.notEqual(await page.locator('#ref-body-front').getAttribute('d'),outlineBefore);record('Cached body outline invalidates immediately when measurements change');
+ const memories=[];for(let cycle=0;cycle<2;cycle++){for(const code of ['N1-1','N1-2','N1-3','N2-1','N2-2','N2-3']){await page.locator('[data-garment="'+code+'"]').click();await page.waitForTimeout(80);}await page.locator('#fit-canvas').screenshot();await page.waitForTimeout(1000);memories.push((await snapshot()).lastFrame.performance.geometries);}
+ assert.equal(memories[0],memories[1],'GPU geometries grew over configuration cycles');record('Repeated configuration changes release old geometry and materials');
+ const beforeContext=(await snapshot()).state;const extensionAvailable=await page.evaluate(()=>{const gl=document.getElementById('fit-canvas').getContext('webgl2');window.__contextTest=gl?.getExtension('WEBGL_lose_context');if(window.__contextTest){window.__contextTest.loseContext();return true;}return false;});
+ assert.equal(extensionAvailable,true);await page.waitForTimeout(400);assert.equal(await page.locator('#scene-error').isVisible(),true);await page.evaluate(()=>window.__contextTest.restoreContext());await page.waitForTimeout(1200);
+ assert.equal(await page.locator('#scene-error').isVisible(),false);assert.deepEqual((await snapshot()).state,beforeContext);record('WebGL context loss recovers while preserving the current measurements');
+ await page.locator('#reset-all').click();await page.waitForTimeout(600);
+ await writeFile(directory+'/performance.json',JSON.stringify({environment:'Chromium SwiftShader software renderer; CPU timings are not hardware GPU timings',snapshot:(await snapshot()).lastFrame.performance},null,2));
  for(const width of [1440,1280,768,390,320]){await page.setViewportSize({width,height:width<600?844:900});await page.waitForTimeout(300);const metrics=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth,nested:[...document.querySelectorAll('.editor,.view-panel')].filter(e=>['auto','scroll'].includes(getComputedStyle(e).overflowY)).length}));assert.ok(metrics.scroll<=metrics.width+1,JSON.stringify(metrics));assert.equal(metrics.nested,0);if(width===390)await page.screenshot({path:directory+'/pass2-mobile.png',fullPage:true});}record('Sin overflow horizontal ni scroll anidado a 1440/1280/768/390/320 px');
  await page.emulateMedia({reducedMotion:'reduce'});await page.waitForTimeout(500);assert.equal(await page.locator('#cloth-impulse').isDisabled(),true);assert.equal(await page.locator('#show-motion').isDisabled(),true);const before=(await snapshot()).lastFrame.cloth.steps;await page.waitForTimeout(600);assert.equal((await snapshot()).lastFrame.cloth.steps,before);record('Movimiento reducido respeta el dispositivo');
  assert.deepEqual(errors,[]);record('Sin excepciones JavaScript');await writeFile(directory+'/browser-tests.json',JSON.stringify({passed:checks.length,checks,errors,viewportWidths:[1440,1280,768,390,320],snapshot:s},null,2));console.log(JSON.stringify({passed:checks.length,checks,errors}));

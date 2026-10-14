@@ -52,6 +52,12 @@ jobs:
         env:
           EVIDENCE_DIR: artifacts/fit-lab
         run: npm run test:e2e:fit-lab | tee artifacts/browser-tests.txt
+      - name: Medir contacto, capturar vistas y revisar materiales
+        env:
+          EVIDENCE_DIR: artifacts/natural-contact
+        run: |
+          node scripts/fit-lab-contact-report.mjs
+          node scripts/fit-lab-visual-review.mjs
       - name: Publicar evidencia y GLB para revisión
         if: always()
         uses: actions/upload-artifact@v4

@@ -122,7 +122,8 @@ export function createClothAdapter(garment,body){
   }
  }
  const collider=createCollider(body),pins=shoulderPins(positions,supportGroups,collider);
- const bends=[...opposites.values()].filter(v=>v.length===2&&v[0]!==v[1]);
+ const shoulderIds=new Set(garment.children.filter(m=>m.userData.kind==='shoulder-fabric').flatMap(m=>maps.get(m.name)));
+ const bends=[...opposites.values()].filter(v=>v.length===2&&v[0]!==v[1]).map(v=>[v[0],v[1],shoulderIds.has(v[0])||shoulderIds.has(v[1]) ? .0015 : .003]);
  const initialTranslation=[0,pins.reduce((sum,p)=>sum+p.position[1]-positions[p.id*3+1],0)/pins.length,0];
  const solver=new ClothSolver({positions,triangles,edges:[...edges.values()],bends,seams,pins,collider,initialTranslation});
  const trims=[];
@@ -130,28 +131,13 @@ export function createClothAdapter(garment,body){
   const panel=garment.getObjectByName('NUBYRA_Test_Jersey_'+(mesh.name.includes('front')?'Front':'Back'));
   trims.push({mesh,bindings:bindTrimToSurface(mesh,panel,maps.get(panel.name),positions)});
  }
+ // Precompute welded normal incidence once; reuse the geometry buffers during motion.
+ const incidence=new Map();
+ for(const mesh of surfaces){const n=mesh.geometry.getAttribute('normal'),map=maps.get(mesh.name);for(let i=0;i<map.length;i++){if(!incidence.has(map[i]))incidence.set(map[i],[]);incidence.get(map[i]).push({n,i});}}
+ const weldedNormals=[...incidence.values()].filter(group=>group.length>1);
  function reconcileSurfaceNormals(){
-  // Mesh halves render independently but can share one simulated particle.
-  // Reuse the same averaged normal on welded vertices to avoid a fake centre seam.
-  const totals=new Map();
-  for(const mesh of surfaces){
-   const n=mesh.geometry.getAttribute('normal'),map=maps.get(mesh.name);
-   for(let i=0;i<map.length;i++){
-    const id=map[i],current=totals.get(id)??[0,0,0,0];
-    current[0]+=n.getX(i);current[1]+=n.getY(i);current[2]+=n.getZ(i);current[3]++;
-    totals.set(id,current);
-   }
-  }
-  for(const mesh of surfaces){
-   const n=mesh.geometry.getAttribute('normal'),map=maps.get(mesh.name);
-   for(let i=0;i<map.length;i++){
-    const [nx,ny,nz,count]=totals.get(map[i]);
-    if(count<2)continue;
-    const len=Math.hypot(nx,ny,nz)||1;
-    n.setXYZ(i,nx/len,ny/len,nz/len);
-   }
-   n.needsUpdate=true;
-  }
+  for(const group of weldedNormals){let nx=0,ny=0,nz=0;for(const {n,i} of group){nx+=n.getX(i);ny+=n.getY(i);nz+=n.getZ(i);}const length=Math.hypot(nx,ny,nz)||1;for(const {n,i} of group)n.setXYZ(i,nx/length,ny/length,nz/length);}
+  for(const mesh of surfaces)mesh.geometry.getAttribute('normal').needsUpdate=true;
  }
  function sync(){
   const s=solver.positions;

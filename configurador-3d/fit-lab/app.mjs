@@ -27,7 +27,7 @@ function syncUI(){
  $('selection-explanation').textContent=`El recomendador compara las seis variantes. Candidata: ${state.recommendation.previewCode}. El largo solicitado (${fmt(state.desiredLengthCm)} cm) no estira artificialmente la camiseta elegida. Los tres controles de volumen cambian la forma conservando los contornos.`;
 }
 function onFrame(snapshot){
- lastSnapshot=snapshot;$('body-chest-readout').textContent=fmt(snapshot.body.chestCm)+' cm';$('body-hip-readout').textContent=fmt(snapshot.body.hipCm)+' cm';
+ lastSnapshot=snapshot;const review=$('fit-review');review.hidden=snapshot.cloth.maxStrain<=.5;review.textContent=review.hidden?'':'Deformación elevada en este ensayo: revisa la prenda seleccionada.';$('body-chest-readout').textContent=fmt(snapshot.body.chestCm)+' cm';$('body-hip-readout').textContent=fmt(snapshot.body.hipCm)+' cm';
  $('length-label').textContent='Alto visible '+fmt(snapshot.garment.hangingHeightCm)+' cm';
  $('contact-count').textContent=snapshot.cloth.contactVertices+' vértices';$('penetration').textContent=fmt(snapshot.cloth.maxPenetrationCm*10)+' mm';$('strain').textContent=fmt(snapshot.cloth.p95Strain*100)+' %';$('particle-count').textContent=snapshot.cloth.particles+' / '+snapshot.cloth.seams;
  $('cloth-state').textContent=snapshot.paused?'Simulación pausada':snapshot.cloth.maxVelocity>.06?'Tejido en movimiento':'Gravedad y contacto';
