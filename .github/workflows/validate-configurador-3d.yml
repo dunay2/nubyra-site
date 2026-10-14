@@ -60,6 +60,10 @@ jobs:
         env:
           EVIDENCE_DIR: artifacts/cut-a
         run: node scripts/fit-lab-cut-a-review.mjs | tee artifacts/cut-a-tests.txt
+      - name: Cadera, pernera libre y torso superior en vistas comparables
+        env:
+          EVIDENCE_DIR: artifacts/hip-torso
+        run: node scripts/fit-lab-hip-torso-review.mjs | tee artifacts/hip-torso-tests.txt
       - name: Medir contacto, capturar vistas y revisar materiales
         env:
           EVIDENCE_DIR: artifacts/natural-contact
