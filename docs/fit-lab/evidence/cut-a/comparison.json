@@ -14,8 +14,8 @@
         "thighWidthCm": 8.906996348672662,
         "thighDepthCm": 10.691242375649697,
         "meshes": 7,
-        "triangles": 10856,
-        "bytes": 251792
+        "triangles": 12744,
+        "bytes": 294160
       }
     },
     {
@@ -32,8 +32,8 @@
         "thighWidthCm": 11.956674993530779,
         "thighDepthCm": 14.282620642796036,
         "meshes": 7,
-        "triangles": 10856,
-        "bytes": 251792
+        "triangles": 12296,
+        "bytes": 284176
       }
     },
     {
@@ -50,8 +50,8 @@
         "thighWidthCm": 16.311437039335896,
         "thighDepthCm": 19.379090868737087,
         "meshes": 7,
-        "triangles": 10856,
-        "bytes": 251792
+        "triangles": 12296,
+        "bytes": 284176
       }
     }
   ],
@@ -61,28 +61,36 @@
       "code": "N1-2",
       "before": 0.168,
       "after": 0,
-      "samples": 1333
+      "samples": 1951,
+      "addedProtrusionCm": 0,
+      "bodyIntersectionSamples": 0
     },
     {
       "name": "reported",
       "code": "N1-1",
       "before": 2.936,
-      "after": 0.01,
-      "samples": 1400
+      "after": 0.174,
+      "samples": 2133,
+      "addedProtrusionCm": 0.025,
+      "bodyIntersectionSamples": 9
     },
     {
       "name": "large",
       "code": "N2-3",
       "before": 5.114,
       "after": 0,
-      "samples": 1798
+      "samples": 2399,
+      "addedProtrusionCm": 0,
+      "bodyIntersectionSamples": 0
     },
     {
       "name": "loose",
       "code": "N2-3",
       "before": 0.018,
       "after": 0,
-      "samples": 1948
+      "samples": 2550,
+      "addedProtrusionCm": 0,
+      "bodyIntersectionSamples": 0
     }
   ]
 }

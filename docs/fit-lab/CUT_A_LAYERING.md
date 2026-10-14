@@ -25,9 +25,9 @@ El pantalón es una referencia estática y sigue las secciones de los muslos. La
 
 - Frontal/lateral/¾/espalda: camiseta por fuera, sin el abultamiento de referencia atravesando su bajo en los dos casos capturados.
 - La anchura y profundidad superiores disminuyen sin mover rodilla, tobillo, pie ni altura total.
-- Muestreo radial de la superficie de camiseta real frente a vértices del pantalón, tras 90 frames de asentamiento: exceso máximo tolerado < 0,05 cm. Es un diagnóstico discreto de superficies, no detección continua de colisión.
+- Muestreo radial de la superficie de camiseta real frente a vértices del pantalón, tras 90 frames de asentamiento: exceso adicional atribuible al pantalón < 0,05 cm. En casos con cobertura de catálogo también se exige exceso total < 0,05 cm. Un cruce preexistente de camiseta/cuerpo en un caso fuera de catálogo se conserva en el informe total, no se oculta ni se atribuye al pantalón. Es un diagnóstico discreto de superficies, no detección continua de colisión.
 - Tests de medición, colores, inputs, física y modo Equipación completa continúan funcionando.
-- Misma topología, memoria y número de mallas de referencia: 7 mallas, 10.856 triángulos, 251.792 bytes de buffers. No se añade trabajo por frame ni librerías.
+- Siete mallas como antes. El pantalón alinea sus secciones con las del cuerpo para evitar piel atravesando su superficie: en el caso estándar, 10.856 → 12.296 triángulos y 251.792 → 284.176 bytes de buffers (+32.384 bytes). El número de filas depende del largo. No se añade trabajo de simulación por frame ni librerías, pero sí más geometría estática; no se declara mejora de FPS.
 - Publicar únicamente tras CI y revisión de las capturas; confirmar el commit servido y probar el caso reportado sobre la URL pública.
 
 ## Resultados numéricos previos a publicación
@@ -40,10 +40,14 @@ Sección de muslo en fila 4/32 (cm; no es una medida antropométrica certificada
 | 96 / 160 | 16,09 → 11,96 | 23,51 → 14,28 |
 | 130 / 160 | 21,84 → 16,31 | 31,86 → 19,38 |
 
-Protrusión radial máxima muestreada del pantalón respecto a la camiseta asentada (cm): estándar 0,168 → 0; reportado 2,936 → 0,010; volumen alto 5,114 → 0; holgada 0,018 → 0. Las dos muestras residuales del caso reportado son ~0,1 mm; no se declaran cero intersecciones globales.
+Protrusión radial máxima muestreada del pantalón respecto a la camiseta asentada (cm): estándar 0,168 → 0; reportado 2,936 → 0,174; volumen alto 5,114 → 0; holgada 0,018 → 0. La cuadrícula refinada mide también el borde exacto inferior del torso: el residual total del caso reportado fuera de catálogo es 1,74 mm. El cuerpo/camiseta ya se intersecta allí; el exceso añadido por el pantalón es 0,25 mm. Ambos valores se conservan, sin anunciar cero intersecciones. La primera pasada de cuadrícula uniforme había omitido ese borde, por lo que su resultado de 0,1 mm no era una medición suficiente.
 
-`tests/fit-lab.cut-a-layering.test.mjs` añade tres pruebas: proporciones superiores, capas en cuatro escenarios, y control del propio algoritmo de secciones sobre cilindro conocido. `scripts/fit-lab-cut-a-review.mjs` captura 16 vistas por versión, con los mismos colores/textos y camiseta activada/desactivada. `scripts/fit-lab-layering-probe.mjs` genera evidencia numérica reutilizable.
+`tests/fit-lab.cut-a-layering.test.mjs` añade cinco pruebas: proporciones superiores, capas en cuatro escenarios, y control del propio algoritmo de secciones sobre cilindro conocido, separación explícita de cruce preexistente/adicional con cilindros concéntricos, y coincidencia de las filas del pantalón con las del cuerpo. `scripts/fit-lab-cut-a-review.mjs` captura 16 vistas por versión, con los mismos colores/textos y camiseta activada/desactivada. `scripts/fit-lab-layering-probe.mjs` genera evidencia numérica reutilizable.
 
 ## Límites explícitos
 
 El cuerpo inferior y el pantalón siguen siendo referencias sintéticas, sin simulación de contacto entre prendas. No puede garantizarse separación en toda talla, pose, movimiento o entrada fuera del catálogo. No se modifica el cuerpo real de colisión ni se introduce un nuevo motor para simular shorts. La revisión de cuello/cabeza (corte B) y el profiling del render (corte C) no están realizados aquí.
+
+## Segunda inspección y cambio explícito del criterio
+
+No se publicó la primera pasada. Las capturas sin camiseta mostraron piel atravesando el pantalón porque las cuadrículas tenían alturas y ángulos diferentes. La referencia ahora utiliza las alturas originales del torso/piernas y 56 segmentos angulares superiores. El diagnosticado de capas conserva el cruce total y distingue el adicional causado por el pantalón, mediante una prueba independiente sobre cilindros concéntricos. No se amplía silenciosamente el umbral original: se documenta el fallo residual de 1,74 mm en la combinación fuera del catálogo y se mantiene el umbral total en las combinaciones con cobertura. El límite de 0,5 mm del exceso añadido pasa en las cuatro. Cabeza/cuello y el defecto previo en el corte del torso quedan fuera del corte A.

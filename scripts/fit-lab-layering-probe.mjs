@@ -17,18 +17,18 @@ export function garmentSection(meshes,y){
   return out;
  };
 }
-export function measureLayers(outfit,adapter){let overlap=0,worst=0,samples=0;const rows=[];
+export function measureLayers(outfit,adapter,body=null){let overlap=0,worst=0,samples=0,addedWorst=0,bodyIntersectionSamples=0;const rows=[];
  for(const m of outfit.shortsMeshes){const p=m.geometry.attributes.position,{rows:count,around}=m.geometry.userData;
-  for(let r=0;r<=count;r++){const y=p.getY(r*(around+1)),section=garmentSection(adapter.surfaces,y);let n=0,bad=0,max=0;
-   for(let a=0;a<around;a++){const i=r*(around+1)+a,x=p.getX(i),z=p.getZ(i),shirt=section(x,z);if(!Number.isFinite(shirt))continue;const excess=(Math.hypot(x,z)-shirt)*CM_PER_UNIT;if(excess>0){bad++;overlap++;max=Math.max(max,excess);worst=Math.max(worst,excess);}n++;samples++;}
+  for(let r=0;r<=count;r++){const y=p.getY(r*(around+1)),section=garmentSection(adapter.surfaces,y),bodySection=body?garmentSection([body],y):null;let n=0,bad=0,max=0;
+   for(let a=0;a<around;a++){const i=r*(around+1)+a,x=p.getX(i),z=p.getZ(i),shirt=section(x,z);if(!Number.isFinite(shirt))continue;const excess=(Math.hypot(x,z)-shirt)*CM_PER_UNIT;const bodyRadius=bodySection?.(x,z),existing=Number.isFinite(bodyRadius)?Math.max(0,bodyRadius-shirt)*CM_PER_UNIT:0;if(existing>0)bodyIntersectionSamples++;addedWorst=Math.max(addedWorst,excess-existing);if(excess>0){bad++;overlap++;max=Math.max(max,excess);worst=Math.max(worst,excess);}n++;samples++;}
    if(bad)rows.push({name:m.name,r,y:+y.toFixed(3),bad,n,maxCm:+max.toFixed(3)});
   }
  }
- return {samples,overlap,worstCm:+worst.toFixed(3),rows};
+ return {samples,overlap,worstCm:+worst.toFixed(3),addedProtrusionCm:+addedWorst.toFixed(3),bodyIntersectionSamples,rows};
 }
 if(import.meta.url===`file://${process.argv[1]}`){const report=[];
  for(const [name,params] of [['default',{}],['reported',{bodyChestCm:117,bodyHipCm:72,desiredLengthCm:52,bodyHeightCm:143,selectionMode:'manual',activeConfiguration:'N1-1'}],['large',{bodyChestCm:113,bodyHipCm:130,desiredLengthCm:64}],['loose',{bodyChestCm:72,bodyHipCm:74,selectionMode:'manual',activeConfiguration:'N2-3'}]]){
-  const s=resolveState(params),body=updateBody(createBody(T),s),shirt=createRestGarment(T,GARMENT_CATALOG[s.activeConfiguration]),adapter=createClothAdapter(shirt,body);adapter.solver.settle(90);adapter.sync();const outfit=createOutfitReference(T,body,s),measure=measureLayers(outfit,adapter);
+  const s=resolveState(params),body=updateBody(createBody(T),s),shirt=createRestGarment(T,GARMENT_CATALOG[s.activeConfiguration]),adapter=createClothAdapter(shirt,body);adapter.solver.settle(90);adapter.sync();const outfit=createOutfitReference(T,body,s),measure=measureLayers(outfit,adapter,body);
   report.push({name,state:s,layering:measure});console.log(JSON.stringify({name,code:s.activeConfiguration,layout:outfit.layout,...measure}));
  }
  if(process.env.EVIDENCE_DIR){mkdirSync(process.env.EVIDENCE_DIR,{recursive:true});writeFileSync(process.env.EVIDENCE_DIR+'/layering.json',JSON.stringify(report,null,2));}

@@ -120,20 +120,34 @@ export function createOutfitReference(T,body,state,options={}){
  const head=new T.SphereGeometry(1,28,20),headRadius=L.headHeight/2+.065*L.scale;
  head.scale(.245*L.scale,headRadius,.27*L.scale);head.translate(0,L.headTop-headRadius,0);add(bodyGroup,'Cabeza neutra de referencia',head,body.material);
  const shortsBottom=L.waistY-length/CM_PER_UNIT,crotch=L.joinY-.28*L.scale;
+ // Reuse the underlying body's section heights. A different row grid crossed the
+ // sharp hip-to-thigh transition and exposed skin through a thinner underlayer.
+ const bodyPositions=body.geometry.attributes.position,shortsYs=[];
+ for(let r=16;r>=0;r--){const y=bodyPositions.getY(r*(body.userData.around+1));if(y>shortsBottom+1e-7)shortsYs.push(y);}
+ const legGeometry=bodyGroup.getObjectByName('Pierna sintética 1').geometry;
+ const lp=legGeometry.attributes.position,lr=legGeometry.userData.rows,la=legGeometry.userData.around;
+ for(let r=1;r<=lr;r++){const y=lp.getY(r*(la+1));if(y>shortsBottom+1e-7)shortsYs.push(y);}
+ shortsYs.push(shortsBottom);
+ const sampleLeg=(y,theta)=>{const row=clamp((L.joinY-y)/lowerLength)*lr,r=Math.min(lr-1,Math.floor(row)),v=row-r;
+  const a=((theta+Math.PI/2)/(2*Math.PI)%1+1)%1*la,col=Math.floor(a),u=a-col;
+  const point=(rr,cc)=>{const i=rr*(la+1)+(cc%la);return [lp.getX(i),lp.getZ(i)];};
+  const p00=point(r,col),p01=point(r,col+1),p10=point(r+1,col),p11=point(r+1,col+1);
+  return [lerp(lerp(p00[0],p01[0],u),lerp(p10[0],p11[0],u),v),lerp(lerp(p00[1],p01[1],u),lerp(p10[1],p11[1],u),v)];
+ };
  for(const side of [-1,1]){
-  const rows=24,around=48;
+  const rows=shortsYs.length-1,around=56;
   const geometry=halfTube(T,side,rows,around,(t,theta)=>{
-   const y=lerp(L.waistY,shortsBottom,t),c=Math.cos(theta),s=Math.sin(theta);
+   const y=shortsYs[Math.round(t*rows)],c=Math.cos(theta),s=Math.sin(theta);
    // A thin underlayer above the hips avoids an artificial ring protruding through the shirt.
    // It opens gradually below the torso, without a branch discontinuity at joinY.
    // Reference-only underlayer: no renderOrder/depth-test trick and no cloth rescaling.
    const ease=.0008+.0212*smooth((L.joinY-y)/(.55*L.scale));
-   if(y<=L.joinY){const v=legRing(clamp((L.joinY-y)/lowerLength),theta);return [Math.max(0,v[0]+ease*c),y,v[2]+ease*s];}
+   if(y<=L.joinY){const v=sampleLeg(y,theta);return [Math.max(0,v[0]+ease*c),y,v[1]+ease*s];}
    const v=sampleBody(y,theta);return [Math.max(0,v[0]+ease*c),y,v[1]+ease*s];
   });
   // Two draw batches per leg, exclusively a vertical side band; no horizontal material ring.
   const original=geometry.index.array,main=[],stripe=[];
-  for(let r=0;r<rows;r++)for(let a=0;a<around;a++){const target=a>=10&&a<=14?stripe:main;for(let k=0;k<6;k++)target.push(original[(r*around+a)*6+k]);}
+  for(let r=0;r<rows;r++)for(let a=0;a<around;a++){const target=a>=around/4-2&&a<=around/4+2?stripe:main;for(let k=0;k<6;k++)target.push(original[(r*around+a)*6+k]);}
   geometry.setIndex([...main,...stripe]);geometry.clearGroups();geometry.addGroup(0,main.length,0);geometry.addGroup(main.length,stripe.length,1);
   add(shortsGroup,'Pantalón visual '+side,geometry,[primary,accent]);
  }
