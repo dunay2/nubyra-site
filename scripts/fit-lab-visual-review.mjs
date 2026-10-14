@@ -4,7 +4,7 @@ const root=path.resolve(process.env.FIT_DIST||'fit-dist'),directory=process.env.
 if(!url){server=createServer(async(req,res)=>{try{let file=path.join(root,new URL(req.url,'http://local').pathname);if(file.endsWith('/'))file+='index.html';if(!file.startsWith(root+path.sep))throw Error('Outside root');res.setHeader('content-type',({'.html':'text/html','.mjs':'text/javascript','.css':'text/css'})[path.extname(file)]||'application/octet-stream');res.end(await readFile(file));}catch{res.writeHead(404).end();}});await new Promise(r=>server.listen(0,'127.0.0.1',r));url='http://127.0.0.1:'+server.address().port+'/fit-lab/';}
 const browser=await chromium.launch({args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']}),page=await browser.newPage({viewport:{width:1440,height:980}}),errors=[],evidence=[];page.on('pageerror',e=>errors.push(e.message));
 const snapshot=()=>page.evaluate(async()=>(await import('./app.mjs')).getLabSnapshot());
-const cases=[['A',{},'N1-2'],['B',{bodyChestCm:72,bodyHipCm:74,frontVolume:1,sideVolume:6,backVolume:0},'N2-3'],['C',{bodyChestCm:104,bodyHipCm:114,frontVolume:10,sideVolume:10,backVolume:10},'N2-2']];
+const cases=[['A',{},'N1-2'],['U1',{bodyChestCm:79,bodyHipCm:88,desiredLengthCm:55,frontVolume:4,sideVolume:4,backVolume:10},'N1-1'],['U2',{bodyChestCm:113,bodyHipCm:130,desiredLengthCm:64,frontVolume:3,sideVolume:5,backVolume:5},'N2-3']];
 try{
  await page.goto(url);await page.waitForFunction(()=>document.getElementById('render-status').textContent.includes('contacto activo'),null,{timeout:30000});
  for(const [label,values,code]of cases){

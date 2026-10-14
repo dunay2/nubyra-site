@@ -1,6 +1,7 @@
 /** Metric synthetic bodies, fixed garment rest shapes and stitched cloth topology. */
 import {createFreeTestJersey} from '../free-test-jersey.mjs';
 import {ClothSolver} from './cloth-solver.mjs';
+import {DEMO_CLOTH} from './cloth-material.mjs';
 import {bindTrimToSurface,syncSurfaceTrim} from './surface-bindings.mjs';
 import {CM_PER_UNIT,createCollider} from './body-surface.mjs';
 export {CM_PER_UNIT,createBody,updateBody,createCollider,ringPerimeter} from './body-surface.mjs';
@@ -70,26 +71,21 @@ export function createRestGarment(T,configuration){
    const x=p.getX(i),y0=p.getY(i),z=p.getZ(i),t=clamp((y0+.98)/1.25);
    const c=lerp(configuration.hipCm,configuration.chestCm,t)*(1-.05*Math.pow(Math.sin(Math.PI*t),2));
    const upper=1-.16*clamp((y0-.39)/.81),a=ellipseA(c)*upper,angle=Math.atan2(z,x);
-   p.setXYZ(i,a*Math.cos(angle),1.20-(1.20-y0)*configuration.lengthCm/64,a*.58*Math.sin(angle));
+   // Upper pattern proportions are not an elliptical circumference: the
+   // old radial remap enlarged the neck opening to the shoulder girth.
+   const tUpper=clamp((y0-.50)/.60),blend=tUpper*tUpper*(3-2*tUpper);
+   const grade=Math.pow(configuration.chestCm/102,.25);
+   const upperX=x*1.25*grade,upperZ=z*.95*grade;
+   p.setXYZ(i,lerp(a*Math.cos(angle),upperX,blend),1.20-(1.20-y0)*configuration.lengthCm/64,lerp(a*.58*Math.sin(angle),upperZ,blend));
   }
   p.needsUpdate=true;mesh.geometry.computeVertexNormals();mesh.geometry.computeBoundingSphere();
- });appendShoulderBridges(T,garment);return garment;
+ });appendShoulderBridges(T,garment);garment.userData.patternVersion='neck-shoulder-pattern-v3';return garment;
 }
-/** Move each support patch rigidly. Pairwise rest lengths never shrink to body size. */
-export function shoulderPins(rest,groups,collider){
- const pins=[];
- for(const ids of groups){
-  const center=[0,1,2].map(axis=>ids.reduce((sum,id)=>sum+rest[id*3+axis],0)/ids.length);
-    const x=Math.sign(center[0])*collider.shoulderHalfWidth*.64,z=Math.sign(center[2])*.125;
-  const delta=[x-center[0],collider.surfaceHeight(x,z)+.025-center[1],z-center[2]];
-  for(let i=0;i<3;i++){
-   const minGap=Math.min(...ids.map(id=>collider.gap(rest[id*3]+delta[0],rest[id*3+1]+delta[1],rest[id*3+2]+delta[2])));
-   if(minGap>=.015)break;
-   delta[1]+=(.015-minGap)*1.6;
-  }
-  for(const id of ids)pins.push({id,position:[0,1,2].map(axis=>rest[id*3+axis]+delta[axis])});
- }
- return pins;
+/** Initial dressing only: lift shoulder cloth above its collider; no permanent supports. */
+function dressingTranslation(rest,ids,collider){
+ let lift=0;
+ for(const id of ids){const k=id*3;lift=Math.max(lift,collider.surfaceHeight(rest[k],rest[k+2])+.04-rest[k+1]);}
+ return [0,lift,0];
 }
 export function createClothAdapter(garment,body){
  const positions=[],lookup=new Map(),maps=new Map(),edges=new Map(),opposites=new Map(),seams=[],triangles=[];
@@ -112,20 +108,11 @@ export function createClothAdapter(garment,body){
    const s=sideMap[row*6+(front?0:5)],a=panel[offset+k*9+8],b=panel[offset+(k+1)*9+8];if(s!==a&&s!==b)seams.push({s,a,b,t:q-k});
   }
  }
- const supportGroups=[];
- for(const panel of surfaces.filter(m=>m.name.includes('Jersey_'))){
-  const map=maps.get(panel.name),{gridRows:rows,halfColumns:cols}=panel.geometry.userData;
-  // Only a small patch on each strap: do not compress an entire upper row.
-  for(let half=0;half<2;half++){
-   const offset=half*(rows+1)*(cols+1),col=Math.floor(cols/2);
-   supportGroups.push([map[offset+rows*(cols+1)+col],map[offset+rows*(cols+1)+col+1]]);
-  }
- }
- const collider=createCollider(body),pins=shoulderPins(positions,supportGroups,collider);
  const shoulderIds=new Set(garment.children.filter(m=>m.userData.kind==='shoulder-fabric').flatMap(m=>maps.get(m.name)));
- const bends=[...opposites.values()].filter(v=>v.length===2&&v[0]!==v[1]).map(v=>[v[0],v[1],shoulderIds.has(v[0])||shoulderIds.has(v[1]) ? .0015 : .003]);
- const initialTranslation=[0,pins.reduce((sum,p)=>sum+p.position[1]-positions[p.id*3+1],0)/pins.length,0];
- const solver=new ClothSolver({positions,triangles,edges:[...edges.values()],bends,seams,pins,collider,initialTranslation});
+ const collider=createCollider(body);
+ const bends=[...opposites.values()].filter(v=>v.length===2&&v[0]!==v[1]).map(v=>[v[0],v[1],shoulderIds.has(v[0])||shoulderIds.has(v[1]) ? DEMO_CLOTH.shoulderBendDistanceComplianceMPerN : DEMO_CLOTH.bendDistanceComplianceMPerN]);
+ const initialTranslation=dressingTranslation(positions,shoulderIds,collider);
+ const solver=new ClothSolver({positions,triangles,edges:[...edges.values()],bends,seams,pins:[],collider,initialTranslation,material:DEMO_CLOTH});
  const trims=[];
  for(const mesh of garment.children.filter(m=>m.isMesh&&m.name.startsWith('trim-'))){
   const panel=garment.getObjectByName('NUBYRA_Test_Jersey_'+(mesh.name.includes('front')?'Front':'Back'));
@@ -145,7 +132,7 @@ export function createClothAdapter(garment,body){
   reconcileSurfaceNormals();
   for(const {mesh,bindings} of trims){syncSurfaceTrim(mesh.geometry.getAttribute('position'),bindings,s);mesh.geometry.computeVertexNormals();mesh.geometry.computeBoundingSphere();}
  }
- return {solver,sync,maps,surfaces,trims,supportGroups,
-  retarget(nextBody){const nextCollider=createCollider(nextBody);solver.setCollider(nextCollider,shoulderPins(solver.rest,supportGroups,nextCollider));}
+ return {solver,sync,maps,surfaces,trims,
+  retarget(nextBody){const nextCollider=createCollider(nextBody);solver.setCollider(nextCollider,[]);solver.resetRestPose(dressingTranslation(solver.rest,shoulderIds,nextCollider));}
  };
 }

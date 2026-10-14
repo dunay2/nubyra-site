@@ -19,12 +19,12 @@ function checkBindings(adapter){
  }
 }
 function checkSupports(adapter){
- const pins=new Map(adapter.solver.pins.map(p=>[p.id,p.position]));
- for(const [a,b] of adapter.supportGroups){const r=adapter.solver.rest,expected=Math.hypot(...[0,1,2].map(i=>r[a*3+i]-r[b*3+i])),actual=Math.hypot(...pins.get(a).map((v,i)=>v-pins.get(b)[i]));assert.ok(Math.abs(actual-expected)<1e-12,'support must not shorten authored fabric');}
+ assert.equal(adapter.solver.pins.length,0,'body contact must support the garment');
+ assert.ok([...adapter.solver.weights].every(w=>w>0),'all particles must remain dynamic');
 }
 test('reported 72/74 N2-3: neckline stays attached after settling and impulse',()=>{
  const a=setup(),rest=a.solver.rest.slice();a.solver.settle(160);a.sync();checkBindings(a);checkSupports(a);
- assert.equal(a.solver.pins.length,8);assert.equal(a.state.activeConfiguration,'N2-3');assert.equal(a.state.garmentChestCm,124);assert.deepEqual(a.solver.rest,rest);
+ assert.equal(a.solver.pins.length,0);assert.equal(a.state.activeConfiguration,'N2-3');assert.equal(a.state.garmentChestCm,124);assert.deepEqual(a.solver.rest,rest);
  const d=a.solver.diagnostics();assert.ok(d.p95Strain<.1);assert.ok(d.maxPenetrationUnits*CM_PER_UNIT<.01);assert.ok(d.maxTrianglePenetrationUnits*CM_PER_UNIT<.1);
  a.solver.impulse(.8);for(let step=0;step<160;step++){a.solver.substep();if(step%40===0){a.sync();checkBindings(a);}}a.sync();checkBindings(a);
 });
