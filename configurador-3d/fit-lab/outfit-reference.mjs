@@ -2,7 +2,7 @@ import {CM_PER_UNIT} from './body-surface.mjs';
 const lerp=(a,b,t)=>a+(b-a)*t;
 const clamp=x=>Math.max(0,Math.min(1,x));
 const smooth=x=>{const t=clamp(x);return t*t*t*(10+t*(-15+6*t));};
-export const OUTFIT_REFERENCE_VERSION='lower-reference/2.0';
+export const OUTFIT_REFERENCE_VERSION='lower-reference/2.1';
 
 /** Synthetic proportions only: not measured anatomy, a size recommendation or a cloth solver. */
 export function referenceLayout(body,state){
@@ -92,14 +92,16 @@ export function createOutfitReference(T,body,state,options={}){
  const primary=new T.MeshStandardMaterial({color:options.base||'#173e64',roughness:.85,side:T.DoubleSide}),accent=primary.clone();accent.color.set(options.accent||'#f8c12e');
  const add=(g,name,geo,mat)=>{const m=new T.Mesh(geo,mat);m.name=name;g.add(m);return m;};
  const ankleY=L.floor+.32*L.scale,lowerLength=L.joinY-ankleY,shank=L.scale*Math.pow(state.bodyHipCm/96,.2),center=.46*width;
+ // Compact upper-thigh reference: do not flare outward/deepen below the hip.
+ // Knees, calves, ankles and feet keep their previous sections and positions.
  const legProfile=profile([
-  [0,.47*width,.47*width,.68*width,0], [.14,center,.39*width,.60*width,0],
+  [0,.44*width,.38*width,.40*width,0], [.14,.43*width,.30*width,.36*width,0],
   [.37,center,.185*shank,.195*shank,.016*L.scale], [.47,center,.145*shank,.15*shank,.016*L.scale],
   [.63,center,.205*shank,.215*shank,-.028*L.scale], [.78,center,.168*shank,.173*shank,-.03*L.scale],
   [.93,center,.108*shank,.125*shank,-.004*L.scale], [1,center,.10*shank,.12*shank,0]
  ]);
  const legRing=(t,theta)=>{
-  const y=lerp(L.joinY,ankleY,t),[cx,rx,rz,cz]=legProfile(t),c=Math.cos(theta),s=Math.sin(theta),blend=smooth(t/.17),upper=sampleBody(y,theta);
+  const y=lerp(L.joinY,ankleY,t),[cx,rx,rz,cz]=legProfile(t),c=Math.cos(theta),s=Math.sin(theta),blend=smooth(t/.045),upper=sampleBody(y,theta);
   return [lerp(Math.max(0,upper[0]),cx+rx*c,blend),y,lerp(upper[1],cz+rz*s,blend)];
  };
  // Plantigrade reference: heel, instep and toe share one flat supporting sole.
@@ -124,7 +126,8 @@ export function createOutfitReference(T,body,state,options={}){
    const y=lerp(L.waistY,shortsBottom,t),c=Math.cos(theta),s=Math.sin(theta);
    // A thin underlayer above the hips avoids an artificial ring protruding through the shirt.
    // It opens gradually below the torso, without a branch discontinuity at joinY.
-   const ease=.0035+.0415*smooth((L.joinY-y)/(.38*L.scale));
+   // Reference-only underlayer: no renderOrder/depth-test trick and no cloth rescaling.
+   const ease=.0008+.0212*smooth((L.joinY-y)/(.55*L.scale));
    if(y<=L.joinY){const v=legRing(clamp((L.joinY-y)/lowerLength),theta);return [Math.max(0,v[0]+ease*c),y,v[2]+ease*s];}
    const v=sampleBody(y,theta);return [Math.max(0,v[0]+ease*c),y,v[1]+ease*s];
   });
