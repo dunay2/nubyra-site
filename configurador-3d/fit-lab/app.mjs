@@ -353,9 +353,10 @@ function updateDisplay(event){
     transparent:$('transparent-garment').checked,
     wire:$('wireframe').checked
   });
+  viewer?.setMotion($('show-motion').checked);
   updateScaleDiagram();
 }
-for(const id of ['show-body','show-garment','transparent-garment','wireframe']){
+for(const id of ['show-body','show-garment','transparent-garment','wireframe','show-motion']){
   $(id).addEventListener('change',updateDisplay);
 }
 $('save-json').addEventListener('click',()=>{
