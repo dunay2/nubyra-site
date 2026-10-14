@@ -1,0 +1,762 @@
+{
+  "schema": "nubyra-contact/2",
+  "basis": "rest-area weighted centroid regions; discrete and synthetic, not full-surface CCD",
+  "records": [
+    {
+      "profile": "A",
+      "code": "N1-1",
+      "body": {
+        "chest": 88,
+        "hip": 96,
+        "height": 160
+      },
+      "regions": {
+        "shoulder": {
+          "samples": 192,
+          "medianGapCm": 0.4955860016687421,
+          "p95GapCm": 1.3607822905670774,
+          "near1cmAreaPct": 82.08371258436348
+        },
+        "upper": {
+          "samples": 492,
+          "medianGapCm": 0.5434741517241671,
+          "p95GapCm": 2.116519541759204,
+          "near1cmAreaPct": 66.49953482361174
+        },
+        "hem": {
+          "samples": 502,
+          "medianGapCm": 0.6079406470935468,
+          "p95GapCm": 2.174025522213799,
+          "near1cmAreaPct": 65.63625660459996
+        }
+      },
+      "kinkCm": 0.5544725596756039,
+      "seamGapCm": 0,
+      "penetrationMm": 0,
+      "p95Strain": 0.06656829558286659,
+      "maxStrain": 0.3857921620189544,
+      "particles": 1121,
+      "constraints": 6080,
+      "pins": 8,
+      "meshBytes": 170832,
+      "typedSolverBytes": 116584,
+      "setupMs": 392.969598,
+      "settle90Ms": 1935.0203980000001,
+      "requiresReview": false
+    },
+    {
+      "profile": "A",
+      "code": "N1-2",
+      "body": {
+        "chest": 88,
+        "hip": 96,
+        "height": 160
+      },
+      "regions": {
+        "shoulder": {
+          "samples": 192,
+          "medianGapCm": 0.4645458702039851,
+          "p95GapCm": 1.2470174793350925,
+          "near1cmAreaPct": 85.03198439222125
+        },
+        "upper": {
+          "samples": 492,
+          "medianGapCm": 0.5856506862177628,
+          "p95GapCm": 1.9965160158305664,
+          "near1cmAreaPct": 62.15867336673344
+        },
+        "hem": {
+          "samples": 502,
+          "medianGapCm": 0.7856436424010226,
+          "p95GapCm": 2.4556160830201943,
+          "near1cmAreaPct": 58.20963345627384
+        }
+      },
+      "kinkCm": 0.5393916740485318,
+      "seamGapCm": 0,
+      "penetrationMm": 0,
+      "p95Strain": 0.06765110268039298,
+      "maxStrain": 0.33209843942619854,
+      "particles": 1121,
+      "constraints": 6080,
+      "pins": 8,
+      "meshBytes": 170832,
+      "typedSolverBytes": 116584,
+      "setupMs": 244.2586199999996,
+      "settle90Ms": 1675.646366,
+      "requiresReview": false
+    },
+    {
+      "profile": "A",
+      "code": "N1-3",
+      "body": {
+        "chest": 88,
+        "hip": 96,
+        "height": 160
+      },
+      "regions": {
+        "shoulder": {
+          "samples": 192,
+          "medianGapCm": 0.5075299431802378,
+          "p95GapCm": 1.339671838297428,
+          "near1cmAreaPct": 76.96288853908004
+        },
+        "upper": {
+          "samples": 492,
+          "medianGapCm": 0.7313257624696641,
+          "p95GapCm": 2.5904718314269664,
+          "near1cmAreaPct": 49.25146456162645
+        },
+        "hem": {
+          "samples": 502,
+          "medianGapCm": 0.9059672128023688,
+          "p95GapCm": 2.6025683762033065,
+          "near1cmAreaPct": 50.02786916010705
+        }
+      },
+      "kinkCm": 1.1571262190424667,
+      "seamGapCm": 0,
+      "penetrationMm": 0,
+      "p95Strain": 0.07049959854807764,
+      "maxStrain": 0.40591029257745403,
+      "particles": 1121,
+      "constraints": 6080,
+      "pins": 8,
+      "meshBytes": 170832,
+      "typedSolverBytes": 116584,
+      "setupMs": 190.84110499999952,
+      "settle90Ms": 1900.8883640000004,
+      "requiresReview": true
+    },
+    {
+      "profile": "A",
+      "code": "N2-1",
+      "body": {
+        "chest": 88,
+        "hip": 96,
+        "height": 160
+      },
+      "regions": {
+        "shoulder": {
+          "samples": 192,
+          "medianGapCm": 0.5604175202961843,
+          "p95GapCm": 1.7892221366247278,
+          "near1cmAreaPct": 74.91149112376705
+        },
+        "upper": {
+          "samples": 432,
+          "medianGapCm": 0.7002062615298588,
+          "p95GapCm": 4.250805863438976,
+          "near1cmAreaPct": 46.672927768797024
+        },
+        "hem": {
+          "samples": 664,
+          "medianGapCm": 2.1285998912976845,
+          "p95GapCm": 9.07274754237002,
+          "near1cmAreaPct": 35.69532438324751
+        }
+      },
+      "kinkCm": 0.9579418517180089,
+      "seamGapCm": 0,
+      "penetrationMm": 0,
+      "p95Strain": 0.06373549570385417,
+      "maxStrain": 0.2818316838233573,
+      "particles": 1121,
+      "constraints": 6080,
+      "pins": 8,
+      "meshBytes": 170832,
+      "typedSolverBytes": 116584,
+      "setupMs": 147.91935900000044,
+      "settle90Ms": 1617.7658650000003,
+      "requiresReview": false
+    },
+    {
+      "profile": "A",
+      "code": "N2-2",
+      "body": {
+        "chest": 88,
+        "hip": 96,
+        "height": 160
+      },
+      "regions": {
+        "shoulder": {
+          "samples": 192,
+          "medianGapCm": 0.5378929621341644,
+          "p95GapCm": 2.2610707268464045,
+          "near1cmAreaPct": 69.06932835431812
+        },
+        "upper": {
+          "samples": 432,
+          "medianGapCm": 0.7779402165332067,
+          "p95GapCm": 4.429461868511539,
+          "near1cmAreaPct": 35.342922503459434
+        },
+        "hem": {
+          "samples": 664,
+          "medianGapCm": 2.3836065404598608,
+          "p95GapCm": 9.13588880317493,
+          "near1cmAreaPct": 15.929229395686434
+        }
+      },
+      "kinkCm": 0.8012383596903798,
+      "seamGapCm": 0,
+      "penetrationMm": 0,
+      "p95Strain": 0.06360218174831989,
+      "maxStrain": 0.30767593431494145,
+      "particles": 1121,
+      "constraints": 6080,
+      "pins": 8,
+      "meshBytes": 170832,
+      "typedSolverBytes": 116584,
+      "setupMs": 281.04596800000036,
+      "settle90Ms": 1689.3167290000001,
+      "requiresReview": false
+    },
+    {
+      "profile": "A",
+      "code": "N2-3",
+      "body": {
+        "chest": 88,
+        "hip": 96,
+        "height": 160
+      },
+      "regions": {
+        "shoulder": {
+          "samples": 192,
+          "medianGapCm": 0.6047196367261479,
+          "p95GapCm": 1.6799104133083624,
+          "near1cmAreaPct": 71.99826842102175
+        },
+        "upper": {
+          "samples": 432,
+          "medianGapCm": 0.862194113754535,
+          "p95GapCm": 4.76881115985649,
+          "near1cmAreaPct": 32.247698277293196
+        },
+        "hem": {
+          "samples": 664,
+          "medianGapCm": 2.654550636644682,
+          "p95GapCm": 9.137493292435073,
+          "near1cmAreaPct": 13.140477064332776
+        }
+      },
+      "kinkCm": 0.6685511300697459,
+      "seamGapCm": 0,
+      "penetrationMm": 0,
+      "p95Strain": 0.06461019593040063,
+      "maxStrain": 0.28174790366823554,
+      "particles": 1121,
+      "constraints": 6080,
+      "pins": 8,
+      "meshBytes": 170832,
+      "typedSolverBytes": 116584,
+      "setupMs": 160.27962099999968,
+      "settle90Ms": 1724.4517380000016,
+      "requiresReview": false
+    },
+    {
+      "profile": "B",
+      "code": "N1-1",
+      "body": {
+        "chest": 72,
+        "hip": 74,
+        "height": 160
+      },
+      "regions": {
+        "shoulder": {
+          "samples": 192,
+          "medianGapCm": 0.4879763680027157,
+          "p95GapCm": 1.159942975265955,
+          "near1cmAreaPct": 87.58973921711745
+        },
+        "upper": {
+          "samples": 492,
+          "medianGapCm": 1.012246046030329,
+          "p95GapCm": 3.609704741557057,
+          "near1cmAreaPct": 31.54537282531274
+        },
+        "hem": {
+          "samples": 502,
+          "medianGapCm": 1.6279009771631763,
+          "p95GapCm": 3.2312941029539908,
+          "near1cmAreaPct": 19.100870151246315
+        }
+      },
+      "kinkCm": 0.9865403264005602,
+      "seamGapCm": 0,
+      "penetrationMm": 0,
+      "p95Strain": 0.06965539285225986,
+      "maxStrain": 0.42891234928700905,
+      "particles": 1121,
+      "constraints": 6080,
+      "pins": 8,
+      "meshBytes": 170832,
+      "typedSolverBytes": 116584,
+      "setupMs": 161.49102299999868,
+      "settle90Ms": 1643.7232089999998,
+      "requiresReview": false
+    },
+    {
+      "profile": "B",
+      "code": "N1-2",
+      "body": {
+        "chest": 72,
+        "hip": 74,
+        "height": 160
+      },
+      "regions": {
+        "shoulder": {
+          "samples": 192,
+          "medianGapCm": 0.4710661093221842,
+          "p95GapCm": 1.7302667727803165,
+          "near1cmAreaPct": 76.7456962906296
+        },
+        "upper": {
+          "samples": 492,
+          "medianGapCm": 1.169585286075906,
+          "p95GapCm": 3.771711093494571,
+          "near1cmAreaPct": 20.650652985216816
+        },
+        "hem": {
+          "samples": 502,
+          "medianGapCm": 1.9226554452549038,
+          "p95GapCm": 3.533457366581804,
+          "near1cmAreaPct": 10.021136592149206
+        }
+      },
+      "kinkCm": 0.7259748248479525,
+      "seamGapCm": 0,
+      "penetrationMm": 0,
+      "p95Strain": 0.06911389238536181,
+      "maxStrain": 0.43036421590017504,
+      "particles": 1121,
+      "constraints": 6080,
+      "pins": 8,
+      "meshBytes": 170832,
+      "typedSolverBytes": 116584,
+      "setupMs": 205.83318899999904,
+      "settle90Ms": 1647.6822499999998,
+      "requiresReview": false
+    },
+    {
+      "profile": "B",
+      "code": "N1-3",
+      "body": {
+        "chest": 72,
+        "hip": 74,
+        "height": 160
+      },
+      "regions": {
+        "shoulder": {
+          "samples": 192,
+          "medianGapCm": 0.5668798651756428,
+          "p95GapCm": 1.713700699683333,
+          "near1cmAreaPct": 80.51146190815587
+        },
+        "upper": {
+          "samples": 492,
+          "medianGapCm": 1.2450218549006073,
+          "p95GapCm": 4.868483537096836,
+          "near1cmAreaPct": 20.5130793104176
+        },
+        "hem": {
+          "samples": 502,
+          "medianGapCm": 1.992231784198855,
+          "p95GapCm": 3.9894365359861816,
+          "near1cmAreaPct": 15.935888507939508
+        }
+      },
+      "kinkCm": 0.5949811121239895,
+      "seamGapCm": 0,
+      "penetrationMm": 0,
+      "p95Strain": 0.06816495575647052,
+      "maxStrain": 0.3918695018662358,
+      "particles": 1121,
+      "constraints": 6080,
+      "pins": 8,
+      "meshBytes": 170832,
+      "typedSolverBytes": 116584,
+      "setupMs": 136.42356499999914,
+      "settle90Ms": 1616.1253560000005,
+      "requiresReview": false
+    },
+    {
+      "profile": "B",
+      "code": "N2-1",
+      "body": {
+        "chest": 72,
+        "hip": 74,
+        "height": 160
+      },
+      "regions": {
+        "shoulder": {
+          "samples": 192,
+          "medianGapCm": 0.6302318354124259,
+          "p95GapCm": 1.7611735327167863,
+          "near1cmAreaPct": 70.21564206199302
+        },
+        "upper": {
+          "samples": 432,
+          "medianGapCm": 1.2869240169844947,
+          "p95GapCm": 7.336877117644063,
+          "near1cmAreaPct": 19.828366321452425
+        },
+        "hem": {
+          "samples": 664,
+          "medianGapCm": 3.3269061005948686,
+          "p95GapCm": 9.284765480894924,
+          "near1cmAreaPct": 8.268740644903366
+        }
+      },
+      "kinkCm": 0.7730910021163266,
+      "seamGapCm": 0,
+      "penetrationMm": 0,
+      "p95Strain": 0.06264655230376959,
+      "maxStrain": 0.317766624097507,
+      "particles": 1121,
+      "constraints": 6080,
+      "pins": 8,
+      "meshBytes": 170832,
+      "typedSolverBytes": 116584,
+      "setupMs": 276.4590500000013,
+      "settle90Ms": 1612.6570710000015,
+      "requiresReview": false
+    },
+    {
+      "profile": "B",
+      "code": "N2-2",
+      "body": {
+        "chest": 72,
+        "hip": 74,
+        "height": 160
+      },
+      "regions": {
+        "shoulder": {
+          "samples": 192,
+          "medianGapCm": 0.5715641471763645,
+          "p95GapCm": 2.1358289172722924,
+          "near1cmAreaPct": 65.39984258531078
+        },
+        "upper": {
+          "samples": 432,
+          "medianGapCm": 1.32222762491978,
+          "p95GapCm": 8.09607264544533,
+          "near1cmAreaPct": 20.516961357867174
+        },
+        "hem": {
+          "samples": 664,
+          "medianGapCm": 3.56102785222041,
+          "p95GapCm": 9.255631168948637,
+          "near1cmAreaPct": 8.9942256553728
+        }
+      },
+      "kinkCm": 0.7387279473750837,
+      "seamGapCm": 0,
+      "penetrationMm": 0,
+      "p95Strain": 0.06168733352916034,
+      "maxStrain": 0.406041906769246,
+      "particles": 1121,
+      "constraints": 6080,
+      "pins": 8,
+      "meshBytes": 170832,
+      "typedSolverBytes": 116584,
+      "setupMs": 206.86795100000018,
+      "settle90Ms": 1610.085317000001,
+      "requiresReview": false
+    },
+    {
+      "profile": "B",
+      "code": "N2-3",
+      "body": {
+        "chest": 72,
+        "hip": 74,
+        "height": 160
+      },
+      "regions": {
+        "shoulder": {
+          "samples": 192,
+          "medianGapCm": 0.6071826449757144,
+          "p95GapCm": 2.049129659014935,
+          "near1cmAreaPct": 62.23017344519201
+        },
+        "upper": {
+          "samples": 432,
+          "medianGapCm": 1.3976204116553739,
+          "p95GapCm": 8.257044176907375,
+          "near1cmAreaPct": 19.853604391236903
+        },
+        "hem": {
+          "samples": 664,
+          "medianGapCm": 3.617895812536568,
+          "p95GapCm": 9.318396303088374,
+          "near1cmAreaPct": 10.24553448898287
+        }
+      },
+      "kinkCm": 0.7932992448333609,
+      "seamGapCm": 0,
+      "penetrationMm": 0,
+      "p95Strain": 0.0619892490364391,
+      "maxStrain": 0.3802108970450564,
+      "particles": 1121,
+      "constraints": 6080,
+      "pins": 8,
+      "meshBytes": 170832,
+      "typedSolverBytes": 116584,
+      "setupMs": 132.31339300000036,
+      "settle90Ms": 1616.096007,
+      "requiresReview": false
+    },
+    {
+      "profile": "C",
+      "code": "N1-1",
+      "body": {
+        "chest": 104,
+        "hip": 114,
+        "height": 160
+      },
+      "regions": {
+        "shoulder": {
+          "samples": 192,
+          "medianGapCm": 0.41385994534404563,
+          "p95GapCm": 1.857438641779201,
+          "near1cmAreaPct": 74.41576062960175
+        },
+        "upper": {
+          "samples": 492,
+          "medianGapCm": 0.3219084725041723,
+          "p95GapCm": 2.4190907953986223,
+          "near1cmAreaPct": 73.59838333654496
+        },
+        "hem": {
+          "samples": 502,
+          "medianGapCm": 0.26377080509605405,
+          "p95GapCm": 0.35958697301857134,
+          "near1cmAreaPct": 95.26452236683409
+        }
+      },
+      "kinkCm": 0.48071565005959926,
+      "seamGapCm": 0,
+      "penetrationMm": 0,
+      "p95Strain": 0.165021720428711,
+      "maxStrain": 0.5560646503461826,
+      "particles": 1121,
+      "constraints": 6080,
+      "pins": 8,
+      "meshBytes": 170832,
+      "typedSolverBytes": 116584,
+      "setupMs": 169.2276239999992,
+      "settle90Ms": 1883.3083009999973,
+      "requiresReview": true
+    },
+    {
+      "profile": "C",
+      "code": "N1-2",
+      "body": {
+        "chest": 104,
+        "hip": 114,
+        "height": 160
+      },
+      "regions": {
+        "shoulder": {
+          "samples": 192,
+          "medianGapCm": 0.4142488510193279,
+          "p95GapCm": 1.9848792502633135,
+          "near1cmAreaPct": 74.42357806594732
+        },
+        "upper": {
+          "samples": 492,
+          "medianGapCm": 0.44277819580105376,
+          "p95GapCm": 2.64830845443248,
+          "near1cmAreaPct": 72.28970607392135
+        },
+        "hem": {
+          "samples": 502,
+          "medianGapCm": 0.2647325379769765,
+          "p95GapCm": 0.7159591299324375,
+          "near1cmAreaPct": 93.97380559899818
+        }
+      },
+      "kinkCm": 0.9326806479312528,
+      "seamGapCm": 0,
+      "penetrationMm": 0,
+      "p95Strain": 0.09784408206805617,
+      "maxStrain": 0.40564121037591394,
+      "particles": 1121,
+      "constraints": 6080,
+      "pins": 8,
+      "meshBytes": 170832,
+      "typedSolverBytes": 116584,
+      "setupMs": 150.01908200000253,
+      "settle90Ms": 1850.9669130000002,
+      "requiresReview": false
+    },
+    {
+      "profile": "C",
+      "code": "N1-3",
+      "body": {
+        "chest": 104,
+        "hip": 114,
+        "height": 160
+      },
+      "regions": {
+        "shoulder": {
+          "samples": 192,
+          "medianGapCm": 0.4584933720428427,
+          "p95GapCm": 1.883176712782319,
+          "near1cmAreaPct": 71.76017301386028
+        },
+        "upper": {
+          "samples": 492,
+          "medianGapCm": 0.4965711528795256,
+          "p95GapCm": 2.966414948894866,
+          "near1cmAreaPct": 61.59451429847082
+        },
+        "hem": {
+          "samples": 502,
+          "medianGapCm": 0.2979473562864758,
+          "p95GapCm": 1.6973055641446495,
+          "near1cmAreaPct": 77.77605005423399
+        }
+      },
+      "kinkCm": 0.5048264577720206,
+      "seamGapCm": 0,
+      "penetrationMm": 0,
+      "p95Strain": 0.07221287490697947,
+      "maxStrain": 0.4208848828194267,
+      "particles": 1121,
+      "constraints": 6080,
+      "pins": 8,
+      "meshBytes": 170832,
+      "typedSolverBytes": 116584,
+      "setupMs": 127.74232400000255,
+      "settle90Ms": 1741.2466289999975,
+      "requiresReview": false
+    },
+    {
+      "profile": "C",
+      "code": "N2-1",
+      "body": {
+        "chest": 104,
+        "hip": 114,
+        "height": 160
+      },
+      "regions": {
+        "shoulder": {
+          "samples": 192,
+          "medianGapCm": 0.5410487500330293,
+          "p95GapCm": 2.523208188494645,
+          "near1cmAreaPct": 66.37423323428249
+        },
+        "upper": {
+          "samples": 432,
+          "medianGapCm": 0.5821379591671035,
+          "p95GapCm": 2.9041138730158216,
+          "near1cmAreaPct": 58.043307785085645
+        },
+        "hem": {
+          "samples": 664,
+          "medianGapCm": 0.8984910609810466,
+          "p95GapCm": 8.547223600508277,
+          "near1cmAreaPct": 42.46563313913614
+        }
+      },
+      "kinkCm": 1.2063318286060227,
+      "seamGapCm": 0,
+      "penetrationMm": 0,
+      "p95Strain": 0.058419300511529215,
+      "maxStrain": 0.36794790950477774,
+      "particles": 1121,
+      "constraints": 6080,
+      "pins": 8,
+      "meshBytes": 170832,
+      "typedSolverBytes": 116584,
+      "setupMs": 157.1649589999979,
+      "settle90Ms": 1671.304231000002,
+      "requiresReview": true
+    },
+    {
+      "profile": "C",
+      "code": "N2-2",
+      "body": {
+        "chest": 104,
+        "hip": 114,
+        "height": 160
+      },
+      "regions": {
+        "shoulder": {
+          "samples": 192,
+          "medianGapCm": 0.5107593518079789,
+          "p95GapCm": 1.7720212113205656,
+          "near1cmAreaPct": 78.21492031911728
+        },
+        "upper": {
+          "samples": 432,
+          "medianGapCm": 0.6879593749259594,
+          "p95GapCm": 3.967296450624247,
+          "near1cmAreaPct": 51.5007159013791
+        },
+        "hem": {
+          "samples": 664,
+          "medianGapCm": 1.6680270786802784,
+          "p95GapCm": 8.66463941525078,
+          "near1cmAreaPct": 35.3941905784114
+        }
+      },
+      "kinkCm": 0.9577732754760354,
+      "seamGapCm": 0,
+      "penetrationMm": 0,
+      "p95Strain": 0.060385795910633755,
+      "maxStrain": 0.3890128916494717,
+      "particles": 1121,
+      "constraints": 6080,
+      "pins": 8,
+      "meshBytes": 170832,
+      "typedSolverBytes": 116584,
+      "setupMs": 165.48345399999744,
+      "settle90Ms": 1698.718211000003,
+      "requiresReview": false
+    },
+    {
+      "profile": "C",
+      "code": "N2-3",
+      "body": {
+        "chest": 104,
+        "hip": 114,
+        "height": 160
+      },
+      "regions": {
+        "shoulder": {
+          "samples": 192,
+          "medianGapCm": 0.5223688263372446,
+          "p95GapCm": 1.4762693816427042,
+          "near1cmAreaPct": 80.41370734055297
+        },
+        "upper": {
+          "samples": 432,
+          "medianGapCm": 0.668764866860506,
+          "p95GapCm": 4.252061059111027,
+          "near1cmAreaPct": 50.47355920149715
+        },
+        "hem": {
+          "samples": 664,
+          "medianGapCm": 1.8300638392795476,
+          "p95GapCm": 8.63107015785429,
+          "near1cmAreaPct": 31.153099611913177
+        }
+      },
+      "kinkCm": 0.9641443506912457,
+      "seamGapCm": 0,
+      "penetrationMm": 0,
+      "p95Strain": 0.05818686659935168,
+      "maxStrain": 0.34983505492822164,
+      "particles": 1121,
+      "constraints": 6080,
+      "pins": 8,
+      "meshBytes": 170832,
+      "typedSolverBytes": 116584,
+      "setupMs": 131.16555399999925,
+      "settle90Ms": 1669.3511800000051,
+      "requiresReview": false
+    }
+  ]
+}
