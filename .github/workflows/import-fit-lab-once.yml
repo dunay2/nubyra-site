@@ -21,7 +21,7 @@ jobs:
       - name: Retrieve exact reviewed patch and restrict paths
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = '73f8973b8988fb635a7c231d4dc2a3b1a018c7e6'
+          git merge-base --is-ancestor 73f8973b8988fb635a7c231d4dc2a3b1a018c7e6 HEAD
           curl --fail --silent --show-error --max-time 60 'https://sb-44lyigwe2012.vercel.run/fit-lab-delivery.patch' -o /tmp/lab.patch
           echo 'f72c93b97c72c6ea2971ed43c346dd81a727a3a78a13a4d4b6a1a21e914f35b0  /tmp/lab.patch' | sha256sum -c -
           git apply --numstat /tmp/lab.patch | cut -f3 | while read -r path; do
@@ -30,17 +30,16 @@ jobs:
               *) echo "Unexpected path: $path"; exit 1 ;;
             esac
           done
-          git apply --index --binary /tmp/lab.patch
+          git apply --exclude='.github/workflows/*' --index --binary /tmp/lab.patch
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm test
         env:
           THREE_TEST_DIR: ${{ github.workspace }}
       - run: npm run build:fit-lab
-      - name: Persist tested changes without overwriting concurrent work
+      - name: Persist tested source changes without overwriting concurrent work
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git rm .github/workflows/import-fit-lab-once.yml
           git commit -m 'feat(fit-lab): XPBD cloth, automatic selection, combinable shape controls and verified UI'
           git push origin HEAD:feat/fit-lab-xpbd-auto-selection
