@@ -43,6 +43,17 @@ jobs:
           FIT_LAB_URL: 'http://127.0.0.1:8000/fit-lab/'
           EVIDENCE_DIR: artifacts/human-browser
         run: node scripts/fit-lab-human-e2e.mjs | tee artifacts/human-browser-tests.txt
+      - name: Shorts above knee - matched before and after views
+        run: |
+          set -euo pipefail
+          previous=/tmp/nubyra-shorts-before
+          mkdir -p "$previous"
+          git fetch origin 2a850821b6542f67e1ea6bf6fb8f198603ab97eb --depth=1
+          git archive 2a850821b6542f67e1ea6bf6fb8f198603ab97eb configurador-3d scripts package.json package-lock.json | tar -x -C "$previous"
+          ln -s "$GITHUB_WORKSPACE/node_modules" "$previous/node_modules"
+          (cd "$previous" && npm run build:fit-lab)
+          env -u FIT_LAB_URL BASELINE=1 REVIEW_ROOT="$previous/fit-dist" EVIDENCE_DIR=artifacts/shorts-before node scripts/fit-lab-shorts-review.mjs | tee artifacts/shorts-before.txt
+          env -u FIT_LAB_URL EVIDENCE_DIR=artifacts/shorts-after node scripts/fit-lab-shorts-review.mjs | tee artifacts/shorts-after.txt
       - name: Legacy benchmark interaction and WebGL
         env:
           EVIDENCE_DIR: artifacts/legacy
@@ -65,7 +76,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: nubyra-human-integration-evidence
+          name: nubyra-relaxed-shorts-evidence
           path: artifacts/
           if-no-files-found: error
           retention-days: 7

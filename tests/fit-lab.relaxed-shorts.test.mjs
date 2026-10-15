@@ -1,0 +1,18 @@
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import {loadHumanBody,updateHumanBody,createHumanCollider} from '../configurador-3d/fit-lab/human-body.mjs';import {createHumanOutfit,humanShortsLength}from'../configurador-3d/fit-lab/human-outfit.mjs';import{CM_PER_UNIT}from'../configurador-3d/fit-lab/body-surface.mjs';import{resolveState}from'../configurador-3d/fit-lab/lab-model.mjs';
+const bytes=fs.readFileSync(new URL('../configurador-3d/fit-lab/assets/human-female.glb',import.meta.url));
+async function fixture(input={}){const state=resolveState(input),body=updateHumanBody(await loadHumanBody(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength)),state);return{body,state};}
+function section(g,y){const p=g.attributes.position.array,ix=g.index.array,pts=[];for(let i=0;i<ix.length;i+=3)for(let k=0;k<3;k++){const a=3*ix[i+k],b=3*ix[i+(k+1)%3];if((y-p[a+1])*(y-p[b+1])>=0)continue;const t=(y-p[a+1])/(p[b+1]-p[a+1]),x=p[a]+t*(p[b]-p[a]);if(x>0)pts.push([x,p[a+2]+t*(p[b+2]-p[a+2])]);}return{width:(Math.max(...pts.map(v=>v[0]))-Math.min(...pts.map(v=>v[0])))*CM_PER_UNIT,depth:(Math.max(...pts.map(v=>v[1]))-Math.min(...pts.map(v=>v[1])))*CM_PER_UNIT};}
+test('loose shorts stop above the reference knee in 27 combinations without modifying the body',async()=>{
+ for(const h of [125,170,190])for(const hip of [74,96,130]){const {body,state}=await fixture({bodyHeightCm:h,bodyHipCm:hip}),original=body.geometry.attributes.position.array.slice();
+  for(const length of [25,40,60]){const o=createHumanOutfit(body,state,{lengthCm:length}),p=o.mesh.geometry.attributes.position.array;assert.ok(p.every(Number.isFinite));assert.ok(o.bottom>o.kneeTop);assert.ok((o.bottom-o.kneeTop)*CM_PER_UNIT>=o.clearanceCm-1e-6);assert.ok(Math.abs((o.top-o.bottom)*CM_PER_UNIT-o.lengthCm)<1e-8);assert.equal(o.fit,'relaxed');assert.equal(o.clothSimulated,false);assert.deepEqual(body.geometry.attributes.position.array,original);assert.equal(o.mesh.geometry.groups.length,2);o.destroy();}
+  body.geometry.dispose();body.material.dispose();
+ }
+});
+test('pernera retains its upper envelope instead of tapering to the knee; radial gap is explicit',async()=>{
+ for(const h of[125,170,190]){const {body,state}=await fixture({bodyHeightCm:h,bodyChestCm:84,bodyHipCm:94}),o=createHumanOutfit(body,state,{lengthCm:60}),collider=createHumanCollider(body);const upper=section(o.mesh.geometry,body.userData.sourceToY(.65)),lower=section(o.mesh.geometry,o.bottom+.001),leg=section(body.geometry,o.bottom+.001);
+  assert.ok(Math.abs(upper.width-lower.width)<.2,'pernera tapers in frontal');assert.ok(Math.abs(upper.depth-lower.depth)<.2,'pernera tapers in lateral');assert.ok(lower.width-leg.width>2*h/170,'no visible leg ease');
+  const p=o.mesh.geometry.attributes.position,gaps=[];for(let i=0;i<p.count;i++)if(p.getY(i)<body.userData.sourceToY(.67))gaps.push(collider.gap(p.getX(i),p.getY(i),p.getZ(i))*CM_PER_UNIT);assert.ok(Math.min(...gaps)>.05,'loose leg enters the skin');
+  o.destroy();body.geometry.dispose();body.material.dispose();
+ }
+});
+test('shorts length validation is finite, bounded and separate from requested length',async()=>{const {body}=await fixture({bodyHeightCm:125});for(const request of[NaN,Infinity,-50,0,25,40,60,999]){const o=humanShortsLength(body,request);assert.ok(Number.isFinite(o.lengthCm));assert.ok(o.lengthCm>=o.minLengthCm&&o.lengthCm<=o.maxLengthCm);assert.ok(o.bottom>o.kneeTop);}const limited=humanShortsLength(body,60);assert.equal(limited.requestedLengthCm,60);assert.ok(limited.lengthCm<60);assert.equal(limited.clamped,true);});
