@@ -1,80 +1,71 @@
 name: NUBYRA · Validación del configurador 3D
-
 on:
   pull_request:
-    paths:
-      - 'configurador-3d/**'
-      - 'index.html'
-      - 'landing.js'
-      - 'landing.css'
-      - 'tests/**'
-      - 'README.md'
-      - 'docs/configurador-3d/**'
-      - 'docs/fit-lab/**'
-      - 'scripts/*fit-lab*.mjs'
-      - 'package.json'
-      - 'package-lock.json'
-      - '.github/workflows/validate-configurador-3d.yml'
+    paths: ['configurador-3d/**', 'tests/**', 'scripts/**', 'docs/fit-lab/**', 'package.json', 'package-lock.json', '.github/workflows/validate-configurador-3d.yml']
   workflow_dispatch:
-
 permissions:
   contents: read
-
 jobs:
   checks:
-    name: Sintaxis y pruebas Node 22
+    name: Human mesh, worker and legacy regression
     runs-on: ubuntu-latest
-    timeout-minutes: 18
+    timeout-minutes: 25
+    env:
+      FIT_LAB_URL: 'http://127.0.0.1:8000/fit-lab/?body=synthetic'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
-      - name: Instalar dependencias fijadas antes de cualquier prueba
+      - name: Install fixed dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Comprobar sintaxis
+      - name: Syntax
         run: |
           for source in configurador-3d/*.mjs configurador-3d/fit-lab/*.mjs scripts/*fit-lab*.mjs; do node --check "$source"; done
           node --check landing.js
-      - name: Suite completa y exportación GLB
+      - name: All Node tests and GLB export
         env:
           THREE_TEST_DIR: ${{ github.workspace }}
           NUBYRA_EXPORT_GLB: artifacts/nubyra-test-jersey.glb
         run: |
           mkdir -p artifacts
           npm test | tee artifacts/node-tests.txt
-      - name: Construir Fit Lab autocontenido
-        run: npm run build:fit-lab
-      - name: Instalar Chromium para pruebas de navegador
+      - name: Build self-contained Lab and worker
+        run: |
+          npm run build:fit-lab
+          nohup python3 -m http.server 8000 --directory fit-dist >/tmp/fit-http.log 2>&1 &
+          for attempt in 1 2 3 4 5; do curl -fsS http://127.0.0.1:8000/release.json && break || sleep 1; done
+      - name: Install browser
         run: npx playwright install --with-deps chromium
-      - name: Verificar interacción, contacto, movimiento y responsive
+      - name: Default human model, same-mesh collision, worker responsiveness
         env:
-          EVIDENCE_DIR: artifacts/fit-lab
+          FIT_LAB_URL: 'http://127.0.0.1:8000/fit-lab/'
+          EVIDENCE_DIR: artifacts/human-browser
+        run: node scripts/fit-lab-human-e2e.mjs | tee artifacts/human-browser-tests.txt
+      - name: Legacy benchmark interaction and WebGL
+        env:
+          EVIDENCE_DIR: artifacts/legacy
         run: npm run test:e2e:fit-lab | tee artifacts/browser-tests.txt
-      - name: Confirmación de medidas, equipación y personalización
+      - name: Legacy equipment and commit controls
         env:
           EVIDENCE_DIR: artifacts/equipment
         run: node scripts/fit-lab-equipment-e2e.mjs | tee artifacts/equipment-tests.txt
-      - name: Corte A - camiseta exterior y referencia inferior en cuatro vistas
+      - name: Legacy layering and pelvis reference
         env:
           EVIDENCE_DIR: artifacts/cut-a
-        run: node scripts/fit-lab-cut-a-review.mjs | tee artifacts/cut-a-tests.txt
-      - name: Pelvis continua, pecho y guía opcional de sujetador
-        env:
-          EVIDENCE_DIR: artifacts/pelvis-bust
-        run: node scripts/fit-lab-pelvis-bust-review.mjs | tee artifacts/pelvis-bust-tests.txt
-      - name: Medir contacto, capturar vistas y revisar materiales
+        run: |
+          node scripts/fit-lab-cut-a-review.mjs | tee artifacts/cut-a-tests.txt
+          EVIDENCE_DIR=artifacts/pelvis-bust node scripts/fit-lab-pelvis-bust-review.mjs | tee artifacts/pelvis-bust-tests.txt
+      - name: Legacy numerical contact matrix
         env:
           EVIDENCE_DIR: artifacts/natural-contact
-        run: |
-          node scripts/fit-lab-contact-report.mjs
-          node scripts/fit-lab-visual-review.mjs
-      - name: Publicar evidencia y GLB para revisión
+        run: node scripts/fit-lab-contact-report.mjs
+      - name: Evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: nubyra-fit-lab-evidence
+          name: nubyra-human-integration-evidence
           path: artifacts/
           if-no-files-found: error
           retention-days: 7
