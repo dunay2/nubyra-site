@@ -4,7 +4,7 @@
  * Shoulder/neck proportions are design assumptions, not inferred measurements.
  */
 export const CM_PER_UNIT = 64 / 2.42;
-export const BODY_VERSION = 'nubyra.shoulder-torso/1.1';
+export const BODY_VERSION = 'nubyra.shoulder-torso/1.2';
 export const BODY_LAYOUT = Object.freeze({rows: 69, around: 56, chestRow: 29, hipRow: 4});
 const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -60,7 +60,7 @@ export function updateBody(mesh, state) {
   // Raise the chest region only, with zero change below the lower rib cage
   // and above the shoulders. Measured rings keep exactly the same perimeter.
   const yFrom = y => {
-    const u=clamp((y+.06)/.86),lift=.065*16*u*u*(1-u)*(1-u);
+    const u=clamp((y+.06)/.86),lift=.10*16*u*u*(1-u)*(1-u);
     return 1.2+(y+lift-1.2)*scale;
   };
   // Chest/hip rings remain exact; unspecified shoulder dimensions are a neutral preset.
@@ -79,7 +79,7 @@ export function updateBody(mesh, state) {
         const x = c * (.43 + .035 * hip) * (1 + (state.sideVolume - 5) * .045 * chest);
         // Broad rounded anterior mass; no cone or single displaced apex.
         const broad = Math.pow(Math.max(0, 1 - Math.pow(Math.abs(c), 6)), .35);
-        const forward = state.frontVolume * .028 * gauss((y0 - .35) / (.34 + state.frontVolume * .014)) * broad * Math.max(0,s);
+        const forward = state.frontVolume * .043 * gauss((y0 - .38) / (.30 + state.frontVolume * .012)) * broad * Math.max(0,s);
         const z = s * (.22 + .025 * hip) * (1 + (s < 0 ? (state.backVolume - 5) * .055 * chest : 0)) + forward;
         ring.push([x,z]);
       }
@@ -94,7 +94,7 @@ export function updateBody(mesh, state) {
         upper = [
           [.24, Math.max(...previousRing.map(v=>v[0])), Math.max(...previousRing.map(v=>v[1])), -Math.min(...previousRing.map(v=>v[1]))],
           [.29, chestWidth, chestFront, chestBack],
-          [.48, chestWidth*.98, chestFront*.94, chestBack*1.015],
+          [.48, chestWidth*.98, chestFront*.97, chestBack*1.015],
           [.72, breadth*.9, chestFront*.69, chestBack*.96],
           [.93, breadth, .207, .224],
           [1.08, breadth*.96, .182, .207],

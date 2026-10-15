@@ -55,6 +55,7 @@ function applyShorts(){const e=$('shorts-length');if(e.value===''||!e.validity.v
 $('shorts-length').addEventListener('change',applyShorts);$('shorts-length').addEventListener('keydown',e=>{if(e.key==='Enter')applyShorts();});
 function designChange(key,e){kit=normalizeKit({...kit,[key]:e.value});if(e.type!=='color')e.value=kit[key];viewer?.setDesign(kit);if(key==='base')document.querySelectorAll('[data-color]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.color===kit.base)));}
 for(const key of ['team','surname','number','sponsor','base','accent']){const e=$('kit-'+key);e.value=kit[key];e.addEventListener('change',()=>designChange(key,e));e.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();designChange(key,e);}});}
+$('show-bust-guide').addEventListener('change',()=>viewer?.setBustGuide($('show-bust-guide').checked));
 $('save-json').addEventListener('click',()=>{const blob=new Blob([JSON.stringify({schema:'nubyra.fit-lab/1.0',...getLabSnapshot()},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='nubyra-fit-lab-ensayo.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
 function syncMotionPreference(){for(const id of ['show-motion','cloth-impulse']){$(id).disabled=reduced.matches;$(id).title=reduced.matches?'Movimiento reducido según la preferencia del dispositivo':'';}}
