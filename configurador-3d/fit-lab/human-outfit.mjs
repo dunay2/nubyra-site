@@ -38,10 +38,11 @@ function thighEnvelope(body,side){
 }
 export function createHumanOutfit(body,state,{lengthCm=40,base='#173e64',accent='#f8c12e'}={}){
  const d=body.userData,unit=d.unit,s=d.scale,fit=humanShortsLength(body,lengthCm),{top,bottom}=fit;
- const hem=1.20-state.garmentLengthCm/CM_PER_UNIT,envelopes={1:thighEnvelope(body,1),'-1':thighEnvelope(body,-1)};
+ // Release from the upper thigh using a body landmark, independent of the jersey hem.
+ const releaseY=d.sourceToY(.785),envelopes={1:thighEnvelope(body,1),'-1':thighEnvelope(body,-1)};
  const geometry=patchGeometry(body,top,bottom,v=>{
   const side=v.x<0?-1:1,e=envelopes[side],drape=smooth((d.sourceToY(.765)-v.y)/(.095*s/unit));
-  const loose=smooth((hem+.02-v.y)/(.16*s/unit)),r=Math.hypot(v.x,v.z)||1,gap=.0015+loose*.010*s/unit;
+  const loose=smooth((releaseY+.02-v.y)/(.16*s/unit)),r=Math.hypot(v.x,v.z)||1,gap=.0015+loose*.010*s/unit;
   const upperX=v.x+v.x/r*gap,upperZ=v.z+v.z/r*gap;
   const theta=Math.atan2((v.z-e.cz)/e.rz,(side*v.x-e.cx)/e.rx);
   const hangingX=side*(e.cx+e.outerRx*Math.cos(theta)),hangingZ=e.cz+e.outerRz*Math.sin(theta);
