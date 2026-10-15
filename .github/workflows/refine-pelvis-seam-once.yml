@@ -1,0 +1,43 @@
+name: Refine pelvis seam once
+on:
+  push:
+    branches: ['fix/fit-lab-continuous-pelvis-bust-guide']
+    paths: ['.github/workflows/refine-pelvis-seam-once.yml']
+permissions:
+  contents: write
+jobs:
+  persist:
+    if: github.actor == 'dunay2'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/fit-lab-continuous-pelvis-bust-guide
+      - name: Apply only the reviewed geometry correction
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('configurador-3d/fit-lab/outfit-reference.mjs');s=p.read_text()
+          changes=[
+            ('if(side>0)idx.push(i,i+1,j,i+1,j+1,j);else idx.push(i,j,i+1,i+1,j,j+1);','if(side>0)idx.push(i,i+1,j+1,i,j+1,j);else idx.push(i,j,i+1,i+1,j,j+1);'),
+            ('const hemBlend=smooth((y-shortsBottom)/Math.max(.01,L.joinY-shortsBottom));','const drop=Math.max(0,y-v[2]),hemBlend=drop>1e-8?Math.min(1,.85*(y-shortsBottom)/drop):1;'),
+            ('lerp(y,v[2],hemBlend*Math.min(1,.7*Math.max(0,L.joinY-shortsBottom)/crotchDrop))','lerp(y,v[2],hemBlend)')
+          ]
+          for old,new in changes:
+            assert s.count(old)==1, old
+            s=s.replace(old,new)
+          p.write_text(s)
+          PY
+          echo 'aea76555e53226874e5889b44d932a3d113eab37d8d0c28648379845cebeed3b  configurador-3d/fit-lab/outfit-reference.mjs' | sha256sum -c -
+          git diff --check
+      - name: Persist correction and remove one-use workflow
+        run: |
+          set -euo pipefail
+          git add configurador-3d/fit-lab/outfit-reference.mjs
+          git rm .github/workflows/refine-pelvis-seam-once.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix(fit-lab): follow crotch saddle and align diagonals without changing contact tolerances'
+          git push origin HEAD:fix/fit-lab-continuous-pelvis-bust-guide
