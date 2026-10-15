@@ -1,0 +1,35 @@
+name: Inspect official MPFB female base data
+on:
+  push:
+    branches: ['research/complete-human-mesh-review']
+    paths: ['.github/workflows/review-mpfb-female.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Retrieve pinned public geometry and license as data
+        shell: python
+        run: |
+          from pathlib import Path
+          import hashlib, json, urllib.request
+          commit='3af0cd5a2ffba072e93a34e5f6f494fdc4813ddf'
+          root='https://raw.githubusercontent.com/makehumancommunity/mpfb2/'+commit+'/'
+          paths=['LICENSE.md','LICENSE.ASSETS.md','src/mpfb/data/3dobjs/base.obj','src/mpfb/data/targets/macrodetails/macro.json','src/mpfb/data/targets/macrodetails/african-female-young.target.gz','src/mpfb/data/targets/macrodetails/asian-female-young.target.gz','src/mpfb/data/targets/macrodetails/caucasian-female-young.target.gz','src/mpfb/data/targets/macrodetails/universal-female-young-averagemuscle-averageweight.target.gz','src/mpfb/data/targets/macrodetails/universal-female-young-maxmuscle-averageweight.target.gz']
+          out=Path('mpfb-source-review');out.mkdir()
+          manifest={'upstream':'makehumancommunity/mpfb2','commit':commit,'files':[],'note':'Only geometry and morph data. No upstream code executed; no production deployment.'}
+          for path in paths:
+              with urllib.request.urlopen(root+path,timeout=25) as response:data=response.read(5*1024*1024+1)
+              if len(data)>5*1024*1024:raise ValueError('Unexpected size')
+              dest=out/path;dest.parent.mkdir(parents=True,exist_ok=True);dest.write_bytes(data)
+              manifest['files'].append({'path':path,'url':root+path,'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest()})
+          (out/'manifest.json').write_text(json.dumps(manifest,indent=2))
+          print(json.dumps(manifest))
+      - uses: actions/upload-artifact@v4
+        with:
+          name: official-mpfb-female-source
+          path: mpfb-source-review/
+          retention-days: 7
+          if-no-files-found: error
