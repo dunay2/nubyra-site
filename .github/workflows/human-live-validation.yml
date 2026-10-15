@@ -1,0 +1,46 @@
+name: Verify published human Fit Lab
+on:
+  push:
+    branches: ['feat/fit-lab-human-base-integration']
+    paths: ['.github/workflows/human-live-validation.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 2a850821b6542f67e1ea6bf6fb8f198603ab97eb
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Verify release and exact public geometry/image bytes
+        run: |
+          mkdir -p artifacts/human-live
+          node --input-type=module <<'JS'
+          import{readFile,writeFile}from'node:fs/promises';import{createHash}from'node:crypto';
+          const root='https://nubyra-fit-lab-preview.vercel.app/',expected='2a850821b6542f67e1ea6bf6fb8f198603ab97eb';
+          const response=await fetch(root+'release.json');if(!response.ok)throw Error('Release HTTP '+response.status);const release=await response.json();
+          if(release.commit!==expected||!release.humanMesh||!release.physicsWorker||release.collision!=='same-mesh-bvh')throw Error('Unexpected live revision');
+          const hash=b=>createHash('sha256').update(b).digest('hex'),assets=[];
+          for(const name of['human-female.glb','reference-user.webp']){const local=await readFile('configurador-3d/fit-lab/assets/'+name),r=await fetch(root+'fit-lab/assets/'+name);if(!r.ok)throw Error('Asset HTTP '+r.status);const bytes=Buffer.from(await r.arrayBuffer());if(hash(bytes)!==hash(local))throw Error('Asset mismatch '+name);assets.push({name,bytes:bytes.length,sha256:hash(bytes)});}
+          await writeFile('artifacts/human-live/release-verification.json',JSON.stringify({release,assets},null,2));console.log(JSON.stringify({release,assets}));
+          JS
+      - run: npx playwright install --with-deps chromium
+      - name: Browser regression against public Lab
+        env:
+          FIT_LAB_URL: 'https://nubyra-fit-lab-preview.vercel.app/fit-lab/'
+          EVIDENCE_DIR: artifacts/human-live
+        run: node scripts/fit-lab-human-e2e.mjs | tee artifacts/live-browser-tests.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nubyra-human-public-verification
+          path: artifacts/
+          retention-days: 7
