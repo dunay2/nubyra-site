@@ -87,7 +87,7 @@ function dressingTranslation(rest,ids,collider){
  for(const id of ids){const k=id*3;lift=Math.max(lift,collider.surfaceHeight(rest[k],rest[k+2])+.04-rest[k+1]);}
  return [0,lift,0];
 }
-export function createClothAdapter(garment,body){
+export function createClothAdapter(garment,body,{colliderFactory=createCollider,material=DEMO_CLOTH,clearance=.007}={}){
  const positions=[],lookup=new Map(),maps=new Map(),edges=new Map(),opposites=new Map(),seams=[],triangles=[];
  const surfaces=garment.children.filter(m=>m.isMesh&&!m.name.startsWith('trim-'));
  for(const mesh of surfaces){
@@ -109,10 +109,10 @@ export function createClothAdapter(garment,body){
   }
  }
  const shoulderIds=new Set(garment.children.filter(m=>m.userData.kind==='shoulder-fabric').flatMap(m=>maps.get(m.name)));
- const collider=createCollider(body);
- const bends=[...opposites.values()].filter(v=>v.length===2&&v[0]!==v[1]).map(v=>[v[0],v[1],shoulderIds.has(v[0])||shoulderIds.has(v[1]) ? DEMO_CLOTH.shoulderBendDistanceComplianceMPerN : DEMO_CLOTH.bendDistanceComplianceMPerN]);
+ const collider=colliderFactory(body);
+ const bends=[...opposites.values()].filter(v=>v.length===2&&v[0]!==v[1]).map(v=>[v[0],v[1],shoulderIds.has(v[0])||shoulderIds.has(v[1]) ? material.shoulderBendDistanceComplianceMPerN : material.bendDistanceComplianceMPerN]);
  const initialTranslation=dressingTranslation(positions,shoulderIds,collider);
- const solver=new ClothSolver({positions,triangles,edges:[...edges.values()],bends,seams,pins:[],collider,initialTranslation,material:DEMO_CLOTH});
+ const solver=new ClothSolver({positions,triangles,edges:[...edges.values()],bends,seams,pins:[],collider,initialTranslation,material,clearance});
  const trims=[];
  for(const mesh of garment.children.filter(m=>m.isMesh&&m.name.startsWith('trim-'))){
   const panel=garment.getObjectByName('NUBYRA_Test_Jersey_'+(mesh.name.includes('front')?'Front':'Back'));
@@ -133,6 +133,6 @@ export function createClothAdapter(garment,body){
   for(const {mesh,bindings} of trims){syncSurfaceTrim(mesh.geometry.getAttribute('position'),bindings,s);mesh.geometry.computeVertexNormals();mesh.geometry.computeBoundingSphere();}
  }
  return {solver,sync,maps,surfaces,trims,
-  retarget(nextBody){const nextCollider=createCollider(nextBody);solver.setCollider(nextCollider,[]);solver.resetRestPose(dressingTranslation(solver.rest,shoulderIds,nextCollider));}
+  retarget(nextBody){const nextCollider=colliderFactory(nextBody);solver.setCollider(nextCollider,[]);solver.resetRestPose(dressingTranslation(solver.rest,shoulderIds,nextCollider));}
  };
 }
