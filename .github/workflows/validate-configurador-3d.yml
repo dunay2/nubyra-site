@@ -43,6 +43,17 @@ jobs:
           FIT_LAB_URL: 'http://127.0.0.1:8000/fit-lab/'
           EVIDENCE_DIR: artifacts/human-browser
         run: node scripts/fit-lab-human-e2e.mjs | tee artifacts/human-browser-tests.txt
+      - name: Early human review bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: nubyra-avatar-review
+          path: |
+            artifacts/human-browser/
+            artifacts/human-browser-tests.txt
+            artifacts/node-tests.txt
+            fit-dist/
+          if-no-files-found: error
+          retention-days: 7
       - name: Shorts above knee - matched before and after views
         run: |
           set -euo pipefail
