@@ -1,0 +1,24 @@
+name: Reference transition source
+on:
+  push:
+    branches: ['fix/fit-lab-persistent-shirt-reference']
+    paths: ['.github/workflows/reference-transition-source.yml']
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Freeze tracked source only for reproduction
+        run: |
+          git archive --format=tar.gz HEAD -o /tmp/fitlab-source.tgz
+          sha256sum /tmp/fitlab-source.tgz > /tmp/fitlab-source.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: reference-transition-source
+          path: |
+            /tmp/fitlab-source.tgz
+            /tmp/fitlab-source.sha256
+          retention-days: 3
