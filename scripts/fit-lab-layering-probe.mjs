@@ -17,10 +17,10 @@ export function garmentSection(meshes,y){
   return out;
  };
 }
-export function measureLayers(outfit,adapter,body=null){let overlap=0,worst=0,samples=0,addedWorst=0,bodyIntersectionSamples=0;const rows=[];
- for(const m of outfit.shortsMeshes){const p=m.geometry.attributes.position,{rows:count,around}=m.geometry.userData;
-  for(let r=0;r<=count;r++){const y=p.getY(r*(around+1)),section=garmentSection(adapter.surfaces,y),bodySection=body?garmentSection([body],y):null;let n=0,bad=0,max=0;
-   for(let a=0;a<around;a++){const i=r*(around+1)+a,x=p.getX(i),z=p.getZ(i),shirt=section(x,z);if(!Number.isFinite(shirt))continue;const excess=(Math.hypot(x,z)-shirt)*CM_PER_UNIT;const bodyRadius=bodySection?.(x,z),existing=Number.isFinite(bodyRadius)?Math.max(0,bodyRadius-shirt)*CM_PER_UNIT:0;if(existing>0)bodyIntersectionSamples++;addedWorst=Math.max(addedWorst,excess-existing);if(excess>0){bad++;overlap++;max=Math.max(max,excess);worst=Math.max(worst,excess);}n++;samples++;}
+export function measureLayers(outfit,adapter,body=null){let overlap=0,worst=0,samples=0,addedWorst=0,bodyIntersectionSamples=0;const rows=[],cache=new Map();
+ for(const m of outfit.shortsMeshes){const p=m.geometry.attributes.position,{rows:count,around}=m.geometry.userData,used=new Set(m.geometry.index?.array??Array.from({length:p.count},(_,i)=>i));
+  for(let r=0;r<=count;r++){const y=p.getY(r*(around+1));let n=0,bad=0,max=0;
+   for(let a=0;a<around;a++){const i=r*(around+1)+a;if(!used.has(i))continue;const sy=p.getY(i),key=sy.toFixed(7);if(!cache.has(key))cache.set(key,[garmentSection(adapter.surfaces,sy),body?garmentSection([body],sy):null]);const [section,bodySection]=cache.get(key);const x=p.getX(i),z=p.getZ(i),shirt=section(x,z);if(!Number.isFinite(shirt))continue;const excess=(Math.hypot(x,z)-shirt)*CM_PER_UNIT;const bodyRadius=bodySection?.(x,z),existing=Number.isFinite(bodyRadius)?Math.max(0,bodyRadius-shirt)*CM_PER_UNIT:0;if(existing>0)bodyIntersectionSamples++;addedWorst=Math.max(addedWorst,excess-existing);if(excess>0){bad++;overlap++;max=Math.max(max,excess);worst=Math.max(worst,excess);}n++;samples++;}
    if(bad)rows.push({name:m.name,r,y:+y.toFixed(3),bad,n,maxCm:+max.toFixed(3)});
   }
  }

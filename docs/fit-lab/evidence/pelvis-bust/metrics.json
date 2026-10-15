@@ -1,0 +1,76 @@
+{
+  "units": "cm",
+  "measurement": "synthetic surface, not individual anthropometry",
+  "cases": [
+    {
+      "state": {
+        "chest": 88,
+        "hip": 96,
+        "height": 160
+      },
+      "before": {
+        "bustPlaneHeightCm": 9.271488504961503,
+        "frontProjectionCm": 12.082596455723786,
+        "chestPerimeterCm": 88.00000016910099,
+        "hipPerimeterCm": 96.0000008959124,
+        "meshCount": 8,
+        "triangles": 20136,
+        "bufferBytes": 427024
+      },
+      "after": {
+        "bustPlaneHeightCm": 10.134139730910624,
+        "frontProjectionCm": 13.285154547573121,
+        "chestPerimeterCm": 88.00000013504545,
+        "hipPerimeterCm": 96.00000015916135,
+        "meshCount": 8,
+        "triangles": 22232,
+        "bufferBytes": 504112
+      },
+      "guide": {
+        "kind": "sports-bra-visual-guide",
+        "simulated": false,
+        "calibrated": false,
+        "bustPlaneY": 0.383197158575058,
+        "underbustGuideY": 0.04319715857505796,
+        "offsetMm": 1.5,
+        "vertices": 2040,
+        "triangles": 3530
+      }
+    },
+    {
+      "state": {
+        "chest": 94,
+        "hip": 96,
+        "height": 166
+      },
+      "before": {
+        "bustPlaneHeightCm": 8.429086700943877,
+        "frontProjectionCm": 12.906410280338005,
+        "chestPerimeterCm": 94.00000048176318,
+        "hipPerimeterCm": 96.0000008959124,
+        "meshCount": 8,
+        "triangles": 19912,
+        "bufferBytes": 422032
+      },
+      "after": {
+        "bustPlaneHeightCm": 9.324087190233971,
+        "frontProjectionCm": 14.19095914225933,
+        "chestPerimeterCm": 93.9999982390581,
+        "hipPerimeterCm": 96.00000015916135,
+        "meshCount": 8,
+        "triangles": 22008,
+        "bufferBytes": 499120
+      },
+      "guide": {
+        "kind": "sports-bra-visual-guide",
+        "simulated": false,
+        "calibrated": false,
+        "bustPlaneY": 0.35256704688072205,
+        "underbustGuideY": -0.0001829531192780176,
+        "offsetMm": 1.5,
+        "vertices": 2042,
+        "triangles": 3534
+      }
+    }
+  ]
+}

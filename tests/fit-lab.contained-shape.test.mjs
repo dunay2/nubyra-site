@@ -13,7 +13,7 @@ test('upper refinement lifts the chest by a bounded amount without changing meas
   assert.equal(b.userData.version,BODY_VERSION);assert.equal(v.outfit.snapshot().version,OUTFIT_REFERENCE_VERSION);
   assert.ok(Math.abs(ringPerimeter(b,29)-chest)<.001);assert.ok(Math.abs(ringPerimeter(b,4)-hip)<.001);
   const oldY=1.2+(.29-1.2)*h/160,lift=(b.userData.chestY-oldY)*CM_PER_UNIT;
-  assert.ok(lift>1.1&&lift<2.1,'unbounded chest relocation: '+lift);
+  assert.ok(lift>1.7&&lift<3.2,'unbounded chest relocation: '+lift);
   for(let r=0;r<=21;r++){const old=1.2+(-1.16+.05*r-1.2)*h/160;assert.ok(Math.abs(p.getY(r*57)-old)<1e-6,'hip/lower rib section moved');}
   for(let r=1;r<=b.userData.rows;r++)assert.ok(p.getY(r*57)>p.getY((r-1)*57),'crossed section heights');
   dispose(v);
@@ -45,7 +45,7 @@ test('visual refinements keep topology, draw groups and lower-body alignment bou
  for(const m of [...o.bodyMeshes,...o.shortsMeshes]){assert.ok([...m.geometry.attributes.position.array].every(Number.isFinite));assert.ok([...m.geometry.attributes.normal.array].every(Number.isFinite));}
  for(const m of o.shortsMeshes)assert.equal(m.geometry.groups.length,2);
  const l=o.bodyGroup.getObjectByName('Pierna sintética 1'),f=o.bodyGroup.getObjectByName('Pie de referencia 1');
- const lp=l.geometry.attributes.position,fp=f.geometry.attributes.position,offset=l.geometry.userData.rows*33;
- for(let i=0;i<=32;i++)for(const axis of ['getX','getY','getZ'])assert.ok(Math.abs(lp[axis](offset+i)-fp[axis](i))<1e-6,'feet no longer aligned with leg');
+ const lp=l.geometry.attributes.position,fp=f.geometry.attributes.position,around=l.geometry.userData.around,offset=l.geometry.userData.rows*(around+1);
+ for(let i=0;i<=around;i++)for(const axis of ['getX','getY','getZ'])assert.ok(Math.abs(lp[axis](offset+i)-fp[axis](i))<1e-6,'feet no longer aligned with leg');
  dispose(v);
 });

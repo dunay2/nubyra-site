@@ -2,7 +2,7 @@ import {CM_PER_UNIT} from './body-surface.mjs';
 const lerp=(a,b,t)=>a+(b-a)*t;
 const clamp=x=>Math.max(0,Math.min(1,x));
 const smooth=x=>{const t=clamp(x);return t*t*t*(10+t*(-15+6*t));};
-export const OUTFIT_REFERENCE_VERSION='lower-reference/2.2';
+export const OUTFIT_REFERENCE_VERSION='lower-reference/3.0';
 
 /** Synthetic proportions only: not measured anatomy, a size recommendation or a cloth solver. */
 export function referenceLayout(body,state){
@@ -65,15 +65,15 @@ function smoothSharedNormals(meshes){
  for(const m of meshes)m.geometry.attributes.normal.needsUpdate=true;
 }
 
-function halfTube(T,side,rows,around,rowAt,sole=false){
+function halfTube(T,side,rows,around,rowAt,sole=false,includeFace=()=>true){
  const pos=[],uv=[],idx=[];
  for(let r=0;r<=rows;r++)for(let a=0;a<=around;a++){
   // Reuse theta exactly at the seam, not a nearly-equal floating-point endpoint.
   const theta=-Math.PI/2+2*Math.PI*(a%around)/around,v=rowAt(r/rows,theta);
   pos.push(side*v[0],v[1],v[2]);uv.push(a/around,1-r/rows);
  }
- for(let r=0;r<rows;r++)for(let a=0;a<around;a++){const i=r*(around+1)+a,j=i+around+1;
-  if(side>0)idx.push(i,i+1,j,i+1,j+1,j);else idx.push(i,j,i+1,i+1,j,j+1);
+ for(let r=0;r<rows;r++)for(let a=0;a<around;a++){if(!includeFace(r,a))continue;const i=r*(around+1)+a,j=i+around+1;
+  if(side>0)idx.push(i,i+1,j+1,i,j+1,j);else idx.push(i,j,i+1,i+1,j,j+1);
  }
  if(sole){
   const start=rows*(around+1),center=pos.length/3;let x=0,z=0;
@@ -100,10 +100,17 @@ export function createOutfitReference(T,body,state,options={}){
   [.63,center,.205*shank,.215*shank,-.028*L.scale], [.78,center,.168*shank,.173*shank,-.03*L.scale],
   [.93,center,.108*shank,.125*shank,-.004*L.scale], [1,center,.10*shank,.12*shank,0]
  ]);
+ const crotchDrop=.19*L.scale;
  const legRing=(t,theta)=>{
-  const y=lerp(L.joinY,ankleY,t),[cx,rx,rz,cz]=legProfile(t),c=Math.cos(theta),s=Math.sin(theta),blend=smooth(t/.045),upper=sampleBody(y,theta);
-  return [lerp(Math.max(0,upper[0]),cx+rx*c,blend),y,lerp(upper[1],cz+rz*s,blend)];
+  const rawY=lerp(L.joinY,ankleY,t),[cx,rx,rz,cz]=legProfile(t),c=Math.cos(theta),sn=Math.sin(theta);
+  const inner=Math.max(0,-c),blend=smooth(t/.06),upper=sampleBody(rawY,theta);
+  // Each half starts on an outer hip arc and a SHARED curved centre seam.
+  // The inner arc descends to a crotch saddle instead of drawing two coincident
+  // vertical walls and a collapsed disc across the whole hip plane.
+  const y=rawY-crotchDrop*inner*inner*(1-smooth(t/.22));
+  return [lerp(Math.max(0,upper[0]),cx+rx*c,blend),y,lerp(upper[1],cz+rz*sn,blend)];
  };
+
  // Plantigrade reference: heel, instep and toe share one flat supporting sole.
  const footProfile=profile([
   [0,.32,.10*shank/L.scale,.12*shank/L.scale,0], [.22,.24,.118*shank/L.scale,.235,.085],
@@ -111,28 +118,44 @@ export function createOutfitReference(T,body,state,options={}){
   [.88,.020,.152*shank/L.scale,.43,.20], [1,0,.145*shank/L.scale,.415,.20]
  ]);
  for(const side of [-1,1]){
-  const leg=add(bodyGroup,'Pierna sintética '+side,halfTube(T,side,32,32,legRing),body.material);
-  const foot=add(bodyGroup,'Pie de referencia '+side,halfTube(T,side,8,32,(t,theta)=>{
+  const leg=add(bodyGroup,'Pierna sintética '+side,halfTube(T,side,32,56,legRing),body.material);
+  const foot=add(bodyGroup,'Pie de referencia '+side,halfTube(T,side,8,56,(t,theta)=>{
    const [y,rx,rz,z]=footProfile(t);return [center+rx*L.scale*Math.cos(theta),L.floor+y*L.scale,(z+rz*Math.sin(theta))*L.scale];
   },true),body.material);
   smoothSharedNormals([leg,foot]);
  }
+ smoothSharedNormals([bodyGroup.getObjectByName('Pierna sintética -1'),bodyGroup.getObjectByName('Pierna sintética 1')]);
+ // Only the outer hip arcs meet the torso. Share their outward tangent normals;
+ // the torso's internal closing cap must not create a false black belt.
+ const bp=body.geometry.attributes.position,bn=body.geometry.attributes.normal;
+ for(let a=0;a<body.userData.around;a++){
+  const angle=2*Math.PI*a/body.userData.around,side=Math.cos(angle)>=0?1:-1;
+  const theta=side>0?angle:Math.PI-angle;
+  const leg=bodyGroup.getObjectByName('Pierna sintética '+side).geometry;
+  const j=Math.round((((theta+Math.PI/2)/(2*Math.PI))%1+1)%1*56)%56;
+  const dy=bp.getY(57+a)-bp.getY(a),dx=bp.getX(57+a)-bp.getX(a),dz=bp.getZ(57+a)-bp.getZ(a);
+  const prev=(a+55)%56,next=(a+1)%56,tx=bp.getX(next)-bp.getX(prev),tz=bp.getZ(next)-bp.getZ(prev);
+  let nx=dy*tz,ny=dz*tx-dx*tz,nz=-dy*tx;const norm=Math.hypot(nx,ny,nz)||1;nx/=norm;ny/=norm;nz/=norm;
+  bn.setXYZ(a,nx,ny,nz);leg.attributes.normal.setXYZ(j,nx,ny,nz);if(j===0)leg.attributes.normal.setXYZ(56,nx,ny,nz);
+ }
+ bn.setXYZ(56,bn.getX(0),bn.getY(0),bn.getZ(0));bn.needsUpdate=true;
+
  const head=new T.SphereGeometry(1,28,20),headRadius=L.headHeight/2+.105*L.scale;
  head.scale(.245*L.scale,headRadius,.27*L.scale);head.translate(0,L.headTop-headRadius,0);add(bodyGroup,'Cabeza neutra de referencia',head,body.material);
- const shortsBottom=L.waistY-length/CM_PER_UNIT,crotch=L.joinY-.28*L.scale;
+ const shortsBottom=L.waistY-length/CM_PER_UNIT,crotch=L.joinY-crotchDrop;
  // Reuse the underlying body's section heights. A different row grid crossed the
  // sharp hip-to-thigh transition and exposed skin through a thinner underlayer.
  const bodyPositions=body.geometry.attributes.position,shortsYs=[];
  for(let r=16;r>=0;r--){const y=bodyPositions.getY(r*(body.userData.around+1));if(y>shortsBottom+1e-7)shortsYs.push(y);}
  const legGeometry=bodyGroup.getObjectByName('Pierna sintética 1').geometry;
  const lp=legGeometry.attributes.position,lr=legGeometry.userData.rows,la=legGeometry.userData.around;
- for(let r=1;r<=lr;r++){const y=lp.getY(r*(la+1));if(y>shortsBottom+1e-7)shortsYs.push(y);}
+ for(let r=1;r<=lr;r++){const y=lerp(L.joinY,ankleY,r/lr);if(y>shortsBottom+1e-7)shortsYs.push(y);}
  shortsYs.push(shortsBottom);
  const sampleLeg=(y,theta)=>{const row=clamp((L.joinY-y)/lowerLength)*lr,r=Math.min(lr-1,Math.floor(row)),v=row-r;
   const a=((theta+Math.PI/2)/(2*Math.PI)%1+1)%1*la,col=Math.floor(a),u=a-col;
-  const point=(rr,cc)=>{const i=rr*(la+1)+(cc%la);return [lp.getX(i),lp.getZ(i)];};
+  const point=(rr,cc)=>{const i=rr*(la+1)+(cc%la);return [lp.getX(i),lp.getZ(i),lp.getY(i)];};
   const p00=point(r,col),p01=point(r,col+1),p10=point(r+1,col),p11=point(r+1,col+1);
-  return [lerp(lerp(p00[0],p01[0],u),lerp(p10[0],p11[0],u),v),lerp(lerp(p00[1],p01[1],u),lerp(p10[1],p11[1],u),v)];
+  return [0,1,2].map(k=>lerp(lerp(p00[k],p01[k],u),lerp(p10[k],p11[k],u),v));
  };
  for(const side of [-1,1]){
   const rows=shortsYs.length-1,around=56;
@@ -151,13 +174,14 @@ export function createOutfitReference(T,body,state,options={}){
     const target=[legCenter+hemRadiusX*c,hemRadiusZ*s];
     // An outer envelope may add ease but must not cut through the existing leg.
     const outer=[c>=0?Math.max(v[0],target[0]):Math.min(v[0],target[0]),s>=0?Math.max(v[1],target[1]):Math.min(v[1],target[1])];
-    return [Math.max(0,lerp(v[0],outer[0],hanging)+ease*c),y,lerp(v[1],outer[1],hanging)+ease*s];
+    const drop=Math.max(0,y-v[2]),hemBlend=drop>1e-8?Math.min(1,.85*(y-shortsBottom)/drop):1;
+    return [Math.max(0,lerp(v[0],outer[0],hanging)+ease*c),lerp(y,v[2],hemBlend),lerp(v[1],outer[1],hanging)+ease*s];
    }
    const v=sampleBody(y,theta);return [Math.max(0,v[0]+ease*c),y,v[1]+ease*s];
-  });
+  },false,(r,a)=>shortsYs[r]<L.joinY+1e-7||a<around/2);
   // Two draw batches per leg, exclusively a vertical side band; no horizontal material ring.
-  const original=geometry.index.array,main=[],stripe=[];
-  for(let r=0;r<rows;r++)for(let a=0;a<around;a++){const target=a>=around/4-2&&a<=around/4+2?stripe:main;for(let k=0;k<6;k++)target.push(original[(r*around+a)*6+k]);}
+  const original=geometry.index.array,main=[],stripe=[];let faceOffset=0;
+  for(let r=0;r<rows;r++)for(let a=0;a<around;a++){if(shortsYs[r]>=L.joinY+1e-7&&a>=around/2)continue;const target=a>=around/4-2&&a<=around/4+2?stripe:main;for(let k=0;k<6;k++)target.push(original[faceOffset++]);}
   geometry.setIndex([...main,...stripe]);geometry.clearGroups();geometry.addGroup(0,main.length,0);geometry.addGroup(main.length,stripe.length,1);
   add(shortsGroup,'Pantalón visual '+side,geometry,[primary,accent]);
  }
