@@ -30,6 +30,12 @@ function syncUI(){
  $('selection-explanation').textContent=`El recomendador compara las seis variantes. Candidata: ${state.recommendation.previewCode}. El largo solicitado (${fmt(state.desiredLengthCm)} cm) no estira artificialmente la camiseta elegida. Los tres controles de volumen cambian la forma conservando los contornos.`;
 }
 function onFrame(snapshot){
+ if(snapshot.outfit?.shortsMaxLengthCm!==undefined){
+  const o=snapshot.outfit,e=$('shorts-length');e.max=String(o.shortsMaxLengthCm);e.min=String(o.shortsMinLengthCm);
+  outfitOptions.shortsLengthCm=o.shortsLengthCm;if(document.activeElement!==e)e.value=String(o.shortsLengthCm);
+  if(outfitOptions.fullView)$('scene-height').textContent='Estatura de referencia '+fmt(state.bodyHeightCm)+' cm · pantalón '+fmt(o.shortsLengthCm)+' cm';
+  $('shorts-fit-status').textContent='Corte suelto · máximo '+fmt(o.shortsMaxLengthCm)+' cm para quedar por encima de la rodilla. Referencia geométrica, sin simulación textil.';
+ }
  const settling=snapshot.settling?.active;const status=$('settle-status');status.hidden=!settling;status.textContent=settling?'Asentando tejido · '+Math.round(100*(1-snapshot.settling.remaining/snapshot.settling.total))+' %':'';
  lastSnapshot=snapshot;const review=$('fit-review');review.hidden=snapshot.cloth.maxStrain<=.5;review.textContent=review.hidden?'':'Deformación elevada en este ensayo: revisa la prenda seleccionada.';$('body-chest-readout').textContent=fmt(snapshot.body.chestCm)+' cm';$('body-hip-readout').textContent=fmt(snapshot.body.hipCm)+' cm';
  $('length-label').textContent='Alto visible '+fmt(snapshot.garment.hangingHeightCm)+' cm';
@@ -53,7 +59,7 @@ export function getLabSnapshot(){return JSON.parse(JSON.stringify({state,pending
 function syncOutfit(){viewer?.setOutfit(outfitOptions);$('outfit-status').hidden=!outfitOptions.fullView;$('scene-height').hidden=!outfitOptions.fullView;$('scene-height').textContent='Estatura de referencia '+fmt(state.bodyHeightCm)+' cm · pantalón '+outfitOptions.shortsLengthCm+' cm';}
 document.querySelectorAll('[data-framing]').forEach(b=>b.addEventListener('click',()=>{outfitOptions.fullView=b.dataset.framing==='outfit';document.querySelectorAll('[data-framing]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));syncOutfit();}));
 $('show-shorts').addEventListener('change',()=>{outfitOptions.showShorts=$('show-shorts').checked;syncOutfit();});
-function applyShorts(){const e=$('shorts-length');if(e.value===''||!e.validity.valid){e.value=outfitOptions.shortsLengthCm;e.setAttribute('aria-invalid','true');return;}e.removeAttribute('aria-invalid');outfitOptions.shortsLengthCm=e.valueAsNumber;syncOutfit();}
+function applyShorts(){const e=$('shorts-length');if(e.value===''||!e.validity.valid){e.value=outfitOptions.shortsLengthCm;e.setAttribute('aria-invalid','true');e.title='Largo permitido: '+e.min+'–'+e.max+' cm';return;}e.removeAttribute('aria-invalid');e.title='';outfitOptions.shortsLengthCm=e.valueAsNumber;syncOutfit();}
 $('shorts-length').addEventListener('change',applyShorts);$('shorts-length').addEventListener('keydown',e=>{if(e.key==='Enter')applyShorts();});
 function designChange(key,e){kit=normalizeKit({...kit,[key]:e.value});if(e.type!=='color')e.value=kit[key];viewer?.setDesign(kit);if(key==='base')document.querySelectorAll('[data-color]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.color===kit.base)));}
 for(const key of ['team','surname','number','sponsor','base','accent']){const e=$('kit-'+key);e.value=kit[key];e.addEventListener('change',()=>designChange(key,e));e.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();designChange(key,e);}});}
