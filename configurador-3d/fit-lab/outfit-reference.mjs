@@ -73,7 +73,7 @@ function halfTube(T,side,rows,around,rowAt,sole=false,includeFace=()=>true){
   pos.push(side*v[0],v[1],v[2]);uv.push(a/around,1-r/rows);
  }
  for(let r=0;r<rows;r++)for(let a=0;a<around;a++){if(!includeFace(r,a))continue;const i=r*(around+1)+a,j=i+around+1;
-  if(side>0)idx.push(i,i+1,j,i+1,j+1,j);else idx.push(i,j,i+1,i+1,j,j+1);
+  if(side>0)idx.push(i,i+1,j+1,i,j+1,j);else idx.push(i,j,i+1,i+1,j,j+1);
  }
  if(sole){
   const start=rows*(around+1),center=pos.length/3;let x=0,z=0;
@@ -174,8 +174,8 @@ export function createOutfitReference(T,body,state,options={}){
     const target=[legCenter+hemRadiusX*c,hemRadiusZ*s];
     // An outer envelope may add ease but must not cut through the existing leg.
     const outer=[c>=0?Math.max(v[0],target[0]):Math.min(v[0],target[0]),s>=0?Math.max(v[1],target[1]):Math.min(v[1],target[1])];
-    const hemBlend=smooth((y-shortsBottom)/Math.max(.01,L.joinY-shortsBottom));
-    return [Math.max(0,lerp(v[0],outer[0],hanging)+ease*c),lerp(y,v[2],hemBlend*Math.min(1,.7*Math.max(0,L.joinY-shortsBottom)/crotchDrop)),lerp(v[1],outer[1],hanging)+ease*s];
+    const drop=Math.max(0,y-v[2]),hemBlend=drop>1e-8?Math.min(1,.85*(y-shortsBottom)/drop):1;
+    return [Math.max(0,lerp(v[0],outer[0],hanging)+ease*c),lerp(y,v[2],hemBlend),lerp(v[1],outer[1],hanging)+ease*s];
    }
    const v=sampleBody(y,theta);return [Math.max(0,v[0]+ease*c),y,v[1]+ease*s];
   },false,(r,a)=>shortsYs[r]<L.joinY+1e-7||a<around/2);
