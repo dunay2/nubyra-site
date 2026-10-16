@@ -27,20 +27,21 @@ jobs:
           set -euo pipefail
           mkdir -p artifacts/performance
           THREE_TEST_DIR="$PWD" npm test | tee artifacts/performance/tests.txt
-      - name: Serial cold CPU benchmark
+      - name: Serial cold CPU benchmark against canonical solver
         run: node scripts/fit-lab-collision-benchmark.mjs | tee artifacts/performance/cpu-log.txt
-      - name: Build both commits with identical pinned dependencies
+      - name: Build published v1 and candidate with identical pinned dependencies
         env:
           VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
           npm run build:fit-lab
-          git worktree add --detach /tmp/nubyra-before 622ca278e9a0a7eb34f91691a52731e9c2a09296
+          git worktree add --detach /tmp/nubyra-before fcc7e5ac59c754179902e0d51c476ad738c17db0
           ln -s "$PWD/node_modules" /tmp/nubyra-before/node_modules
-          (cd /tmp/nubyra-before && VERCEL_GIT_COMMIT_SHA=622ca278e9a0a7eb34f91691a52731e9c2a09296 npm run build:fit-lab)
+          (cd /tmp/nubyra-before && VERCEL_GIT_COMMIT_SHA=fcc7e5ac59c754179902e0d51c476ad738c17db0 npm run build:fit-lab)
           mkdir -p /tmp/nubyra-comparison
           ln -s /tmp/nubyra-before/fit-dist /tmp/nubyra-comparison/before
           ln -s "$PWD/fit-dist" /tmp/nubyra-comparison/after
+          printf '{"browserBefore":"fcc7e5ac59c754179902e0d51c476ad738c17db0","browserAfter":"%s","cpuBefore":"canonical-createHumanCollider","steps":360}\n' "$VERCEL_GIT_COMMIT_SHA" > artifacts/performance/versions.json
       - run: npx playwright install --with-deps chromium
       - name: Matched real browser latency and responsive regressions
         run: |
