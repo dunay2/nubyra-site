@@ -1,6 +1,7 @@
 import * as T from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {loadHumanBody,updateHumanBody,humanSection,HUMAN_VERSION} from './human-body.mjs';
+import {createSurfaceNormalReconciler} from './surface-normals.mjs';
 import {createHumanAppearance} from './human-appearance.mjs';
 import {createHumanOutfit,createHumanBustGuide} from './human-outfit.mjs';
 import {createRestGarment,CM_PER_UNIT} from './fit-mesh.mjs';
@@ -15,6 +16,7 @@ export async function createHumanViewer(canvas,initial,onFrame=()=>{}){
  scene.add(new T.HemisphereLight(0xf5fcff,0x365267,2.1));for(const [x,y,z,p]of[[-3,5,5,2.7],[4,1,-3,1.4]]){const l=new T.DirectionalLight(0xffffff,p);l.position.set(x,y,z);scene.add(l);}
  const camera=new T.OrthographicCamera(-2,2,3,-3,.1,50),controls=new OrbitControls(camera,canvas);controls.enablePan=false;controls.enableDamping=true;controls.minZoom=.7;controls.maxZoom=1.8;camera.position.set(3,-1,8);controls.target.set(0,-1,0);
  const kit=createKitDesign(T),worker=new Worker(new URL('./human-cloth-worker.mjs',import.meta.url),{type:'module'});let state=initial,revision=1,garment=null,maps=null,trims=null,shorts=null,guide=null,fullView=true,showShorts=true,shortsLengthCm=40,showGuide=false,editing=false,paused=false,disposed=false,contextLost=false;
+ let reconcileSurfaceNormals=()=>{};
  let frameData=null,frames=0,raf=0,dirty=true,lastPhysicsState=null,bodyKey='',outfitKey='',svgCache=null,lastSVGStep=-1,lastSVG=0;const reduced=matchMedia('(prefers-reduced-motion: reduce)');
  let flags={body:true,garment:true,transparent:false,dimensions:true,motion:false};
  const counts={bodyBuilds:1,garmentBuilds:0,physicalUpdates:1,outfitBuilds:0,bodyProjections:0,garmentProjections:0,shortsProjections:0,bustGuideBuilds:0},times={body:[],update:[],render:[],sync:[]};
@@ -35,8 +37,9 @@ export async function createHumanViewer(canvas,initial,onFrame=()=>{}){
  }
  function disposeGarment(){if(!garment)return;const materials=new Set();garment.traverse(m=>{if(m.isMesh){m.geometry.dispose();(Array.isArray(m.material)?m.material:[m.material]).forEach(v=>materials.add(v));}});materials.forEach(m=>m.dispose());}
  worker.onmessage=({data:m})=>{if(disposed||m.revision!==revision)return;if(m.type==='error'){const e=document.getElementById('scene-error');e.hidden=false;e.textContent=m.message;return;}if(m.type!=='frame')return;const t=performance.now();
-  if(m.maps){if(garment){scene.remove(garment);disposeGarment();}garment=createRestGarment(T,GARMENT_CATALOG[m.state.activeConfiguration]);kit.attach(garment);scene.add(garment);maps=m.maps;trims=m.trims;counts.garmentBuilds++;}
+  if(m.maps){if(garment){scene.remove(garment);disposeGarment();}garment=createRestGarment(T,GARMENT_CATALOG[m.state.activeConfiguration]);kit.attach(garment);scene.add(garment);maps=m.maps;trims=m.trims;reconcileSurfaceNormals=createSurfaceNormalReconciler(garment.children.filter(x=>x.isMesh&&!x.name.startsWith('trim-')),maps);counts.garmentBuilds++;}
   if(!maps||!garment)return;for(const mesh of garment.children.filter(x=>x.isMesh&&!x.name.startsWith('trim-'))){const p=mesh.geometry.attributes.position,map=maps[mesh.name];for(let i=0;i<map.length;i++){const k=map[i]*3;p.setXYZ(i,m.positions[k],m.positions[k+1],m.positions[k+2]);}p.needsUpdate=true;mesh.geometry.computeVertexNormals();mesh.geometry.computeBoundingSphere();}
+  reconcileSurfaceNormals();
   for(const {name,bindings}of trims){const mesh=garment.getObjectByName(name);syncSurfaceTrim(mesh.geometry.attributes.position,bindings,m.positions);mesh.geometry.computeVertexNormals();mesh.geometry.computeBoundingSphere();}
   frameData=m;lastPhysicsState=m.state;record('sync',t);visual();onFrame(snapshot());
  };

@@ -21,7 +21,12 @@ const state = {bodyHeightCm:170, bodyChestCm:84, bodyHipCm:94, frontVolume:3, si
   assert.equal(collider.gap(0, body.userData.chestY, .8), gap);
   assert.equal('#' + body.material.color.getHexString(), SKIN_COLOR);
   assert.equal(appearance.group.parent, body);
-  assert.equal(appearance.group.children.length, 2);
+  assert.equal(appearance.group.children.length, 3);
+  assert.equal(appearance.snapshot().hairStyle, 'short-ponytail');
+  assert.equal(appearance.snapshot().scalpLocks, 56);
+  assert.equal(appearance.snapshot().tailLocks, 14);
+  assert.ok(appearance.group.getObjectByName('avatar-hair-swept-locks'));
+  assert.ok(appearance.group.getObjectByName('avatar-hair-ponytail'));
   assert.ok(appearance.snapshot().scalpTriangles > 100);
   assert.ok(appearance.snapshot().scalpTriangles < 10000);
   for (const mesh of appearance.group.children) {
@@ -31,7 +36,7 @@ const state = {bodyHeightCm:170, bodyChestCm:84, bodyHipCm:94, frontVolume:3, si
   let disposed = 0;
   for (const mesh of appearance.group.children) mesh.geometry.addEventListener('dispose', () => disposed++);
   appearance.destroy(); appearance.destroy();
-  assert.equal(disposed, 2); assert.equal(appearance.group.parent, null);
+  assert.equal(disposed, 3); assert.equal(appearance.group.parent, null);
   assert.equal(body.material.color.getHexString(), original);
   body.geometry.dispose(); body.material.dispose();
  });
