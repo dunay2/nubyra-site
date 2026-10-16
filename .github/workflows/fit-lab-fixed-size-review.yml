@@ -1,0 +1,61 @@
+name: NUBYRA · Fixed-size release verification
+on:
+  push:
+    branches: [feat/fit-lab-fixed-sizes-reference]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: fit-lab-fixed-size-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Reproducible review source and pinned dependencies
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/review-inputs
+          git archive --format=tar HEAD | gzip > artifacts/review-inputs/source.tar.gz
+          tar -czf artifacts/review-inputs/node-modules.tar.gz node_modules
+          git rev-parse HEAD > artifacts/review-inputs/commit.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nubyra-fixed-review-inputs
+          path: artifacts/review-inputs/
+          retention-days: 7
+          if-no-files-found: error
+      - name: Unit regressions and build
+        env:
+          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/fixed-sizes
+          THREE_TEST_DIR="$PWD" npm test | tee artifacts/fixed-sizes/tests.txt
+          npm run build:fit-lab
+      - run: npx playwright install --with-deps chromium
+      - name: Real browser fixed sizes, live drape and comparison
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8097 --bind 127.0.0.1 --directory fit-dist >/tmp/fixed-http.log 2>&1 &
+          sleep 2
+          node scripts/fit-lab-fixed-size-review.mjs
+          FIT_LAB_URL=http://127.0.0.1:8097/fit-lab/ EVIDENCE_DIR=artifacts/fixed-sizes/human node scripts/fit-lab-human-e2e.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nubyra-fixed-release-review
+          path: |
+            artifacts/fixed-sizes/
+            fit-dist/
+          retention-days: 7
+          if-no-files-found: error
