@@ -20,23 +20,29 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-      - run: npm ci
+      - run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Unit regressions and build
+        env:
+          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
           mkdir -p artifacts/avatar-polish
           THREE_TEST_DIR="$PWD" npm test | tee artifacts/avatar-polish/node-tests.txt
           npm run build:fit-lab
+      - name: Reproducible offline review inputs
+        run: |
+          set -euo pipefail
+          git archive --format=tar HEAD | gzip > artifacts/avatar-polish/review-source.tar.gz
+          tar -czf artifacts/avatar-polish/review-node-modules.tar.gz node_modules
       - name: Browser
         run: npx playwright install --with-deps chromium
       - name: Real WebGL checks
         run: |
+          set -euo pipefail
           python3 -m http.server 8000 --directory fit-dist > /tmp/fit-server.log 2>&1 &
           sleep 2
           FIT_LAB_URL=http://127.0.0.1:8000/fit-lab/ EVIDENCE_DIR=artifacts/avatar-polish/human node scripts/fit-lab-human-e2e.mjs
-          if [ -f scripts/fit-lab-avatar-polish-e2e.mjs ]; then
-            FIT_LAB_URL=http://127.0.0.1:8000/fit-lab/ EVIDENCE_DIR=artifacts/avatar-polish node scripts/fit-lab-avatar-polish-e2e.mjs
-          fi
+          FIT_LAB_URL=http://127.0.0.1:8000/fit-lab/ EVIDENCE_DIR=artifacts/avatar-polish node scripts/fit-lab-avatar-polish-e2e.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -45,3 +51,4 @@ jobs:
             artifacts/avatar-polish/
             fit-dist/
           retention-days: 7
+          if-no-files-found: error

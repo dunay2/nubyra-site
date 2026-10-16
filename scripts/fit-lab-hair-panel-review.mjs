@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
 import {readFile, writeFile, mkdir} from 'node:fs/promises';
 import path from 'node:path';
+import {APPEARANCE_VERSION} from '../configurador-3d/fit-lab/human-appearance.mjs';
 const root = path.resolve(process.env.REVIEW_ROOT || 'fit-dist');
 const dir = process.env.EVIDENCE_DIR || 'artifacts/hair-panel-review';
 await mkdir(dir, {recursive:true});
@@ -40,7 +41,7 @@ try {
     const snapshot = await page.evaluate(() => window.lab.getLabSnapshot());
     assert.equal(snapshot.lastFrame.body.vertices,13380);
     assert.ok(snapshot.lastFrame.cloth.maxPenetrationCm < .1);
-    if (!process.env.BASELINE) assert.equal(snapshot.lastFrame.appearance.version,'human-appearance/1.1');
+    if (!process.env.BASELINE) assert.equal(snapshot.lastFrame.appearance.version,APPEARANCE_VERSION);
     results.push({name,snapshot});
   }
   await page.locator('[data-view="front"]').click();

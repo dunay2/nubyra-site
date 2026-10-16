@@ -2,12 +2,21 @@ import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
 import {mkdir,writeFile} from 'node:fs/promises';
 const url=process.env.FIT_LAB_URL||'http://127.0.0.1:8000/fit-lab/',dir=process.env.EVIDENCE_DIR||'artifacts/avatar-polish';await mkdir(dir,{recursive:true});
-const browser=await chromium.launch({headless:true,args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+const browser=await chromium.launch({headless:true,...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{}),args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
 const page=await browser.newPage({viewport:{width:1440,height:1120},deviceScaleFactor:2}),errors=[],checks=[],samples=[];
 page.on('pageerror',e=>errors.push(e.message));
 await page.addInitScript(()=>{const NativeWorker=window.Worker;window.Worker=class extends NativeWorker{constructor(...args){super(...args);window.testWorker=this;}};});
 const snapshot=()=>page.evaluate(()=>window.lab.getLabSnapshot().lastFrame);
-const ready=()=>page.waitForFunction(()=>window.lab.getLabSnapshot().lastFrame.sleeping,null,{timeout:120000});
+// dispatch() commits controller state before its RAF sends the new Worker revision.
+// A sleeping previous frame is not evidence that the latest user input is ready.
+const ready=()=>page.waitForFunction(()=>{
+ const {state,lastFrame:f}=window.lab.getLabSnapshot();
+ const keys=['bodyHeightCm','bodyChestCm','bodyHipCm','frontVolume','sideVolume','backVolume','armLoweringDeg','activeConfiguration'];
+ return f.sleeping&&!f.transition.pending&&!f.transition.error&&
+  f.transition.presentedRevision===f.transition.requestedRevision&&
+  keys.every(key=>f.state[key]===state[key])&&
+  f.body.armLoweringDeg===state.armLoweringDeg&&f.garment.code===state.activeConfiguration;
+},null,{timeout:120000});
 const input=async(key,value)=>{await page.locator('#'+key+'-number').fill(String(value));await page.locator('#'+key+'-number').press('Enter');};
 const shot=async(name)=>{await page.waitForTimeout(250);await page.screenshot({path:dir+'/'+name+'.png'});};
 try{
@@ -34,4 +43,5 @@ try{
  await page.locator('[data-view="front"]').click();for(const width of[390,320]){await page.setViewportSize({width,height:960});await page.waitForTimeout(250);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await page.screenshot({path:dir+'/mobile-'+width+'.png',fullPage:true});}
  checks.push('New pose control and complete outfit work at mobile widths without horizontal overflow');
  assert.deepEqual(errors,[]);await writeFile(dir+'/avatar-polish.json',JSON.stringify({checks,errors,frames,samples,final:await snapshot()},null,2));console.log(JSON.stringify({passed:checks.length,checks,errors,sampledFrames:frames.length}));
-}finally{await browser.close();}
+}catch(error){await writeFile(dir+'/failure.json',JSON.stringify({message:error.message,checks,errors,last:await snapshot().catch(()=>null)},null,2));throw error;}
+finally{await browser.close();}
