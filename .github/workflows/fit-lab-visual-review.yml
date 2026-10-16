@@ -1,0 +1,35 @@
+name: NUBYRA · Visual regression workspace
+on:
+  pull_request:
+    paths: ['configurador-3d/**', 'tests/**', 'scripts/**', '.github/workflows/fit-lab-visual-review.yml']
+permissions:
+  contents: read
+concurrency:
+  group: fit-lab-visual-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  workspace:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Reproducible offline regression workspace
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD > REVIEW_COMMIT.txt
+          find . -name AGENTS.md -not -path './node_modules/*' -print -exec cat {} \;
+          tar -czf /tmp/fit-lab-workspace.tgz configurador-3d scripts tests docs package.json package-lock.json node_modules REVIEW_COMMIT.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fit-lab-offline-workspace
+          path: /tmp/fit-lab-workspace.tgz
+          retention-days: 1
+          if-no-files-found: error
