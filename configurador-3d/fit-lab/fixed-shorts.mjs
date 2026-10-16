@@ -1,7 +1,7 @@
 import * as T from 'three';
 import {CM_PER_UNIT} from './body-surface.mjs';
 import {SHORT_SIZES,SHORT_LENGTHS,fixedShortKey} from './fixed-sizes.mjs';
-export const FIXED_SHORTS_VERSION='fixed-shorts-envelope/1.0';
+export const FIXED_SHORTS_VERSION='fixed-shorts-envelope/1.1';
 /** Perimeter of an indexed triangle section; source torso membership excludes arms. */
 export function horizontalPerimeter(geometry,y,base=null){
  const p=geometry.attributes.position,idx=geometry.index;let length=0;
@@ -27,7 +27,7 @@ export function createFixedShortFactory(asset){
  for(const[size]of Object.entries(SHORT_SIZES))for(const length of SHORT_LENGTHS){
   const key=fixedShortKey(size,length),v=asset.patterns[key];
   if(!v||v.positions.length%3||v.indices.length%3||!v.positions.every(Number.isFinite)||!v.indices.every(i=>Number.isInteger(i)&&i>=0&&i<v.positions.length/3))throw Error('Patrón fijo no válido: '+key);
-  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(v.positions,3));g.setIndex(v.indices);g.computeVertexNormals();g.computeBoundingBox();g.computeBoundingSphere();for(const q of v.groups)g.addGroup(q.start,q.count,q.materialIndex);
+  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(v.positions,3));g.setIndex(v.indices);if(v.uvs)g.setAttribute('uv',new T.Float32BufferAttribute(v.uvs,2));g.computeVertexNormals();g.computeBoundingBox();g.computeBoundingSphere();for(const q of v.groups)g.addGroup(q.start,q.count,q.materialIndex);
   if(Math.abs((g.boundingBox.max.y-g.boundingBox.min.y)*CM_PER_UNIT-length)>.02)throw Error('Largo de patrón inconsistente');templates.set(key,{geometry:g,pattern:v.nominal});
  }
  return{
@@ -35,6 +35,14 @@ export function createFixedShortFactory(asset){
    const key=fixedShortKey(size,Number(lengthCm)),template=templates.get(key),pattern=template.pattern,support=shortSupport(body,pattern);
    if(support.blocked)throw Error('Pantalón '+size+' demasiado pequeño para el cuerpo: conserva cintura y cadera fijas.');
    const geometry=template.geometry.clone(),primary=new T.MeshStandardMaterial({color:base,roughness:.87,side:T.DoubleSide}),secondary=primary.clone();secondary.color.set(accent);
+   // Smooth colour boundaries are independent of triangle resolution.
+   const stripeColor={value:new T.Color(accent)};
+   primary.onBeforeCompile=shader=>{
+    shader.uniforms.shortStripeColor=stripeColor;
+    shader.vertexShader='varying vec3 shortLocalPosition;\n'+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nshortLocalPosition=position;');
+    shader.fragmentShader='varying vec3 shortLocalPosition;\nuniform vec3 shortStripeColor;\n'+shader.fragmentShader.replace('#include <color_fragment>','#include <color_fragment>\nfloat shortStripe=(1.0-smoothstep(0.045,0.052,abs(shortLocalPosition.z)))*smoothstep(0.25,0.35,abs(shortLocalPosition.x));\ndiffuseColor.rgb=mix(diffuseColor.rgb,shortStripeColor,shortStripe);');
+   };
+   primary.customProgramCacheKey=()=>FIXED_SHORTS_VERSION+'-stripe';
    const mesh=new T.Mesh(geometry,[primary,secondary]);mesh.name='Pantalón fijo '+key;mesh.position.y=support.startY;let elapsed=0,complete=support.dropCm<.01;
    return{mesh,version:FIXED_SHORTS_VERSION,fit:'fixed-size',lengthCm:pattern.lengthCm,requestedLengthCm:pattern.lengthCm,minLengthCm:34,maxLengthCm:50,kneeTop:body.userData.sourceToY(.53),pattern,support,
     coverage:{bodyHidden:false,bodyGeometryChanged:false,garmentAdaptedToBody:false},clothSimulated:false,
@@ -42,7 +50,7 @@ export function createFixedShortFactory(asset){
     advance(dt){if(complete)return false;elapsed+=Math.max(0,Math.min(.05,dt));mesh.position.y=Math.max(support.stopY,support.startY-.5*(981/CM_PER_UNIT)*elapsed*elapsed);complete=mesh.position.y<=support.stopY;return true;},
     settle(){mesh.position.y=support.stopY;complete=true;},
     snapshot:()=>({key,nominal:{...pattern},support:{...support},translationY:mesh.position.y,moving:!complete,restGeometryIndependent:true,clothSimulated:false}),
-    colors(base,accent){primary.color.set(base);secondary.color.set(accent);},destroy(){geometry.dispose();primary.dispose();secondary.dispose();}};
+    colors(base,accent){primary.color.set(base);secondary.color.set(accent);stripeColor.value.set(accent);},destroy(){geometry.dispose();primary.dispose();secondary.dispose();}};
   },destroy(){for(const p of templates.values())p.geometry.dispose();templates.clear();}
  };
 }
