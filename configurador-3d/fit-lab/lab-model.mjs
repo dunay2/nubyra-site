@@ -1,6 +1,6 @@
 /** Pure state transitions. No renderer, DOM, network or physical fit claims. */
 import {DEFAULT_CONFIGURATION, GARMENT_CATALOG, stateForConfiguration, recommendPreviewConfiguration} from './garment-catalog.mjs';
-export const FIELD_LIMITS=Object.freeze({bodyChestCm:[65,120],bodyHipCm:[70,130],bodyHeightCm:[125,190],armLoweringDeg:[0,25],desiredLengthCm:[48,84],frontVolume:[0,10],sideVolume:[0,10],backVolume:[0,10]});
+export const FIELD_LIMITS=Object.freeze({bodyChestCm:[65,120],bodyHipCm:[70,130],bodyHeightCm:[125,210],armLoweringDeg:[0,25],desiredLengthCm:[48,84],frontVolume:[0,10],sideVolume:[0,10],backVolume:[0,10]});
 export const DEFAULT_INPUT=Object.freeze({bodyChestCm:88,bodyHipCm:96,bodyHeightCm:160,armLoweringDeg:0,desiredLengthCm:64,frontVolume:3,sideVolume:5,backVolume:5,selectionMode:'auto',activeConfiguration:DEFAULT_CONFIGURATION});
 export function resolveState(input){
  const state={...DEFAULT_INPUT,...input};

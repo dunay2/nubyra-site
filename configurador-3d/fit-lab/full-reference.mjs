@@ -27,7 +27,7 @@ export async function createFullReference(canvas,bytes,seed,shortFactory){
   title.textContent='FOTO · '+cm+' cm declarados';status.textContent='Foto local. Escala según estatura y marcas introducidas; perspectiva sin calibrar.';
  }
  function render(next){
-  metrics=next;const rect=canvas.getBoundingClientRect(),w=rect.width,h=rect.height;if(!w||!h||!next.pxPerCm)return;
+  metrics=next;if(mode==='photo'){syncPhoto();return;}const rect=canvas.getBoundingClientRect(),w=rect.width,h=rect.height;if(!w||!h||!next.pxPerCm)return;
   if(mode==='photo'){syncPhoto();return;}const signature=[w,h,next.pxPerCm,next.floorPx].join(':');if(signature===key)return;key=signature;
   renderer.setSize(w,h,false);const half=h/(2*next.pxPerCm*CM_PER_UNIT);camera.left=-half*w/h;camera.right=half*w/h;camera.top=half;camera.bottom=-half;
   const target=body.userData.floorY+(next.floorPx-h/2)/(next.pxPerCm*CM_PER_UNIT);camera.position.set(0,target,8);camera.lookAt(0,target,0);camera.updateProjectionMatrix();renderer.render(scene,camera);
