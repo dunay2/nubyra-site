@@ -1,4 +1,4 @@
-name: NUBYRA · Visual regression workspace
+name: NUBYRA · Hair and panel visual regression
 on:
   pull_request:
     paths: ['configurador-3d/**', 'tests/**', 'scripts/**', '.github/workflows/fit-lab-visual-review.yml']
@@ -8,9 +8,9 @@ concurrency:
   group: fit-lab-visual-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 jobs:
-  workspace:
+  review:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
         with:
@@ -21,15 +21,36 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Reproducible offline regression workspace
+      - name: Normal continuity, hair and shorts invariance
         run: |
           set -euo pipefail
-          git rev-parse HEAD > REVIEW_COMMIT.txt
-          find . -name AGENTS.md -not -path './node_modules/*' -print -exec cat {} \;
-          tar -czf /tmp/fit-lab-workspace.tgz configurador-3d scripts tests docs package.json package-lock.json node_modules REVIEW_COMMIT.txt
+          mkdir -p artifacts
+          node --test tests/fit-lab-panel-normals.test.mjs tests/fit-lab-human-appearance.test.mjs tests/fit-lab-shorts-independent.test.mjs | tee artifacts/targeted-tests.txt
+      - name: Build exact reviewed commit
+        env:
+          VERCEL_GIT_COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
+        run: npm run build:fit-lab
+      - run: npx playwright install --with-deps chromium
+      - name: Actual WebGL captures, reference and reported measurements
+        env:
+          EVIDENCE_DIR: artifacts/after
+        run: node scripts/fit-lab-hair-panel-review.mjs
+      - name: Matched baseline, same camera and measurements
+        run: |
+          set -euo pipefail
+          previous=/tmp/nubyra-hair-before
+          mkdir -p "$previous"
+          git fetch origin b935360d2ff3c2837c30d1807f538a289f5823be --depth=1
+          git archive b935360d2ff3c2837c30d1807f538a289f5823be configurador-3d scripts package.json package-lock.json | tar -x -C "$previous"
+          ln -s "$GITHUB_WORKSPACE/node_modules" "$previous/node_modules"
+          (cd "$previous" && VERCEL_GIT_COMMIT_SHA=b935360d2ff3c2837c30d1807f538a289f5823be npm run build:fit-lab)
+          BASELINE=1 REVIEW_ROOT="$previous/fit-dist" EVIDENCE_DIR=artifacts/before node scripts/fit-lab-hair-panel-review.mjs
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: fit-lab-offline-workspace
-          path: /tmp/fit-lab-workspace.tgz
-          retention-days: 1
+          name: nubyra-hair-panel-review
+          path: |
+            artifacts/
+            fit-dist/
+          retention-days: 7
           if-no-files-found: error
