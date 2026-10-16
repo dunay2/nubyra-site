@@ -1,7 +1,7 @@
 import * as T from 'three';
 import {MeshBVH, acceleratedRaycast} from 'three-mesh-bvh';
 
-export const APPEARANCE_VERSION = 'human-appearance/1.4';
+export const APPEARANCE_VERSION = 'human-appearance/2.0';
 export const SKIN_COLOR = '#c99377';
 const HAIR_COLOR = '#38261d';
 
@@ -28,8 +28,9 @@ export function createHumanAppearance(body) {
   const hairline = p => {
     const dz = p.z - centerZ, r = Math.hypot(p.x, dz);
     const theta = Math.atan2(p.x, dz);
-    return 1.609 + .035 * (r > 1e-8 ? dz / r : 1) + .008 * Math.sin(theta) ** 2
-      - .006 * Math.exp(-(((theta + .23) / .36) ** 2)) + .0030 * Math.sin(3 * theta) + .0013 * Math.sin(23 * theta + .4);
+    const c=r>1e-8?dz/r:1;
+    return 1.603 + .055*Math.max(0,c) - .083*Math.max(0,-c) + .005*Math.sin(theta)**2
+      - .002*Math.exp(-(((theta+.18)/.30)**2)) + .0015*Math.sin(3*theta) + .0004*Math.sin(19*theta+.4);
   };
   // A shared continuous envelope supports the locks: no dark air gaps or
   // basket-like openings between raised ribbons when the head is viewed closely.
@@ -53,7 +54,7 @@ export function createHumanAppearance(body) {
   }
   for (let i = 0; i < sourceIndex.count; i += 3) {
     const ids = [sourceIndex.getX(i), sourceIndex.getX(i + 1), sourceIndex.getX(i + 2)];
-    if (ids.every(id => base[id * 3 + 1] < 1.54)) continue;
+    if (ids.every(id => base[id * 3 + 1] < 1.49)) continue;
     const tri = ids.map(vertex), polygon = [];
     // Clip at the hairline instead of exposing a staircase of whole triangles.
     for (let k = 0; k < 3; k++) {
@@ -96,7 +97,7 @@ export function createHumanAppearance(body) {
   update();
   return {
     group, update,
-    snapshot: () => ({ version: APPEARANCE_VERSION, skinColor: SKIN_COLOR, hairColor: HAIR_COLOR, hairStyle: 'short-ponytail', hairMeshes: 3, scalpLocks: 140, tailLocks: 14, scalpTriangles: positions.length / 9, renderOnly: true, collisionGeometryChanged: false }),
+    snapshot: () => ({ version: APPEARANCE_VERSION, skinColor: SKIN_COLOR, hairColor: HAIR_COLOR, hairStyle: 'soft-mid-ponytail', hairMeshes: 3, scalpLocks: 140, tailLocks: 24, scalpTriangles: positions.length / 9, renderOnly: true, collisionGeometryChanged: false }),
     destroy() {
       if (destroyed) return;
       destroyed = true; body.remove(group);
@@ -114,7 +115,7 @@ function createGatheredHair(base, sourceIndex, centerZ, backZ, hairline, hairVol
   const headIndices = [];
   for (let i = 0; i < sourceIndex.count; i += 3) {
     const a = sourceIndex.getX(i), b = sourceIndex.getX(i + 1), c = sourceIndex.getX(i + 2);
-    if (Math.min(base[a * 3 + 1], base[b * 3 + 1], base[c * 3 + 1]) > 1.54) headIndices.push(a, b, c);
+    if (Math.min(base[a * 3 + 1], base[b * 3 + 1], base[c * 3 + 1]) > 1.45) headIndices.push(a, b, c);
   }
   source.setIndex(headIndices);
   source.boundsTree = new MeshBVH(source, {maxLeafTris: 8});
@@ -134,7 +135,8 @@ function createGatheredHair(base, sourceIndex, centerZ, backZ, hairline, hairVol
   }
   const scalp = {positions: [], normals: [], colors: [], indices: []};
   const ponytail = {positions: [], normals: [], colors: [], indices: []};
-  const tie = new T.Vector3(0, 1.680, backZ - .016);
+  const tieSurface=onScalp(new T.Vector3(.001,1.646,backZ-.020),0);
+  const tie=tieSurface.clone().addScaledVector(tieSurface.clone().sub(center).normalize(),hairVolume(tieSurface)-.004);
   try {
     for (let i = 0; i < 120; i++) {
       const theta = -Math.PI + (i + .5 + .34 * Math.sin(i * 2.399)) * 2 * Math.PI / 120;
@@ -151,7 +153,7 @@ function createGatheredHair(base, sourceIndex, centerZ, backZ, hairline, hairVol
       root.copy(onScalp(root, 0));
       const crown = new T.Vector3(root.x * .30 + .048 * Math.max(0, Math.cos(theta)), 1.730 + .008 * Math.sin(i * 1.7), centerZ + .012);
       const rear = new T.Vector3(root.x * .35, 1.705, backZ - .020);
-      const target = tie.clone(); target.x = .009 * Math.sin(theta);
+      const target = tie.clone(); target.x = .005 * Math.sin(theta);
       const curve = new T.CubicBezierCurve3(root, crown, rear, target);
       const points = Array.from({length: 25}, (_, j) => {
         const t = j / 24;
@@ -185,16 +187,16 @@ function createGatheredHair(base, sourceIndex, centerZ, backZ, hairline, hairVol
       const points = curve.getPoints(16).map(p => { const surface = onScalp(p, 0); return surface.clone().addScaledVector(surface.clone().sub(center).normalize(), hairVolume(surface) + .0008); });
       addLock(scalp, points, .00055, .00025, .91 + .04 * Math.sin(i) ** 2, center, false);
     }
-    for (let i = 0; i < 14; i++) {
-      const theta = i * Math.PI * 2 / 14;
+    for (let i = 0; i < 24; i++) {
+      const theta = i * Math.PI * 2 / 24;
       const dx = Math.cos(theta), dz = Math.sin(theta);
       const curve = new T.CubicBezierCurve3(
-        new T.Vector3(.009 * dx, tie.y + .008 * dz, tie.z),
-        new T.Vector3(.020 * dx, 1.735 + .008 * dz, backZ - .060),
-        new T.Vector3(.018 * dx, 1.596, backZ - .099 + .014 * dz),
-        new T.Vector3(.008 * dx + .004 * Math.sin(i), 1.533 + .025 * (i % 4) / 3, backZ - .051 + .008 * dz)
+        new T.Vector3(tie.x+.008 * dx, tie.y + .007 * dz, tie.z+.004),
+        new T.Vector3(.024 * dx, tie.y-.015 + .010 * dz, backZ - .095),
+        new T.Vector3(.015+.020 * dx, 1.537, backZ - .116 + .015 * dz),
+        new T.Vector3(.012+.009 * dx + .003 * Math.sin(i), 1.481 + .022 * (i % 4) / 3, backZ - .075 + .010 * dz)
       );
-      addLock(ponytail, curve.getPoints(28), .0065, .0042, .83 + .22 * Math.sin(i * 1.74) ** 2, center, false);
+      addLock(ponytail, curve.getPoints(28), .007, .0045, .83 + .22 * Math.sin(i * 1.74) ** 2, center, false);
     }
   } finally {
     source.boundsTree = null; source.dispose(); sourceMaterial.dispose();

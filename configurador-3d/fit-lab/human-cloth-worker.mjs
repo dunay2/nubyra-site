@@ -12,7 +12,7 @@ function tick(){
   const deadline=performance.now()+12;let count=0;
   do{simulation.step(wind);count++;}while(simulation.remaining>0&&count<8&&performance.now()<deadline);
   if(simulation.remaining===0){if(preparing)complete();else if(performance.now()-lastSend>32)sendFrame();}
-  else if(performance.now()-lastSend>100){self.postMessage(simulation.progress());lastSend=performance.now();}
+  else if(performance.now()-lastSend>60)sendFrame();
   schedule();
  }catch(error){preparing=false;self.postMessage({type:'error',revision,message:error.message});}
 }
@@ -22,7 +22,9 @@ function applyQueued(){
  try{
   const start=performance.now();simulation.prepare(m.state,revision,cache.get(simulationKey(m.state)));preparing=simulation.remaining>0;
   self.postMessage({type:'prepared',revision,ms:performance.now()-start});
-  if(preparing){self.postMessage(simulation.progress());schedule();}else{sendFrame(true);schedule();}
+  // Four physical steps resolve initial contacts; do not wait for the full settle.
+  if(preparing)for(let i=0;i<4&&simulation.remaining>0;i++)simulation.step(false);
+  sendFrame(true);schedule();
  }catch(error){preparing=false;self.postMessage({type:'error',revision,message:error.message});}
 }
 self.onmessage=async({data:m})=>{
