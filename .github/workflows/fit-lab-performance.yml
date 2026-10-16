@@ -1,0 +1,60 @@
+name: NUBYRA · Exact collision performance
+on:
+  push:
+    branches: [perf/fit-lab-exact-collision-queries]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: fit-lab-performance-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  performance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Complete unit regressions and exact-output comparison
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/performance
+          THREE_TEST_DIR="$PWD" npm test | tee artifacts/performance/tests.txt
+      - name: Serial cold CPU benchmark
+        run: node scripts/fit-lab-collision-benchmark.mjs | tee artifacts/performance/cpu-log.txt
+      - name: Build both commits with identical pinned dependencies
+        env:
+          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          npm run build:fit-lab
+          git worktree add --detach /tmp/nubyra-before 622ca278e9a0a7eb34f91691a52731e9c2a09296
+          ln -s "$PWD/node_modules" /tmp/nubyra-before/node_modules
+          (cd /tmp/nubyra-before && VERCEL_GIT_COMMIT_SHA=622ca278e9a0a7eb34f91691a52731e9c2a09296 npm run build:fit-lab)
+          mkdir -p /tmp/nubyra-comparison
+          ln -s /tmp/nubyra-before/fit-dist /tmp/nubyra-comparison/before
+          ln -s "$PWD/fit-dist" /tmp/nubyra-comparison/after
+      - run: npx playwright install --with-deps chromium
+      - name: Matched real browser latency and responsive regressions
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8091 --bind 127.0.0.1 --directory /tmp/nubyra-comparison >/tmp/fit-perf-http.log 2>&1 &
+          sleep 2
+          node scripts/fit-lab-perf-browser.mjs
+          FIT_LAB_URL=http://127.0.0.1:8091/after/fit-lab/ EVIDENCE_DIR=artifacts/performance/responsive node scripts/fit-lab-responsive-review.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nubyra-exact-collision-performance
+          path: |
+            artifacts/performance/
+            fit-dist/
+          if-no-files-found: error
+          retention-days: 7
