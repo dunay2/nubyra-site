@@ -1,4 +1,5 @@
 import * as T from 'three';
+import {createOptimizedHumanCollider} from './static-mesh-query.mjs';
 import {loadHumanBody,updateHumanBody,createHumanCollider} from './human-body.mjs';
 import {createRestGarment,createClothAdapter} from './fit-mesh.mjs';
 import {GARMENT_CATALOG} from './garment-catalog.mjs';
@@ -19,14 +20,14 @@ export class SettledCache {
 }
 
 /** Same pattern, material and fixed-step solver used by the viewer and build-time bootstrap. */
-export async function createHumanSimulation(bytes){
+export async function createHumanSimulation(bytes,{colliderFactory=createOptimizedHumanCollider}={}){
  const body=await loadHumanBody(bytes);let adapter=null,garment=null,contacts=null,state=null,revision=0;
  let remaining=0,total=SETTLE_STEPS,cacheHit=false;
  function disposeGarment(){contacts?.destroy();if(garment){const materials=new Set();garment.traverse(m=>{if(m.isMesh){m.geometry.dispose();for(const mat of Array.isArray(m.material)?m.material:[m.material])materials.add(mat);}});materials.forEach(m=>m.dispose());}}
  function prepare(next,rev,cached){
   state=next;revision=rev;disposeGarment();updateHumanBody(body,state);
   garment=createRestGarment(T,GARMENT_CATALOG[state.activeConfiguration]);
-  adapter=createClothAdapter(garment,body,{colliderFactory:createHumanCollider,material:HUMAN_CLOTH,clearance:.016});
+  adapter=createClothAdapter(garment,body,{colliderFactory,material:HUMAN_CLOTH,clearance:.016});
   contacts=addHumanSurfaceContacts(adapter,body);remaining=total=SETTLE_STEPS;cacheHit=false;
   const s=adapter.solver;
   if(cached?.key===simulationKey(state)&&cached.positions?.length===s.positions.length&&cached.steps===SETTLE_STEPS&&cached.positions.every(Number.isFinite)){
