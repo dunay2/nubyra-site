@@ -21,20 +21,11 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - name: Offline reproducibility bundle (no credentials)
-        run: |
-          git archive --format=tar HEAD | gzip > /tmp/fit-lab-source.tgz
-          tar -czf /tmp/fit-lab-dependencies.tgz node_modules
-      - uses: actions/upload-artifact@v4
-        with:
-          name: fit-lab-reproducible-workspace
-          path: /tmp/fit-lab-*.tgz
-          retention-days: 1
       - name: Unit regressions and build
         run: |
           set -euo pipefail
           mkdir -p artifacts/avatar-polish
-          npm run test:fit-lab | tee artifacts/avatar-polish/node-tests.txt
+          THREE_TEST_DIR="$PWD" npm test | tee artifacts/avatar-polish/node-tests.txt
           npm run build:fit-lab
       - name: Browser
         run: npx playwright install --with-deps chromium

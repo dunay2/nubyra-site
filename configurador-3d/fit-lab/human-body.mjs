@@ -1,4 +1,5 @@
 import * as T from 'three';
+import {applyArmPose} from './human-pose.mjs';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {MeshBVH,SAH} from 'three-mesh-bvh';
 import {CM_PER_UNIT} from './body-surface.mjs';
@@ -55,10 +56,12 @@ export function updateHumanBody(body,state,{collision=true}={}){
   }
  }
  apply();for(let n=0;n<3;n++){chestFactor*=state.bodyChestCm/measure(p,sections.chest);hipFactor*=state.bodyHipCm/measure(p,sections.hip);apply();}
+ const unposedMeasures={chestCm:measure(p,sections.chest),hipCm:measure(p,sections.hip)};
+ applyArmPose(p,base,{degrees:state.armLoweringDeg??0,scale:s/unit,shoulderX:.18*s/unit*Math.pow(chestFactor,.25),shoulderY:height(1.385)});
  const g=body.geometry;g.attributes.position.needsUpdate=true;g.computeVertexNormals();g.computeBoundingBox();g.computeBoundingSphere();
  if(collision){if(g.boundsTree)g.boundsTree.refit();else g.boundsTree=new MeshBVH(g,{strategy:SAH,maxLeafTris:10});}
- body.userData.measurements={chestCm:measure(p,sections.chest),hipCm:measure(p,sections.hip),heightCm:(g.boundingBox.max.y-g.boundingBox.min.y)*CM_PER_UNIT};
- Object.assign(body.userData,{height:state.bodyHeightCm,scale:s,unit,sourceToY:height,chestY:height(LANDMARKS.chest),hipY:height(LANDMARKS.hip),waistY:height(LANDMARKS.waist),shoulderY:1.2,floorY:height(0),headTopY:height(SOURCE_HEIGHT),chestFactor,hipFactor,shapeWithinPreset:chestFactor>=.75&&chestFactor<=1.4&&hipFactor>=.75&&hipFactor<=1.4});
+ body.userData.measurements={...unposedMeasures,heightCm:(g.boundingBox.max.y-g.boundingBox.min.y)*CM_PER_UNIT};
+ Object.assign(body.userData,{height:state.bodyHeightCm,armLoweringDeg:state.armLoweringDeg??0,scale:s,unit,sourceToY:height,chestY:height(LANDMARKS.chest),hipY:height(LANDMARKS.hip),waistY:height(LANDMARKS.waist),shoulderY:1.2,floorY:height(0),headTopY:height(SOURCE_HEIGHT),chestFactor,hipFactor,shapeWithinPreset:chestFactor>=.75&&chestFactor<=1.4&&hipFactor>=.75&&hipFactor<=1.4});
  return body;
 }
 /** Exact mesh BVH. Visible positions and indexed collision triangles are the same buffers. */

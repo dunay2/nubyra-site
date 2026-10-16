@@ -68,8 +68,10 @@ test('Invalid normal maps fail explicitly',()=>{
 });
 test('Human Worker viewer reconciles normals after all surface updates and before trim updates',async()=>{
   const code=await readFile(new URL('../configurador-3d/fit-lab/human-viewer.mjs',import.meta.url),'utf8');
-  assert.match(code,/reconcileSurfaceNormals=createSurfaceNormalReconciler/);
-  const start=code.indexOf('worker.onmessage');const sync=code.indexOf('reconcileSurfaceNormals();',start);
+  assert.match(code,/const reconcile=createSurfaceNormalReconciler/);
+  const start=code.indexOf('function syncGarment');const sync=code.indexOf('reconcile();',start);
   assert.ok(sync>code.indexOf('mesh.geometry.computeVertexNormals()',start));
-  assert.ok(sync<code.indexOf('for(const {name,bindings}of trims)',start));
+  assert.ok(sync<code.indexOf('for(const {name,bindings:trimBindings}',start));
+  assert.ok(code.includes('syncGarment(next,frame,nextMaps,nextTrims,reconcile)'));
+  assert.ok(code.includes('syncGarment(garment,m,maps,trims,reconcileSurfaceNormals)'));
 });

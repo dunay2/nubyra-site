@@ -1,7 +1,7 @@
 import * as T from 'three';
 import {MeshBVH, acceleratedRaycast} from 'three-mesh-bvh';
 
-export const APPEARANCE_VERSION = 'human-appearance/1.1';
+export const APPEARANCE_VERSION = 'human-appearance/1.2';
 export const SKIN_COLOR = '#c99377';
 const HAIR_COLOR = '#38261d';
 
@@ -28,8 +28,8 @@ export function createHumanAppearance(body) {
   const hairline = p => {
     const dz = p.z - centerZ, r = Math.hypot(p.x, dz);
     const theta = Math.atan2(p.x, dz);
-    return 1.594 + .036 * (r > 1e-8 ? dz / r : 1) + .011 * Math.sin(theta) ** 2
-      - .006 * Math.exp(-(((theta + .15) / .34) ** 2)) + .0030 * Math.sin(3 * theta) + .0011 * Math.sin(17 * theta + .4);
+    return 1.609 + .035 * (r > 1e-8 ? dz / r : 1) + .008 * Math.sin(theta) ** 2
+      - .003 * Math.exp(-(((theta + .15) / .34) ** 2)) + .0030 * Math.sin(3 * theta) + .0011 * Math.sin(17 * theta + .4);
   };
   const vertex = id => {
     const p = new T.Vector3().fromArray(base, id * 3);
@@ -38,10 +38,10 @@ export function createHumanAppearance(body) {
   const positions = [], normals = [], colors = [];
   function append(v) {
     const theta = Math.atan2(v.p.x, v.p.z - centerZ);
-    const strand = .5 + .5 * Math.cos(theta * 37 + v.p.y * 24);
+    const strand = .5 + .5 * Math.sin(theta * 3 + v.p.y * 13);
     const n = v.n.clone().normalize(), p = v.p.clone().addScaledVector(n, .0012 + .0035 * Math.min(1, Math.max(0, v.d / .025)) + .0005 * strand);
     positions.push(p.x, p.y, p.z); normals.push(n.x, n.y, n.z);
-    const shade = .86 + .14 * strand; colors.push(shade, shade, shade);
+    const shade = .94 + .06 * strand; colors.push(shade, shade, shade);
   }
   for (let i = 0; i < sourceIndex.count; i += 3) {
     const ids = [sourceIndex.getX(i), sourceIndex.getX(i + 1), sourceIndex.getX(i + 2)];
@@ -68,7 +68,7 @@ export function createHumanAppearance(body) {
   scalpGeometry.setAttribute('normal', new T.Float32BufferAttribute(normals, 3));
   scalpGeometry.setAttribute('color', new T.Float32BufferAttribute(colors, 3));
   scalpGeometry.computeBoundingBox(); scalpGeometry.computeBoundingSphere();
-  const scalpMaterial = new T.MeshStandardMaterial({ color: HAIR_COLOR, roughness: .62, metalness: 0, vertexColors: true });
+  const scalpMaterial = new T.MeshStandardMaterial({ color: HAIR_COLOR, roughness: .78, metalness: 0, vertexColors: true });
   const scalp = new T.Mesh(scalpGeometry, scalpMaterial); scalp.name = 'avatar-hair-scalp';
   const {locks, tail} = createGatheredHair(base, sourceIndex, centerZ, backZ, hairline);
   const group = new T.Group(); group.name = 'avatar-hair'; group.add(scalp, locks, tail); body.add(group);
@@ -129,7 +129,7 @@ function createGatheredHair(base, sourceIndex, centerZ, backZ, hairline) {
   const tie = new T.Vector3(0, 1.642, backZ - .011);
   try {
     for (let i = 0; i < 48; i++) {
-      const theta = -Math.PI + (i + .5 + .17 * Math.sin(i * 2.399)) * 2 * Math.PI / 48;
+      const theta = -Math.PI + (i + .5 + .34 * Math.sin(i * 2.399)) * 2 * Math.PI / 48;
       const root = new T.Vector3(.075 * Math.sin(theta), 0, centerZ + .10 * Math.cos(theta));
       root.y = hairline(root);
       // Solve on the actual scalp, not on the auxiliary ellipse. The previous
@@ -141,22 +141,22 @@ function createGatheredHair(base, sourceIndex, centerZ, backZ, hairline) {
         if (Math.abs(error) < .00005) break;
       }
       root.copy(onScalp(root, 0));
-      const crown = new T.Vector3(root.x * .64 + .017 * Math.max(0, Math.cos(theta)), 1.731 + .005 * Math.sin(i * 1.7), centerZ + .012);
+      const crown = new T.Vector3(root.x * .30 + .048 * Math.max(0, Math.cos(theta)), 1.730 + .008 * Math.sin(i * 1.7), centerZ + .012);
       const rear = new T.Vector3(root.x * .35, 1.705, backZ - .020);
       const target = tie.clone(); target.x = .009 * Math.sin(theta);
       const curve = new T.CubicBezierCurve3(root, crown, rear, target);
       const points = Array.from({length: 25}, (_, j) => {
         const t = j / 24;
-        return onScalp(curve.getPoint(t), .0048 + .009 * Math.sin(Math.PI * t) + .003 * t);
+        return onScalp(curve.getPoint(t), .0030 + (.009 + .005 * Math.max(0,Math.cos(theta))) * Math.sin(Math.PI * t) + .002 * t);
       });
-      addLock(scalp, points, .0018 + .0010 * Math.sin(i * 2.4) ** 2, .0008, .86 + .17 * Math.sin(i * 2.17) ** 2, center, true);
+      addLock(scalp, points, .0035 + .0025 * Math.sin(i * 2.4) ** 2, .0015, .92 + .10 * Math.sin(i * 2.17) ** 2, center, true);
     }
     // Fine temple locks break the solid helmet-like edge. All points stay on
     // the real head; tapered ends sit in front of the ear, never on the jersey.
     for (const side of [-1, 1]) for (let i = 0; i < 4; i++) {
       const theta = side * (.87 + .09 * i);
       const root = new T.Vector3(.075 * Math.sin(theta), 1.660 + .002 * i, centerZ + .10 * Math.cos(theta));
-      const end = new T.Vector3(.080 * side, 1.570 + .005 * i, centerZ + .045);
+      const end = new T.Vector3(.080 * side, 1.588 + .007 * i, centerZ + .045);
       const curve = new T.CubicBezierCurve3(root,
         new T.Vector3(.064 * side, 1.653, centerZ + .087),
         new T.Vector3(.084 * side, 1.605, centerZ + .055), end);
@@ -183,7 +183,7 @@ function createGatheredHair(base, sourceIndex, centerZ, backZ, hairline) {
     geometry.setAttribute('normal', new T.Float32BufferAttribute(data.normals, 3));
     geometry.setAttribute('color', new T.Float32BufferAttribute(data.colors, 3));
     geometry.setIndex(data.indices); geometry.computeBoundingBox(); geometry.computeBoundingSphere();
-    const result = new T.Mesh(geometry, new T.MeshStandardMaterial({color: '#412e21', roughness: .65, metalness: 0, vertexColors: true}));
+    const result = new T.Mesh(geometry, new T.MeshStandardMaterial({color: '#412e21', roughness: .78, metalness: 0, vertexColors: true}));
     result.name = name; return result;
   }
   return {locks: mesh(scalp, 'avatar-hair-swept-locks'), tail: mesh(ponytail, 'avatar-hair-ponytail')};
