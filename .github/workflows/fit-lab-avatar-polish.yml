@@ -36,6 +36,16 @@ jobs:
           tar -czf artifacts/avatar-polish/review-node-modules.tar.gz node_modules
       - name: Browser
         run: npx playwright install --with-deps chromium
+      - name: Isolated head review with the same geometry, materials and lights
+        env:
+          EVIDENCE_DIR: artifacts/avatar-head
+        run: node scripts/fit-lab-head-review.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nubyra-head-review
+          path: artifacts/avatar-head/
+          retention-days: 7
+          if-no-files-found: error
       - name: Real WebGL checks
         run: |
           set -euo pipefail

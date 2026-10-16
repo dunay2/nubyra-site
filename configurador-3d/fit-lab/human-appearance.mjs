@@ -1,7 +1,7 @@
 import * as T from 'three';
 import {MeshBVH, acceleratedRaycast} from 'three-mesh-bvh';
 
-export const APPEARANCE_VERSION = 'human-appearance/1.2';
+export const APPEARANCE_VERSION = 'human-appearance/1.3';
 export const SKIN_COLOR = '#c99377';
 const HAIR_COLOR = '#38261d';
 
@@ -29,7 +29,7 @@ export function createHumanAppearance(body) {
     const dz = p.z - centerZ, r = Math.hypot(p.x, dz);
     const theta = Math.atan2(p.x, dz);
     return 1.609 + .035 * (r > 1e-8 ? dz / r : 1) + .008 * Math.sin(theta) ** 2
-      - .003 * Math.exp(-(((theta + .15) / .34) ** 2)) + .0030 * Math.sin(3 * theta) + .0011 * Math.sin(17 * theta + .4);
+      - .006 * Math.exp(-(((theta + .23) / .36) ** 2)) + .0030 * Math.sin(3 * theta) + .0013 * Math.sin(23 * theta + .4);
   };
   const vertex = id => {
     const p = new T.Vector3().fromArray(base, id * 3);
@@ -88,7 +88,7 @@ export function createHumanAppearance(body) {
   update();
   return {
     group, update,
-    snapshot: () => ({ version: APPEARANCE_VERSION, skinColor: SKIN_COLOR, hairColor: HAIR_COLOR, hairStyle: 'short-ponytail', hairMeshes: 3, scalpLocks: 56, tailLocks: 14, scalpTriangles: positions.length / 9, renderOnly: true, collisionGeometryChanged: false }),
+    snapshot: () => ({ version: APPEARANCE_VERSION, skinColor: SKIN_COLOR, hairColor: HAIR_COLOR, hairStyle: 'short-ponytail', hairMeshes: 3, scalpLocks: 88, tailLocks: 14, scalpTriangles: positions.length / 9, renderOnly: true, collisionGeometryChanged: false }),
     destroy() {
       if (destroyed) return;
       destroyed = true; body.remove(group);
@@ -126,10 +126,10 @@ function createGatheredHair(base, sourceIndex, centerZ, backZ, hairline) {
   }
   const scalp = {positions: [], normals: [], colors: [], indices: []};
   const ponytail = {positions: [], normals: [], colors: [], indices: []};
-  const tie = new T.Vector3(0, 1.642, backZ - .011);
+  const tie = new T.Vector3(0, 1.680, backZ - .016);
   try {
-    for (let i = 0; i < 48; i++) {
-      const theta = -Math.PI + (i + .5 + .34 * Math.sin(i * 2.399)) * 2 * Math.PI / 48;
+    for (let i = 0; i < 80; i++) {
+      const theta = -Math.PI + (i + .5 + .34 * Math.sin(i * 2.399)) * 2 * Math.PI / 80;
       const root = new T.Vector3(.075 * Math.sin(theta), 0, centerZ + .10 * Math.cos(theta));
       root.y = hairline(root);
       // Solve on the actual scalp, not on the auxiliary ellipse. The previous
@@ -147,9 +147,9 @@ function createGatheredHair(base, sourceIndex, centerZ, backZ, hairline) {
       const curve = new T.CubicBezierCurve3(root, crown, rear, target);
       const points = Array.from({length: 25}, (_, j) => {
         const t = j / 24;
-        return onScalp(curve.getPoint(t), .0030 + (.009 + .005 * Math.max(0,Math.cos(theta))) * Math.sin(Math.PI * t) + .002 * t);
+        return onScalp(curve.getPoint(t), .0030 + (.016 + .012 * Math.max(0,Math.cos(theta))) * Math.sin(Math.PI * t) ** .85 + .002 * t);
       });
-      addLock(scalp, points, .0035 + .0025 * Math.sin(i * 2.4) ** 2, .0015, .92 + .10 * Math.sin(i * 2.17) ** 2, center, true);
+      addLock(scalp, points, .0022 + .0018 * Math.sin(i * 2.4) ** 2, .0011, .92 + .10 * Math.sin(i * 2.17) ** 2, center, true);
     }
     // Fine temple locks break the solid helmet-like edge. All points stay on
     // the real head; tapered ends sit in front of the ear, never on the jersey.
@@ -168,9 +168,9 @@ function createGatheredHair(base, sourceIndex, centerZ, backZ, hairline) {
       const dx = Math.cos(theta), dz = Math.sin(theta);
       const curve = new T.CubicBezierCurve3(
         new T.Vector3(.009 * dx, tie.y + .008 * dz, tie.z),
-        new T.Vector3(.020 * dx, 1.690 + .008 * dz, backZ - .060),
-        new T.Vector3(.018 * dx, 1.554, backZ - .099 + .014 * dz),
-        new T.Vector3(.008 * dx + .004 * Math.sin(i), 1.503 + .025 * (i % 4) / 3, backZ - .051 + .008 * dz)
+        new T.Vector3(.020 * dx, 1.735 + .008 * dz, backZ - .060),
+        new T.Vector3(.018 * dx, 1.596, backZ - .099 + .014 * dz),
+        new T.Vector3(.008 * dx + .004 * Math.sin(i), 1.533 + .025 * (i % 4) / 3, backZ - .051 + .008 * dz)
       );
       addLock(ponytail, curve.getPoints(28), .0065, .0042, .83 + .22 * Math.sin(i * 1.74) ** 2, center, false);
     }
