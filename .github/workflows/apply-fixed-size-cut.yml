@@ -1,0 +1,56 @@
+name: NUBYRA fixed sizes · source application and review
+on:
+  push:
+    branches: [feat/fit-lab-fixed-sizes-reference]
+    paths: [.github/apply-fixed-size-cut.mjs, .github/workflows/apply-fixed-size-cut.yml]
+permissions:
+  contents: write
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: node .github/apply-fixed-size-cut.mjs
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: All unit regressions and fixed-pattern invariants
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/fixed-sizes
+          THREE_TEST_DIR="$PWD" npm test | tee artifacts/fixed-sizes/tests.txt
+      - run: npm run build:fit-lab
+      - run: npx playwright install --with-deps chromium
+      - name: Real browser sizing and reference checks
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8097 --directory fit-dist >/tmp/fixed-http.log 2>&1 &
+          sleep 2
+          node scripts/fit-lab-fixed-size-review.mjs
+          FIT_LAB_URL=http://127.0.0.1:8097/fit-lab/ EVIDENCE_DIR=artifacts/fixed-sizes/human node scripts/fit-lab-human-e2e.mjs
+      - name: Commit verified source only on this review branch
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = feat/fit-lab-fixed-sizes-reference
+          git config user.name 'NUBYRA source review'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add configurador-3d/fit-lab/lab-model.mjs configurador-3d/fit-lab/comparison-frame.mjs configurador-3d/fit-lab/human-viewer.mjs configurador-3d/fit-lab/app.mjs configurador-3d/fit-lab/full-reference.mjs configurador-3d/fit-lab/index.html configurador-3d/fit-lab/comparison.css scripts/build-fit-bootstrap.mjs scripts/build-fit-lab.mjs scripts/fit-lab-human-e2e.mjs
+          git rm .github/apply-fixed-size-cut.mjs .github/workflows/apply-fixed-size-cut.yml
+          git commit -m 'feat(fit-lab): fixed garment sizes, waist support and full-body comparator'
+          git push origin HEAD:feat/fit-lab-fixed-sizes-reference
+          git rev-parse HEAD | tee artifacts/fixed-sizes/source-commit.txt
+          VERCEL_GIT_COMMIT_SHA=$(git rev-parse HEAD) npm run build:fit-lab
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nubyra-fixed-sizes-review
+          path: |
+            artifacts/fixed-sizes/
+            fit-dist/
+          retention-days: 7
+          if-no-files-found: error
