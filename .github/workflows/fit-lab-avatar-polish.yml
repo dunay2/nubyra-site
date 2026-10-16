@@ -1,0 +1,56 @@
+name: NUBYRA · Avatar coverage and transitions
+on:
+  push:
+    branches: [fix/fit-lab-avatar-coverage-swap]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: fit-lab-avatar-polish-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  avatar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Offline reproducibility bundle (no credentials)
+        run: |
+          git archive --format=tar HEAD | gzip > /tmp/fit-lab-source.tgz
+          tar -czf /tmp/fit-lab-dependencies.tgz node_modules
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fit-lab-reproducible-workspace
+          path: /tmp/fit-lab-*.tgz
+          retention-days: 1
+      - name: Unit regressions and build
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/avatar-polish
+          npm run test:fit-lab | tee artifacts/avatar-polish/node-tests.txt
+          npm run build:fit-lab
+      - name: Browser
+        run: npx playwright install --with-deps chromium
+      - name: Real WebGL checks
+        run: |
+          python3 -m http.server 8000 --directory fit-dist > /tmp/fit-server.log 2>&1 &
+          sleep 2
+          FIT_LAB_URL=http://127.0.0.1:8000/fit-lab/ EVIDENCE_DIR=artifacts/avatar-polish/human node scripts/fit-lab-human-e2e.mjs
+          if [ -f scripts/fit-lab-avatar-polish-e2e.mjs ]; then
+            FIT_LAB_URL=http://127.0.0.1:8000/fit-lab/ EVIDENCE_DIR=artifacts/avatar-polish node scripts/fit-lab-avatar-polish-e2e.mjs
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nubyra-avatar-polish-review
+          path: |
+            artifacts/avatar-polish/
+            fit-dist/
+          retention-days: 7
