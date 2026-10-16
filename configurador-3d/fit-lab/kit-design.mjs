@@ -12,16 +12,16 @@ export function createKitDesign(T){
   if(isFront){text(ctx,design.team,220,40);text(ctx,design.sponsor,315,24);text(ctx,design.number,380,150,300);}else{text(ctx,design.surname,225,43);text(ctx,design.number,340,192,310);text(ctx,design.team,650,25);}
   item.texture.needsUpdate=true;
  }
- function materialColors(){if(!garment)return;garment.traverse(m=>{if(!m.isMesh)return;const list=Array.isArray(m.material)?m.material:[m.material];for(const mat of list){if(m.name.endsWith('_Front')||m.name.endsWith('_Back'))mat.color.set('#ffffff');else mat.color?.set(m.name.startsWith('trim-')||m.name.includes('_Side_')?design.accent:design.base);}});}
+ function materialColors(group=garment){if(!group)return;group.traverse(m=>{if(!m.isMesh)return;const list=Array.isArray(m.material)?m.material:[m.material];for(const mat of list){if(m.name.endsWith('_Front')||m.name.endsWith('_Back'))mat.color.set('#ffffff');else mat.color?.set(m.name.startsWith('trim-')||m.name.includes('_Side_')?design.accent:design.base);}});}
  function update(next){const value=normalizeKit({...design,...next});if(JSON.stringify(value)===JSON.stringify(design)&&updates)return false;design=value;paint(front,true);paint(back,false);materialColors();updates++;return true;}
- function attach(group){garment=group;
+ function attach(group,{active=true}={}){if(active)garment=group;
   for(const [name,item,reverse] of [['Front',front,false],['Back',back,true]]){
    const mesh=group.getObjectByName('NUBYRA_Test_Jersey_'+name),p=mesh.geometry.attributes.position;mesh.geometry.computeBoundingBox();const box=mesh.geometry.boundingBox,uv=[];
    for(let i=0;i<p.count;i++){const u=(p.getX(i)-box.min.x)/(box.max.x-box.min.x);uv.push(reverse?1-u:u,(p.getY(i)-box.min.y)/(box.max.y-box.min.y));}
    mesh.geometry.setAttribute('uv',new T.Float32BufferAttribute(uv,2));mesh.material=mesh.material.clone();mesh.material.map=item.texture;mesh.material.color.set('#ffffff');mesh.material.needsUpdate=true;
   }
-  materialColors();
+  materialColors(group);
  }
  update(design);
- return {attach,update,snapshot:()=>({...design,textureUpdates:updates,textureCount:2}),destroy(){front.texture.dispose();back.texture.dispose();garment=null;}};
+ return {attach,activate(group){garment=group;materialColors();},update,snapshot:()=>({...design,textureUpdates:updates,textureCount:2}),destroy(){front.texture.dispose();back.texture.dispose();garment=null;}};
 }

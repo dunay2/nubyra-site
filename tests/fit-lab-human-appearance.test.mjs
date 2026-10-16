@@ -23,7 +23,7 @@ const state = {bodyHeightCm:170, bodyChestCm:84, bodyHipCm:94, frontVolume:3, si
   assert.equal(appearance.group.parent, body);
   assert.equal(appearance.group.children.length, 3);
   assert.equal(appearance.snapshot().hairStyle, 'short-ponytail');
-  assert.equal(appearance.snapshot().scalpLocks, 56);
+  assert.equal(appearance.snapshot().scalpLocks, 140);
   assert.equal(appearance.snapshot().tailLocks, 14);
   assert.ok(appearance.group.getObjectByName('avatar-hair-swept-locks'));
   assert.ok(appearance.group.getObjectByName('avatar-hair-ponytail'));
@@ -52,7 +52,7 @@ const state = {bodyHeightCm:170, bodyChestCm:84, bodyHipCm:94, frontVolume:3, si
     body.updateMatrixWorld(true);
     const box = new T.Box3().setFromObject(appearance.group);
     assert.ok(box.min.y > body.userData.shoulderY + .2, 'hair intersects shoulder/jersey area');
-    assert.ok(Math.abs(box.max.y - body.userData.headTopY) < .1, 'hair detached from crown');
+    assert.ok(Math.abs(box.max.y - body.userData.headTopY) < .04 * body.userData.scale / body.userData.unit, 'hair detached from crown');
     body.visible = false; let visible = 0;
     body.traverseVisible(() => visible++); assert.equal(visible, 0); body.visible = true;
   }

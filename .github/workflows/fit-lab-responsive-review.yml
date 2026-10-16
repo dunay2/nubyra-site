@@ -1,0 +1,47 @@
+name: NUBYRA · Responsive comparison and outer garment
+on:
+  push:
+    branches: [fix/fit-lab-avatar-coverage-swap]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: fit-lab-responsive-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Targeted invariants and deterministic initial outfit
+        env:
+          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/responsive-review
+          node --test tests/fit-lab-responsive.test.mjs tests/fit-lab-avatar-polish.test.mjs tests/fit-lab-shorts-independent.test.mjs | tee artifacts/responsive-review/unit.txt
+          npm run build:fit-lab
+      - run: npx playwright install --with-deps chromium
+      - name: Real HTTP and WebGL reproduction of the reported scenarios
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8010 --directory fit-dist >/tmp/fit-http.log 2>&1 &
+          sleep 2
+          FIT_LAB_URL=http://127.0.0.1:8010/fit-lab/ EVIDENCE_DIR=artifacts/responsive-review node scripts/fit-lab-responsive-review.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nubyra-responsive-review
+          path: |
+            artifacts/responsive-review/
+            fit-dist/release.json
+          retention-days: 7
+          if-no-files-found: error

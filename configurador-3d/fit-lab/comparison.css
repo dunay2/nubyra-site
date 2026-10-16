@@ -1,0 +1,22 @@
+/* Shared comparison plane. Neither the body nor the photo is stretched to fit. */
+.visual-comparison{position:relative;grid-template-columns:minmax(0,1fr) clamp(140px,23%,230px);align-items:stretch}
+.scene{height:clamp(480px,64vh,690px)}
+.reference{display:block;position:relative;padding:0;border-top:0;border-left:1px solid var(--line);background:#f4f9fb;min-width:0}
+.reference-photo-stage{position:absolute;inset:0;overflow:hidden;--ground:92%;--reference-height:80%}
+.reference-photo-stage>.eyebrow{position:absolute;top:15px;left:12px;font-size:9px}
+.reference-photo-stage .human-photo{position:absolute;left:30px;right:10px;top:var(--ground);transform:translateY(-100%);margin:0}
+.reference-photo-stage .human-photo img{display:block;width:100%;height:auto;max-height:none;object-fit:contain;aspect-ratio:300/332;border-radius:4px}
+.reference-height-gauge{position:absolute;top:calc(var(--ground) - var(--reference-height));height:var(--reference-height);left:14px;width:9px;border-left:1px solid #779dab;border-top:1px solid #779dab;border-bottom:1px solid #779dab}
+.reference-height-gauge span{position:absolute;left:7px;top:-8px;font-size:10px;white-space:nowrap;background:#f4f9fb;padding:1px 3px}
+.reference-photo-stage[data-metric=false] .reference-height-gauge{display:none}
+.reference-crop-label{position:absolute;top:var(--ground);left:28px;right:8px;margin:7px 0 0;font-size:9px;color:var(--muted)}
+.comparison-ground{position:absolute;left:20%;right:8px;height:1px;background:#b2cbd4;pointer-events:none;opacity:.7}
+.reference-data{padding:9px 15px;border-top:1px solid var(--line)}
+.reference-data>p{margin:0;font-size:10px}.reference-data details{padding:0;border:0;margin:7px 0 0}
+.reference-data details[open]{display:grid;grid-template-columns:1fr 1fr;gap:8px}.reference-data summary{grid-column:1/-1}
+.reference-data h3{font-size:11px}.reference-data svg{width:160px;height:145px;grid-column:1;grid-row:3/5}.reference-data dl{grid-column:2}
+.scene-error{inset:auto 12px 70px;padding:12px;font-size:11px;border-radius:6px;background:#fff1e7ed}
+.retry-preparation{position:absolute;right:12px;bottom:34px;z-index:5;font-size:11px}
+.settle-status{max-width:calc(100% - 28px);font-size:10px;pointer-events:none}
+@media(max-width:850px){.visual-comparison{grid-template-columns:minmax(0,1fr) 150px}.scene{height:500px}}
+@media(max-width:520px){.visual-comparison{grid-template-columns:minmax(0,1fr) 100px}.scene{height:430px}.reference{display:block;padding:0}.reference-photo-stage .human-photo{left:17px;right:5px}.reference-height-gauge{left:7px}.reference-height-gauge span{font-size:8px}.reference-photo-stage>.eyebrow{font-size:7px;left:7px;top:12px}.reference-crop-label{font-size:7px;left:10px;margin-top:5px}.scene-measures{top:40px;font-size:7px}.scene-caption span{font-size:7px}.scene-caption strong{font-size:10px}.reference-data>p{font-size:8px}.scene-note{font-size:7px}.settle-status{left:7px;bottom:24px;max-width:calc(100% - 14px);padding:5px;font-size:8px}.reference-data svg{width:120px}}
