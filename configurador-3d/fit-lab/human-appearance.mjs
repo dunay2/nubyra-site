@@ -1,7 +1,7 @@
 import * as T from 'three';
 import {MeshBVH, acceleratedRaycast} from 'three-mesh-bvh';
 
-export const APPEARANCE_VERSION = 'human-appearance/3.1';
+export const APPEARANCE_VERSION = 'human-appearance/3.2';
 export const SKIN_COLOR = '#c99377';
 const HAIR_COLOR = '#38261d';
 
@@ -31,7 +31,7 @@ export function createHumanAppearance(body) {
     const c=r>1e-8?dz/r:1;
     return 1.610 + .046*Math.max(0,c) - .061*Math.max(0,-c) + .007*Math.sin(theta)**2
       - .004*Math.exp(-(((theta+.18)/.32)**2)) + .0016*Math.sin(2*theta) + .0005*Math.sin(17*theta+.4)
-      - .042*Math.exp(-(((Math.abs(theta)-1.03)/.27)**2));
+      - .060*Math.exp(-(((Math.abs(theta)-1.03)/.20)**2));
   };
   // A shared continuous envelope supports the locks: no dark air gaps or
   // basket-like openings between raised ribbons when the head is viewed closely.
@@ -62,7 +62,7 @@ export function createHumanAppearance(body) {
     if(a.d===0&&b.d===0)p.y=hairline(p);
     return {p,n:na.add(nb).normalize(),d:Math.max(0,p.y-hairline(p))};
   }
-  function smoothTriangle(a,b,c){const ab=midpoint(a,b),bc=midpoint(b,c),ca=midpoint(c,a);for(const t of [[a,ab,ca],[ab,b,bc],[ca,bc,c],[ab,bc,ca]])for(const v of t)append(v);}
+  function smoothTriangle(a,b,c,depth=2){if(depth===0){append(a);append(b);append(c);return;}const ab=midpoint(a,b),bc=midpoint(b,c),ca=midpoint(c,a);for(const t of [[a,ab,ca],[ab,b,bc],[ca,bc,c],[ab,bc,ca]])smoothTriangle(...t,depth-1);}
   for (let i = 0; i < sourceIndex.count; i += 3) {
     const ids = [sourceIndex.getX(i), sourceIndex.getX(i + 1), sourceIndex.getX(i + 2)];
     if (ids.every(id => base[id * 3 + 1] < 1.49)) continue;
@@ -128,7 +128,7 @@ function createGatheredHair(base, sourceIndex, centerZ, backZ, hairline, hairVol
     const a = sourceIndex.getX(i), b = sourceIndex.getX(i + 1), c = sourceIndex.getX(i + 2);
     if (Math.min(base[a * 3 + 1], base[b * 3 + 1], base[c * 3 + 1]) > 1.45) headIndices.push(a, b, c);
   }
-  source.setIndex(headIndices);
+  source.setIndex(headIndices);source.computeVertexNormals();
   source.boundsTree = new MeshBVH(source, {maxLeafTris: 8});
   const sourceMaterial = new T.MeshBasicMaterial({side: T.DoubleSide});
   const head = new T.Mesh(source, sourceMaterial);
@@ -142,7 +142,13 @@ function createGatheredHair(base, sourceIndex, centerZ, backZ, hairline, hairVol
     ray.set(center, direction); ray.far = .3;
     const hit = ray.intersectObject(head, false)[0];
     if (!hit) throw new Error('Cannot fit hair lock to approved scalp');
-    return hit.point.clone().addScaledVector(direction, offset);
+    // Tangent-plane interpolation smooths the low-poly scalp for hair only.
+    const ids=[hit.face.a,hit.face.b,hit.face.c],pos=source.attributes.position,norm=source.attributes.normal;
+    const verts=ids.map(i=>new T.Vector3().fromBufferAttribute(pos,i));
+    const w=new T.Triangle(...verts).getBarycoord(hit.point,new T.Vector3());
+    const smooth=new T.Vector3();
+    for(let k=0;k<3;k++){const n=new T.Vector3().fromBufferAttribute(norm,ids[k]).normalize();smooth.addScaledVector(hit.point.clone().addScaledVector(n,-hit.point.clone().sub(verts[k]).dot(n)),w.getComponent(k));}
+    return hit.point.clone().lerp(smooth,.75).addScaledVector(direction,offset);
   }
   const scalp = {positions: [], normals: [], colors: [], indices: []};
   const ponytail = {positions: [], normals: [], colors: [], indices: []};
@@ -211,8 +217,10 @@ function createGatheredHair(base, sourceIndex, centerZ, backZ, hairline, hairVol
       const points=curve.getPoints(36).map((p,j)=>{const t=j/36;p.x+=.002*Math.sin(t*8+phase)*Math.sin(Math.PI*t);return p;});
       addLock(ponytail,points,.0052,.0032,.92+.12*Math.sin(phase)**2,center,false);
     }
-    const band=Array.from({length:33},(_,i)=>{const a=i*Math.PI/16;return new T.Vector3(tie.x+.010*Math.cos(a),tie.y+.010*Math.sin(a),tie.z-.003);});
-    addLock(ponytail,band,.0014,.0014,.43,center,false);
+    const band=new T.TorusGeometry(.010,.0018,6,20);band.translate(tie.x,tie.y,tie.z-.003);
+    const start=ponytail.positions.length/3,p=band.attributes.position,n=band.attributes.normal;
+    for(let i=0;i<p.count;i++){ponytail.positions.push(p.getX(i),p.getY(i),p.getZ(i));ponytail.normals.push(n.getX(i),n.getY(i),n.getZ(i));ponytail.colors.push(.43,.43,.43);}
+    for(const i of band.index.array)ponytail.indices.push(start+i);band.dispose();
   } finally {
     source.boundsTree = null; source.dispose(); sourceMaterial.dispose();
   }

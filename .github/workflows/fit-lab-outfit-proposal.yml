@@ -4,7 +4,7 @@ on:
     branches: [feat/fit-lab-outfit-proposal-hover]
   workflow_dispatch:
 permissions:
-  contents: write
+  contents: read
 concurrency:
   group: nubyra-outfit-proposal-${{ github.ref }}
   cancel-in-progress: true
@@ -14,43 +14,21 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
-      - name: Apply the small reviewed scalp refinement once
-        run: |
-          set -euo pipefail
-          mkdir -p artifacts/outfit-proposal
-          if ! grep -q 'human-appearance/3.1' configurador-3d/fit-lab/human-appearance.mjs; then
-            node --input-type=module <<'JS'
-          import {writeFile} from 'node:fs/promises';
-          import {createHash} from 'node:crypto';
-          import {gunzipSync} from 'node:zlib';
-          import {execFileSync} from 'node:child_process';
-          const url='https://sdmntprpolandcentral.oaiusercontent.com/files/00000000-6130-820a-a071-1bdf17ab3d61/raw?se=2026-10-17T20%3A45%3A16Z&sp=r&sv=2026-02-06&sr=b&scid=807d46b2-cbf2-5280-bded-23f04fa72cb7&skoid=d4d17077-8f33-42a9-bd8b-aa9d5eaf5320&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-17T19%3A43%3A18Z&ske=2026-10-18T19%3A43%3A18Z&sks=b&skv=2026-02-06&sig=/FB7b/6QOfOMkPv6t4OFedsrSDMVkoWSvFcnLKnuet8%3D';
-          const response=await fetch(url,{signal:AbortSignal.timeout(30000)});if(!response.ok)throw Error('Transfer failed '+response.status);
-          const b=Buffer.from(await response.arrayBuffer());if(b.length!==3706||createHash('sha256').update(b).digest('hex')!=='1fc4a135cd0b64b1faf66066f5f96179de3a7c5b63e8287aa567f6a17cab7c65')throw Error('Integrity mismatch');
-          const patch=gunzipSync(b);if(patch.length!==10336)throw Error('Invalid patch size');await writeFile('/tmp/hair.patch',patch);
-          const changes=execFileSync('git',['apply','--numstat','/tmp/hair.patch'],{encoding:'utf8'});
-          for(const line of changes.trim().split('\n')){const path=line.split('\t')[2];if(!/^(configurador-3d\/fit-lab\/|scripts\/|tests\/)/.test(path)||path.includes('..'))throw Error('Invalid source path');}
-          execFileSync('git',['apply','--check','/tmp/hair.patch'],{stdio:'inherit'});execFileSync('git',['apply','/tmp/hair.patch'],{stdio:'inherit'});
-          JS
-            test "$GITHUB_REF_NAME" = feat/fit-lab-outfit-proposal-hover
-            git config user.name 'NUBYRA source review'
-            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git add configurador-3d/fit-lab/human-appearance.mjs scripts/fit-lab-head-review.mjs tests/fit-lab-human-appearance.test.mjs tests/fit-lab-outfit-proposals.test.mjs
-            git commit -m 'fix(fit-lab): soften scalp edge and temple hair; refine thin directional strands'
-            git push origin HEAD:feat/fit-lab-outfit-proposal-hover
-          fi
-          git rev-parse HEAD | tee artifacts/outfit-proposal/source-commit.txt
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - name: All unit tests and fixed-pattern invariants
         run: |
           set -euo pipefail
+          mkdir -p artifacts/outfit-proposal
+          git rev-parse HEAD | tee artifacts/outfit-proposal/source-commit.txt
           THREE_TEST_DIR="$PWD" npm test | tee artifacts/outfit-proposal/unit-tests.txt
       - name: Build exact source
-        run: VERCEL_GIT_COMMIT_SHA=$(git rev-parse HEAD) npm run build:fit-lab
+        run: VERCEL_GIT_COMMIT_SHA="$GITHUB_SHA" npm run build:fit-lab
       - run: npx playwright install --with-deps chromium
       - name: Inspect head with actual geometry and lighting
         run: EVIDENCE_DIR=artifacts/outfit-head node scripts/fit-lab-head-review.mjs
@@ -65,6 +43,7 @@ jobs:
           python3 -m http.server 8150 --bind 127.0.0.1 --directory fit-dist >/tmp/outfit-http.log 2>&1 &
           sleep 2
           FIT_LAB_URL=http://127.0.0.1:8150/fit-lab/ node scripts/fit-lab-outfit-proposal-review.mjs | tee artifacts/outfit-proposal/browser-tests.txt
+          FIT_LAB_URL=http://127.0.0.1:8150/fit-lab/ EVIDENCE_DIR=artifacts/outfit-proposal/human node scripts/fit-lab-human-e2e.mjs | tee artifacts/outfit-proposal/human-tests.txt
       - name: Exact source evidence
         if: always()
         run: git archive --format=tar HEAD | gzip > artifacts/outfit-proposal/source.tar.gz
