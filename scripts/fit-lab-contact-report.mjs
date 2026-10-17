@@ -7,7 +7,7 @@ const root=process.env.MODEL_ROOT?pathToFileURL(resolve(process.env.MODEL_ROOT)+
 const {createBody,updateBody,createRestGarment,createClothAdapter,CM_PER_UNIT}=await import(new URL('configurador-3d/fit-lab/fit-mesh.mjs',root));
 const {resolveState}=await import(new URL('configurador-3d/fit-lab/lab-model.mjs',root));
 const {GARMENT_CATALOG}=await import(new URL('configurador-3d/fit-lab/garment-catalog.mjs',root));
-export const PROFILES={A:{},B:{bodyChestCm:72,bodyHipCm:74,frontVolume:1,sideVolume:6,backVolume:0,selectionMode:'manual',activeConfiguration:'N2-3'},C:{bodyChestCm:104,bodyHipCm:114,frontVolume:10,sideVolume:10,backVolume:10}};
+export const PROFILES={A:{},B:{bodyChestCm:72,bodyHipCm:74,frontVolume:1,sideVolume:6,backVolume:0,selectionMode:'manual',activeConfiguration:'N2-3'},C:{selectionMode:'manual',activeConfiguration:'N2-2',bodyChestCm:104,bodyHipCm:114,frontVolume:10,sideVolume:10,backVolume:10}};
 export function fixture(input){const state=resolveState(input),body=updateBody(createBody(T),state),garment=createRestGarment(T,GARMENT_CATALOG[state.activeConfiguration]);return {state,body,garment,adapter:createClothAdapter(garment,body)};}
 const q=(a,p)=>[...a].sort((x,y)=>x-y)[Math.floor((a.length-1)*p)]||0;
 const distance=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]);

@@ -6,7 +6,7 @@ import {fixture,measure} from '../scripts/fit-lab-contact-report.mjs';
 const unit=64/242;
 const requests=[
  {bodyChestCm:79,bodyHipCm:88,desiredLengthCm:55,frontVolume:4,sideVolume:4,backVolume:10,selectionMode:'manual',activeConfiguration:'N1-1'},
- {bodyChestCm:113,bodyHipCm:130,desiredLengthCm:64,frontVolume:3,sideVolume:5,backVolume:5}
+ {selectionMode:'manual',activeConfiguration:'N2-3',bodyChestCm:113,bodyHipCm:130,desiredLengthCm:64,frontVolume:3,sideVolume:5,backVolume:5}
 ];
 test('SI areal density conserves total mass when a triangle is subdivided',()=>{
  const coarse=lumpedMasses([0,0,0,1,0,0,0,1,0],[[0,1,2]],1,.18);

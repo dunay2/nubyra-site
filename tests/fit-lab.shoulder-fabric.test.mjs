@@ -8,7 +8,7 @@ import {GARMENT_CATALOG} from '../configurador-3d/fit-lab/garment-catalog.mjs';
 const cases=[
  {bodyChestCm:88,bodyHipCm:96},
  {bodyChestCm:72,bodyHipCm:74,desiredLengthCm:84,frontVolume:1,sideVolume:6,backVolume:0,selectionMode:'manual',activeConfiguration:'N2-3'},
- {bodyChestCm:104,bodyHipCm:114,frontVolume:10,sideVolume:10,backVolume:10}
+ {selectionMode:'manual',activeConfiguration:'N2-2',bodyChestCm:104,bodyHipCm:114,frontVolume:10,sideVolume:10,backVolume:10}
 ];
 
 function fixture(input){

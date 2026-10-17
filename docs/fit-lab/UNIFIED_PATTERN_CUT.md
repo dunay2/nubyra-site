@@ -1,0 +1,15 @@
+# Unified pattern rules · laboratory cut
+
+Source baseline: 33c32ee19f042c1e8462025b203e5529377ce45f.
+
+A single immutable registry describes jersey and shorts base N1/N2 and lateral positions 1/2/3. The nominal dimensions remain numerical laboratory proposals, not approved patterns. Jersey geometry values are preserved from the previous catalogue. Shorts are migrated from the temporary P1–P4 display to independent N1/N2 × 1/2/3 configurations; legacy keys are resolved explicitly, not silently redefined as commercial sizes.
+
+The jersey selector and assessment share `evaluateJersey`. Positive ease is not proof of fit. Versioned test intervals (chest 6–24 cm, hip 6–28 cm, desired-length tolerance 4 cm and synthetic below-hip coverage 6 cm) are hypotheses for fitting, not industry standards. All zones must pass. Missing length cannot be compensated with excessive circumference. `recommendedCode=null` and a reason are normal outcomes. Manual selection fixes a pattern and can demonstrate a short or loose result; negative nominal circumference is rejected without resizing the body or pattern.
+
+Pattern specification, material reference, rule version, requested/visible jersey and visible shorts are exposed in the exported trial. Material calibration is absent and declared. Shorts have an intended elastic waistband, but usable extension/stiffness are unknown; the visual support/fall continues to be a rigid-waist geometric demonstration. It is not an elastic textile simulation or a recommendation of real support.
+
+The overlap finish is restricted to the real fixed short's sampled radial envelope. It displaces the displayed shirt locally, restores source positions between updates and never changes the body's vertices, the fixed shorts or the worker/rest-pattern buffers. Offsets above 3 cm are flagged for review. This replaces no physical material validation. It must not be used as production evidence.
+
+The original 300×332 reference photograph is retained byte for byte and available prominently in the UI. The cropped photograph is NOT a full-height measurement. The complete 170 cm synthetic comparator remains available separately with equal pixel scale and ground. Attempts to generate an extended original returned unrelated UI mockups; none is integrated. Full photographic extension remains pending rather than substituting a different girl. Hair version 2.1 modifies the render-only hairline, crown volume and attached side-swept ponytail, not the body collider.
+
+Release evidence: unit tests, fixed pattern hashes on 145/170/200 cm bodies, view captures, per-zone assessments, no-configuration scenario, frame continuity, photograph preservation, full reference scale and mobile layout. Historical geometric fixtures explicitly pin their original pattern because they test physics, not the new recommendation ranking. The cut-specific CI verifies fixed selected lengths even when their relation to the knee changes. The general workflow historical above-knee gate remains unchanged: updating that workflow requires a workflow-authorized repository owner.
