@@ -1,3 +1,4 @@
+import {referenceProfileMeasures} from './reference-profiles.mjs';
 /** Pure state transitions. No renderer, DOM, network or physical fit claims. */
 import {DEFAULT_CONFIGURATION, GARMENT_CATALOG, stateForConfiguration, recommendPreviewConfiguration} from './garment-catalog.mjs';
 export const FIELD_LIMITS=Object.freeze({bodyChestCm:[65,120],bodyHipCm:[70,130],bodyHeightCm:[125,210],armLoweringDeg:[0,25],desiredLengthCm:[48,84],frontVolume:[0,10],sideVolume:[0,10],backVolume:[0,10]});
@@ -15,6 +16,7 @@ export function resolveState(input){
  return Object.freeze({...state,recommendation:Object.freeze(recommendation),reviewRequired:!recommendation.hasDemoCoverage});
 }
 export function transition(state,event){
+ if(event.type==='reference-profile')return resolveState({...state,...referenceProfileMeasures(event.id)});
  if(event.type==='reset')return resolveState(DEFAULT_INPUT);
  if(event.type==='measure'&&Object.hasOwn(FIELD_LIMITS,event.key))return resolveState({...state,[event.key]:event.value});
  if(event.type==='mode')return resolveState({...state,selectionMode:event.value});
