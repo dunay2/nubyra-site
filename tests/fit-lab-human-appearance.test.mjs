@@ -22,7 +22,7 @@ const state = {bodyHeightCm:170, bodyChestCm:84, bodyHipCm:94, frontVolume:3, si
   assert.equal('#' + body.material.color.getHexString(), SKIN_COLOR);
   assert.equal(appearance.group.parent, body);
   assert.equal(appearance.group.children.length, 3);
-  assert.equal(appearance.snapshot().hairStyle, 'soft-mid-ponytail');
+  assert.equal(appearance.snapshot().hairStyle, 'gathered-natural-ponytail');
   assert.equal(appearance.snapshot().scalpLocks, 140);
   assert.equal(appearance.snapshot().tailLocks, 24);
   assert.ok(appearance.group.getObjectByName('avatar-hair-swept-locks'));

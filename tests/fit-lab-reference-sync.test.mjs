@@ -2,12 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {REFERENCE_PROFILES,referenceProfileMeasures,assessReferenceProfile,nearestReferenceProfile,getReferenceProfile} from '../configurador-3d/fit-lab/reference-profiles.mjs';
 import {resolveState,transition} from '../configurador-3d/fit-lab/lab-model.mjs';
-test('A profile atomically applies three body measures, preserving manual garment, length, pose and volumes',()=>{
+test('A profile atomically applies three body measures, requesting a new outfit while retaining desired length, pose and volumes',()=>{
  for(const p of REFERENCE_PROFILES){
   const previous=resolveState({selectionMode:'manual',activeConfiguration:'N1-2',desiredLengthCm:71,armLoweringDeg:20,frontVolume:6,sideVolume:4,backVolume:2});
   const next=transition(previous,{type:'reference-profile',id:p.id});
   assert.deepEqual([next.bodyHeightCm,next.bodyChestCm,next.bodyHipCm],[p.heightCm,p.chestCm,p.hipCm]);
-  for(const key of['selectionMode','activeConfiguration','desiredLengthCm','armLoweringDeg','frontVolume','sideVolume','backVolume','garmentLengthCm','garmentChestCm','garmentHipCm'])assert.equal(next[key],previous[key],key);
+  for(const key of['desiredLengthCm','armLoweringDeg','frontVolume','sideVolume','backVolume'])assert.equal(next[key],previous[key],key);
+  assert.equal(next.selectionMode,'auto');assert.equal(next.activeConfiguration,next.recommendation.proposal.code);assert.equal(next.garmentLengthCm,next.recommendation.proposedLengthCm);
   assert.equal(previous.bodyHeightCm,160);assert.equal(next.weightKg,undefined);assert.ok(Object.isFrozen(next));
  }assert.throws(()=>transition(resolveState({}),{type:'reference-profile',id:'invalid'}));
 });

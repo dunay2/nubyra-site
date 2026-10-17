@@ -38,3 +38,13 @@
 
 /* bounded-zone-report */
 .zone-review{min-width:0}.zone-review dl>div{grid-template-columns:44px minmax(0,1fr);align-items:start;gap:5px}.zone-review dd{min-width:0;white-space:normal;overflow-wrap:anywhere}.selection-result>div{flex:0 0 52px}.selection-result strong{white-space:nowrap}.selection-result>p{min-width:0}
+
+.reference-photo-stage[data-preview=true]{box-shadow:inset 0 0 0 2px #92b6c5}
+.reference-photo-stage>.eyebrow{background:transparent;top:12px;font-size:10px;padding:0}
+.reference-photo-stage[data-source=profiles] .reference-crop-label{bottom:38px;font-size:10px;line-height:1.4}
+#profile-reference-meta{background:#f4f9fb;padding-top:4px}
+.kit-proposal{padding:12px;background:#edf6f8;border:1px solid #c6dce5;border-radius:8px;margin:12px 0}
+.kit-proposal h3{font-size:13px}.kit-proposal p{font-size:11px;line-height:1.5;margin:5px 0}
+#apply-kit-proposal{background:#163e60;color:white;font-size:11px;margin:7px 0;padding:9px;width:100%;border-radius:5px}
+#jersey-length-effect{line-height:1.5;padding-bottom:6px}
+@media(max-width:580px){.reference-photo-stage>.eyebrow{font-size:8px}.reference-photo-stage[data-source=profiles] .reference-crop-label{font-size:8px}#profile-reference-meta{font-size:8px}}

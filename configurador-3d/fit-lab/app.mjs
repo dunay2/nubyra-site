@@ -1,10 +1,8 @@
 import {mountSizingUI,updateSizingUI} from './sizing-ui.mjs';
-import {cleanReferenceAnnotation} from './reference-photo.mjs';
 import {FIELD_LIMITS,resolveState,transition} from './lab-model.mjs';
-import {GARMENT_CATALOG} from './garment-catalog.mjs';
+import {GARMENT_CATALOG,garmentForState} from './garment-catalog.mjs';
 import {bindCommitFields} from './commit-fields.mjs';
 import {normalizeKit} from './kit-design.mjs';
-cleanReferenceAnnotation(document.getElementById('reference-photo'));
 const useHuman=new URLSearchParams(location.search).get('body')!=='synthetic';
 if(useHuman)mountSizingUI();
 const $=id=>document.getElementById(id),fmt=n=>Number(n).toLocaleString('es-ES',{maximumFractionDigits:1});
@@ -15,11 +13,11 @@ if(useHuman){field('armLoweringDeg','Bajar los brazos','height-field','°');cons
 for(const [key,label] of [['frontVolume','Frontal'],['sideVolume','Lateral'],['backVolume','Posterior']]){const div=document.createElement('div');div.className='shape-field';div.innerHTML=`<label for="${key}-range">${label}</label><input id="${key}-range" data-field="${key}" type="range" min="0" max="10" step="1"><output id="${key}-output" for="${key}-range">${state[key]}</output>`;$('shape-fields').append(div);}
 for(const code of Object.keys(GARMENT_CATALOG)){const button=document.createElement('button');button.type='button';button.dataset.garment=code;button.textContent=code;button.addEventListener('click',()=>dispatch({type:'garment',code}));$('catalog-options').append(button);}
 const FABRIC_COLORS=[['#173e64','Azul marino'],['#f2f0e9','Marfil'],['#141820','Negro'],['#b52840','Rojo'],['#197d81','Turquesa']];
-let kit=normalizeKit(),outfitOptions={fullView:useHuman,showShorts:true,shortsLengthCm:useHuman?42:40,shortsSize:'N1-2'};
+let kit=normalizeKit(),outfitOptions={fullView:useHuman,showShorts:true,shortsLengthCm:useHuman?42:40,shortsSize:'N1-2',shortsAuto:true,shortsRiseCm:33.5};
 for(const [hex,name] of FABRIC_COLORS){const b=document.createElement('button');b.type='button';b.className='fabric-swatch';b.style.backgroundColor=hex;b.title=name;b.setAttribute('aria-label','Color '+name);b.dataset.color=hex;b.addEventListener('click',()=>{document.querySelectorAll('[data-color]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));kit=normalizeKit({...kit,base:hex});$('kit-base').value=hex;viewer?.setColor(hex);});$('fabric-colors').append(b);}
 $('fabric-colors').firstElementChild.setAttribute('aria-pressed','true');
 function syncUI(){
- const c=GARMENT_CATALOG[state.activeConfiguration];
+ const c=garmentForState(state);
  document.querySelectorAll('[data-field]').forEach(input=>{if(document.activeElement!==input||input.type==='range')input.value=state[input.dataset.field];});
  for(const key of ['frontVolume','sideVolume','backVolume'])$(key+'-output').textContent=fmt(state[key]);
  document.querySelectorAll('[data-selection-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.selectionMode===state.selectionMode)));
@@ -28,6 +26,8 @@ function syncUI(){
  $('active-dimensions').textContent=`Pecho ${c.chestCm} · Cadera ${c.hipCm} cm · Largo ${c.lengthCm} cm`;
  $('selection-status').textContent=state.selectionMode==='auto'?state.recommendation.reason:'Prenda fija para comparar distintos cuerpos. '+(state.recommendation.reason||'');
  $('selection-status').classList.toggle('warning',state.reviewRequired);
+ $('garment-length-readout').textContent=c.lengthCm+' cm';$('selection-explanation').textContent=`Pecho y cadera eligen base y posición lateral; el largo deseado elige un corte fijo. ${state.recommendation.reason}`;
+ if(viewer)return;
  $('scene-mode').textContent=state.selectionMode==='auto'?'Selección automática':'Prenda fija · manual';
  $('scene-body').textContent=`Cuerpo · pecho ${fmt(state.bodyChestCm)} / cadera ${fmt(state.bodyHipCm)} cm`;
  $('scene-garment').textContent=`Camiseta · ${c.chestCm} / ${c.hipCm} cm · largo ${c.lengthCm} cm`;
@@ -36,7 +36,7 @@ function syncUI(){
 }
 function onFrame(snapshot){
  updateSizingUI(state,snapshot);
- const displayed=snapshot.visibleState||snapshot.state, current=GARMENT_CATALOG[displayed.activeConfiguration];
+ const displayed=snapshot.visibleState||snapshot.state, current=garmentForState(displayed);
  const pending=Boolean(snapshot.transition?.pending);
  $('scene-code').textContent=current.code;
  $('scene-body').textContent=`Cuerpo visible · pecho ${fmt(snapshot.body.chestCm)} / cadera ${fmt(snapshot.body.hipCm)} cm`;
@@ -47,7 +47,7 @@ function onFrame(snapshot){
  $('scene-wrapper').setAttribute('aria-busy',String(pending));
  if(snapshot.outfit?.shortsMaxLengthCm!==undefined){
   const o=snapshot.outfit,e=$('shorts-length');e.max=String(o.shortsMaxLengthCm);e.min=String(o.shortsMinLengthCm);
-  outfitOptions.shortsLengthCm=o.shortsLengthCm;outfitOptions.shortsSize=o.shortsSize||'N1-2';if(document.activeElement!==e)e.value=String(o.shortsLengthCm);
+  outfitOptions.shortsLengthCm=o.shortsLengthCm;outfitOptions.shortsSize=o.shortsSize||'N1-2';if(document.activeElement!==e)e.value=String(o.shortsLengthCm);outfitOptions.shortsRiseCm=o.shortsRiseCm??33.5;if($('shorts-rise'))$('shorts-rise').value=String(outfitOptions.shortsRiseCm);if($('shorts-size'))$('shorts-size').value=outfitOptions.shortsSize;
   if(outfitOptions.fullView)$('scene-height').textContent='Estatura de referencia '+fmt(snapshot.body.heightCm)+' cm · pantalón '+fmt(o.shortsLengthCm)+' cm';
   $('shorts-fit-status').textContent='Largo fijo '+fmt(o.shortsLengthCm)+' cm · bajo '+(o.shortsAboveKneeCm>=0?'por encima':'por debajo')+' de la rodilla: '+fmt(Math.abs(o.shortsAboveKneeCm))+' cm. No se limita según la estatura.';
  }
@@ -58,7 +58,7 @@ function onFrame(snapshot){
  $('cloth-state').textContent=snapshot.paused?'Simulación pausada':snapshot.cloth.maxVelocity>.06?'Tejido en movimiento':'Gravedad y contacto';
  if(viewer){const ref=viewer.reference();for(const [id,key] of [['ref-body-front','bodyFront'],['ref-body-side','bodySide'],['ref-shirt-front','shirtFront'],['ref-shirt-side','shirtSide'],['ref-shorts-front','shortsFront'],['ref-shorts-side','shortsSide']]){$(id).setAttribute('d',ref[key]||'');$(id).style.display=$(id.includes('body')?'show-body':id.includes('shorts')?'show-shorts':'show-garment').checked?'':'none';}}
 }
-function dispatch(event){state=transition(state,event);syncUI();if(renderFrame)cancelAnimationFrame(renderFrame);renderFrame=requestAnimationFrame(()=>{renderFrame=0;try{viewer?.update(state);}catch(error){showError(error);}});}
+function dispatch(event){if(event.type==='reference-profile')outfitOptions.shortsAuto=true;state=transition(state,event);syncUI();if(renderFrame)cancelAnimationFrame(renderFrame);renderFrame=requestAnimationFrame(()=>{renderFrame=0;try{viewer?.update(state,{proposeShorts:outfitOptions.shortsAuto!==false});}catch(error){showError(error);}});}
 function showError(error){$('scene-error').hidden=false;$('scene-error').textContent=error.message;$('render-status').textContent='Revisar visor';$('render-status').classList.add('error');}
 const committedInputs=bindCommitFields(document,{read:key=>state[key],commit:(key,value)=>dispatch({type:'measure',key,value}),onDraft:drafts=>{const pending=Object.keys(drafts).length>0;viewer?.setEditing(pending);$('input-status').classList.toggle('pending',pending);$('input-status').textContent=pending?'Cambio pendiente: suelta la barra o confirma con Enter. El visor conserva la última medida aplicada.':'Arrastra y suelta para aplicar. Número: Enter o salir del campo.';}});
 document.querySelectorAll('[data-trial-height]').forEach(b=>b.addEventListener('click',()=>{state=transition(state,{type:'mode',value:'manual'});dispatch({type:'measure',key:'bodyHeightCm',value:Number(b.dataset.trialHeight)});}));
@@ -70,18 +70,19 @@ for(const id of ['show-body','show-garment','transparent-garment','show-dimensio
 });
 $('cloth-impulse').addEventListener('click',()=>viewer?.impulse());$('settle-cloth').addEventListener('click',()=>viewer?.settle());
 $('pause-motion').addEventListener('click',()=>{const paused=$('pause-motion').getAttribute('aria-pressed')!=='true';viewer?.pause(paused);$('pause-motion').setAttribute('aria-pressed',String(paused));$('pause-motion').textContent=paused?'Reanudar':'Pausar';});
-$('reset-all').addEventListener('click',()=>{outfitOptions.shortsSize='N1-2';outfitOptions.shortsLengthCm=42;if($('shorts-size'))$('shorts-size').value='N1-2';$('shorts-length').value='42';dispatch({type:'reset'});committedInputs.reset();syncOutfit();});
+$('reset-all').addEventListener('click',()=>{outfitOptions.shortsAuto=true;outfitOptions.shortsSize='N1-2';outfitOptions.shortsLengthCm=42;outfitOptions.shortsRiseCm=33.5;if($('shorts-size'))$('shorts-size').value='N1-2';$('shorts-length').value='42';dispatch({type:'reset'});committedInputs.reset();syncOutfit();});
 export function getLabSnapshot(){return JSON.parse(JSON.stringify({state,pending:committedInputs.pending(),design:kit,outfit:outfitOptions,lastFrame:viewer?viewer.snapshot():lastSnapshot}));}
 function syncOutfit(){viewer?.setOutfit(outfitOptions);$('outfit-status').hidden=!outfitOptions.fullView;$('scene-height').hidden=!outfitOptions.fullView;$('scene-height').textContent='Estatura de referencia '+fmt(state.bodyHeightCm)+' cm · pantalón '+outfitOptions.shortsLengthCm+' cm';}
 document.querySelectorAll('[data-framing]').forEach(b=>b.addEventListener('click',()=>{outfitOptions.fullView=b.dataset.framing==='outfit';document.querySelectorAll('[data-framing]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));syncOutfit();}));
 $('show-shorts').addEventListener('change',()=>{outfitOptions.showShorts=$('show-shorts').checked;syncOutfit();});
-function applyShorts(){outfitOptions.shortsLengthCm=Number($('shorts-length').value);outfitOptions.shortsSize=$('shorts-size')?.value||'N1-2';syncOutfit();}
-$('shorts-size')?.addEventListener('change',applyShorts);
+function applyShorts(){outfitOptions.shortsAuto=false;outfitOptions.shortsLengthCm=Number($('shorts-length').value);outfitOptions.shortsSize=$('shorts-size')?.value||'N1-2';outfitOptions.shortsRiseCm=Number($('shorts-rise')?.value||33.5);syncOutfit();}
+$('shorts-size')?.addEventListener('change',applyShorts);$('shorts-rise')?.addEventListener('change',applyShorts);
 $('shorts-length').addEventListener('change',applyShorts);$('shorts-length').addEventListener('keydown',e=>{if(e.key==='Enter')applyShorts();});
 function designChange(key,e){kit=normalizeKit({...kit,[key]:e.value});if(e.type!=='color')e.value=kit[key];viewer?.setDesign(kit);if(key==='base')document.querySelectorAll('[data-color]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.color===kit.base)));}
 for(const key of ['team','surname','number','sponsor','base','accent']){const e=$('kit-'+key);e.value=kit[key];e.addEventListener('change',()=>designChange(key,e));e.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();designChange(key,e);}});}
 $('show-bust-guide').addEventListener('change',()=>viewer?.setBustGuide($('show-bust-guide').checked));
 $('save-json').addEventListener('click',()=>{const blob=new Blob([JSON.stringify({schema:'nubyra.fit-lab/2.0',...getLabSnapshot()},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='nubyra-fit-lab-ensayo.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
+$('apply-kit-proposal')?.addEventListener('click',()=>{outfitOptions.shortsAuto=true;dispatch({type:'mode',value:'auto'});});
 $('retry-preparation').addEventListener('click',()=>viewer?.retry?.());
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
 function syncMotionPreference(){for(const id of ['show-motion','cloth-impulse']){$(id).disabled=reduced.matches;$(id).title=reduced.matches?'Movimiento reducido según la preferencia del dispositivo':'';}}
