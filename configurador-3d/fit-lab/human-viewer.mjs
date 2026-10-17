@@ -19,7 +19,7 @@ import {syncSurfaceTrim} from './surface-bindings.mjs';
 import {createKitDesign} from './kit-design.mjs';
 import {GARMENT_CATALOG} from './garment-catalog.mjs';
 /** Full human model, one visible geometry and the same indexed geometry in the worker collider. */
-export async function createHumanViewer(canvas,initial,onFrame=()=>{}){
+export async function createHumanViewer(canvas,initial,onFrame=()=>{},actions={}){
  const assetURL=new URL('./assets/human-female.glb',import.meta.url);
  const [response,seedResponse]=await Promise.all([fetch(assetURL),fetch(new URL('./bootstrap.json',import.meta.url)).catch(()=>null)]);
  if(!response.ok)throw Error('No se pudo cargar la base humana');const bytes=await response.arrayBuffer();
@@ -30,7 +30,8 @@ export async function createHumanViewer(canvas,initial,onFrame=()=>{}){
  const [shortResponse,referenceResponse]=await Promise.all([fetch(new URL('./fixed-shorts.json',import.meta.url)),fetch(new URL('./full-reference.json',import.meta.url))]);
  if(!shortResponse.ok||!referenceResponse.ok)throw Error('No se pudo cargar el catálogo fijo');
  const shortFactory=createFixedShortFactory(await shortResponse.json());
- const fullReference=await createFullReference(document.getElementById('full-reference-canvas'),bytes,await referenceResponse.json(),shortFactory);
+ const fullReference=await createFullReference(document.getElementById('full-reference-canvas'),bytes,await referenceResponse.json(),shortFactory,actions);
+ fullReference.setBody(initial);
  const body=updateHumanBody(await loadHumanBody(bytes),initial,{collision:false}),scene=new T.Scene();scene.add(body);const appearance=createHumanAppearance(body),face=createHumanFace(body);
  const renderer=new T.WebGLRenderer({canvas,alpha:true,antialias:true,stencil:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.25;
  const lowerContact=createShortsOuterContact();const outerLayer=createOuterGarmentLayer();renderer.autoClear=false;
@@ -63,7 +64,7 @@ export async function createHumanViewer(canvas,initial,onFrame=()=>{}){
  function visual(){outerLayer.setShorts(shorts,flags.garment&&!flags.transparent);body.visible=flags.body&&Boolean(garment);lines.visible=flags.dimensions;shorts.mesh.visible=showShorts&&Boolean(garment);if(guide)guide.mesh.visible=showGuide&&flags.body;if(garment){garment.visible=flags.garment;garment.traverse(m=>{if(!m.isMesh)return;const mat=m.material;mat.transparent=flags.transparent;mat.opacity=flags.transparent?.5:1;mat.depthWrite=!flags.transparent;});}invalidate();}
  function keyOf(s){return JSON.stringify(['bodyChestCm','bodyHipCm','bodyHeightCm','frontVolume','sideVolume','backVolume','armLoweringDeg'].map(k=>s[k]));}
  bodyKey=keyOf(state);
- function update(next){const start=performance.now();counts.physicalUpdates++;
+ function update(next){const start=performance.now();counts.physicalUpdates++;fullReference.setBody(next);
   const changed=keyOf(next)!==keyOf(state)||state.activeConfiguration!==next.activeConfiguration||Boolean(sizeRejection);state=next;
   let reason=next.selectionMode==='auto'&&!next.recommendation.hasConfiguration?next.recommendation.reason:assessJersey(next).blocked?assessJersey(next).reason:'';
   if(!reason&&changed){const probe=new T.Mesh(body.geometry.clone(),body.material);probe.userData={...body.userData};let outfit=null;try{updateHumanBody(probe,next,{collision:false});outfit=shortFactory.create(probe,{size:shortsSize,lengthCm:shortsLengthCm});}catch(error){reason=error.message;}finally{outfit?.destroy();probe.geometry.dispose();}}
