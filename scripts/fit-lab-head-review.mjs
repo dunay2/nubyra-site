@@ -17,7 +17,7 @@ const appearance=createHumanAppearance(body),face=createHumanFace(body);
 const renderer=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setSize(800,800);renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.25;document.body.appendChild(renderer.domElement);
 scene.add(new T.HemisphereLight(0xf5fcff,0x365267,2.1));for(const [x,y,z,p]of[[-3,5,5,2.7],[4,1,-3,1.4]]){const light=new T.DirectionalLight(0xffffff,p);light.position.set(x,y,z);scene.add(light);}
 const s=body.userData.scale/body.userData.unit,y=body.userData.sourceToY(1.597);
-const camera=new T.OrthographicCamera(-.145*s,.145*s,.145*s,-.145*s,.01,50);
+const camera=new T.OrthographicCamera(-.18*s,.18*s,.18*s,-.18*s,.01,50);
 window.inspectHead={setView(angle){camera.position.set(Math.sin(angle)*8,y,Math.cos(angle)*8);camera.lookAt(0,y,0);renderer.render(scene,camera);},appearance:appearance.snapshot(),face:face.snapshot()};window.inspectHead.setView(0);
 `;
 const result=await build({stdin:{contents:code,resolveDir:process.cwd()},bundle:true,format:'esm',write:false,minify:true});

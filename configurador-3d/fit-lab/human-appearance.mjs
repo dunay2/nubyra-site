@@ -1,7 +1,7 @@
 import * as T from 'three';
 import {MeshBVH, acceleratedRaycast} from 'three-mesh-bvh';
 
-export const APPEARANCE_VERSION = 'human-appearance/3.0';
+export const APPEARANCE_VERSION = 'human-appearance/3.1';
 export const SKIN_COLOR = '#c99377';
 const HAIR_COLOR = '#38261d';
 
@@ -30,7 +30,8 @@ export function createHumanAppearance(body) {
     const theta = Math.atan2(p.x, dz);
     const c=r>1e-8?dz/r:1;
     return 1.610 + .046*Math.max(0,c) - .061*Math.max(0,-c) + .007*Math.sin(theta)**2
-      - .004*Math.exp(-(((theta+.18)/.32)**2)) + .0016*Math.sin(2*theta) + .0005*Math.sin(17*theta+.4);
+      - .004*Math.exp(-(((theta+.18)/.32)**2)) + .0016*Math.sin(2*theta) + .0005*Math.sin(17*theta+.4)
+      - .042*Math.exp(-(((Math.abs(theta)-1.03)/.27)**2));
   };
   // A shared continuous envelope supports the locks: no dark air gaps or
   // basket-like openings between raised ribbons when the head is viewed closely.
@@ -53,6 +54,15 @@ export function createHumanAppearance(body) {
     positions.push(p.x, p.y, p.z); normals.push(n.x, n.y, n.z);
     const shade = .94 + .06 * strand; colors.push(shade, shade, shade);
   }
+  function midpoint(a,b){
+    const linear=a.p.clone().lerp(b.p,.5),na=a.n.clone().normalize(),nb=b.n.clone().normalize();
+    const pa=linear.clone().addScaledVector(na,-linear.clone().sub(a.p).dot(na));
+    const pb=linear.clone().addScaledVector(nb,-linear.clone().sub(b.p).dot(nb));
+    const p=linear.clone().lerp(pa.add(pb).multiplyScalar(.5),.75);
+    if(a.d===0&&b.d===0)p.y=hairline(p);
+    return {p,n:na.add(nb).normalize(),d:Math.max(0,p.y-hairline(p))};
+  }
+  function smoothTriangle(a,b,c){const ab=midpoint(a,b),bc=midpoint(b,c),ca=midpoint(c,a);for(const t of [[a,ab,ca],[ab,b,bc],[ca,bc,c],[ab,bc,ca]])for(const v of t)append(v);}
   for (let i = 0; i < sourceIndex.count; i += 3) {
     const ids = [sourceIndex.getX(i), sourceIndex.getX(i + 1), sourceIndex.getX(i + 2)];
     if (ids.every(id => base[id * 3 + 1] < 1.49)) continue;
@@ -69,7 +79,7 @@ export function createHumanAppearance(body) {
     for (let k = 1; k + 1 < polygon.length; k++) {
       const a = polygon[0], b = polygon[k], c = polygon[k + 1];
       const area = b.p.clone().sub(a.p).cross(c.p.clone().sub(a.p)).lengthSq();
-      if (area > 1e-16) { append(a); append(b); append(c); }
+      if (area > 1e-16) smoothTriangle(a,b,c);
     }
   }
   if (!positions.length) throw Error('No se pudo construir la superficie del pelo');
@@ -98,7 +108,7 @@ export function createHumanAppearance(body) {
   update();
   return {
     group, update,
-    snapshot: () => ({ version: APPEARANCE_VERSION, skinColor: SKIN_COLOR, hairColor: HAIR_COLOR, hairStyle: 'gathered-natural-ponytail', hairMeshes: 3, scalpLocks: 140, tailLocks: 24, scalpTriangles: positions.length / 9, hairTie:true, growthDirection:'regional-gather-to-occiput', renderOnly: true, collisionGeometryChanged: false }),
+    snapshot: () => ({ version: APPEARANCE_VERSION, skinColor: SKIN_COLOR, hairColor: HAIR_COLOR, hairStyle: 'gathered-natural-ponytail', hairMeshes: 3, scalpLocks: 340, tailLocks: 24, scalpTriangles: positions.length / 9, hairTie:true, growthDirection:'regional-gather-to-occiput', renderOnly: true, collisionGeometryChanged: false }),
     destroy() {
       if (destroyed) return;
       destroyed = true; body.remove(group);
@@ -139,8 +149,8 @@ function createGatheredHair(base, sourceIndex, centerZ, backZ, hairline, hairVol
   const tieSurface=onScalp(new T.Vector3(0,1.617,backZ-.020),0);
   const tie=tieSurface.clone().addScaledVector(tieSurface.clone().sub(center).normalize(),hairVolume(tieSurface)+.002);
   try {
-    for (let i = 0; i < 120; i++) {
-      const theta = -Math.PI + (i + .5 + .34 * Math.sin(i * 2.399)) * 2 * Math.PI / 120;
+    for (let i = 0; i < 320; i++) {
+      const theta = -Math.PI + (i + .5 + .34 * Math.sin(i * 2.399)) * 2 * Math.PI / 320;
       const root = new T.Vector3(.075 * Math.sin(theta), 0, centerZ + .10 * Math.cos(theta));
       root.y = hairline(root);
       // Solve on the actual scalp, not on the auxiliary ellipse. The previous
@@ -163,7 +173,7 @@ function createGatheredHair(base, sourceIndex, centerZ, backZ, hairline, hairVol
         const surface = onScalp(curve.getPoint(t), 0);
         return surface.clone().addScaledVector(surface.clone().sub(center).normalize(), hairVolume(surface) + .0010 + .0003 * Math.sin(Math.PI * t));
       });
-      addLock(scalp, points, .0010 + .0007 * Math.sin(i * 2.4) ** 2, .00038, .92 + .10 * Math.sin(i * 2.17) ** 2, center, true);
+      addLock(scalp, points, .00030 + .00034 * Math.sin(i * 2.4) ** 2, .00016, .92 + .10 * Math.sin(i * 2.17) ** 2, center, true);
     }
     // Fine temple locks break the solid helmet-like edge. All points stay on
     // the real head; tapered ends sit in front of the ear, never on the jersey.
@@ -212,7 +222,7 @@ function createGatheredHair(base, sourceIndex, centerZ, backZ, hairline, hairVol
     geometry.setAttribute('normal', new T.Float32BufferAttribute(data.normals, 3));
     geometry.setAttribute('color', new T.Float32BufferAttribute(data.colors, 3));
     geometry.setIndex(data.indices); geometry.computeBoundingBox(); geometry.computeBoundingSphere();
-    const result = new T.Mesh(geometry, new T.MeshStandardMaterial({color: '#412e21', roughness: .86, metalness: 0, vertexColors: true}));
+    const result = new T.Mesh(geometry, new T.MeshStandardMaterial({color: HAIR_COLOR, roughness: .86, metalness: 0, vertexColors: true}));
     result.name = name; return result;
   }
   return {locks: mesh(scalp, 'avatar-hair-swept-locks'), tail: mesh(ponytail, 'avatar-hair-ponytail')};
@@ -228,7 +238,7 @@ function addLock(out, points, width, depth, shade, center, scalp) {
     normal.addScaledVector(tangent, -normal.dot(tangent)).normalize();
     if (normal.lengthSq() < .1) normal.set(1, 0, 0).addScaledVector(tangent, -tangent.x).normalize();
     const side = tangent.clone().cross(normal).normalize();
-    const taper = scalp ? .22 + .78 * Math.sin(Math.PI * t) ** .40 : Math.max(.04, (1 - t) ** .42);
+    const taper = scalp ? .02 + .98 * Math.sin(Math.PI * t) ** .65 : Math.max(.04, (1 - t) ** .42);
     for (let k = 0; k <= sides; k++) {
       const angle = k * 2 * Math.PI / sides, c = Math.cos(angle), s = Math.sin(angle);
       const v = p.clone().addScaledVector(side, c * width * taper).addScaledVector(normal, s * depth * taper);

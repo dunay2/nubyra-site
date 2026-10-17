@@ -44,3 +44,10 @@ test('Finite rise variants preserve nominal hip/waist, horizontal vertices and f
  for(const v of Object.values(a.riseVariants)){const d=v.nominal,base=a.patterns[d.code+'-'+d.lengthCm];assert.ok(SHORT_RISES.includes(d.riseCm));assert.equal(d.measuredWaistCm,base.nominal.measuredWaistCm);assert.equal(d.measuredHipCm,base.nominal.measuredHipCm);for(let i=0;i<v.positions.length;i+=3){assert.equal(v.positions[i],base.positions[i]);assert.equal(v.positions[i+2],base.positions[i+2]);}const ys=v.positions.filter((_,i)=>i%3===1);assert.ok(Math.abs((Math.max(...ys)-Math.min(...ys))*CM_PER_UNIT-d.lengthCm)<.01);}
  }finally{await rm(dir,{recursive:true,force:true});}
 });
+
+test('Chest alone and hip alone each change the proposed finite contour',()=>{
+ const chestSmall=resolveState({bodyChestCm:80,bodyHipCm:96}),chestLarge=resolveState({bodyChestCm:98,bodyHipCm:96});
+ assert.notEqual(chestSmall.garmentChestCm,chestLarge.garmentChestCm);assert.equal(chestSmall.garmentLengthCm,chestLarge.garmentLengthCm);
+ const hipSmall=resolveState({bodyChestCm:88,bodyHipCm:90}),hipLarge=resolveState({bodyChestCm:88,bodyHipCm:108});
+ assert.notEqual(hipSmall.garmentHipCm,hipLarge.garmentHipCm);assert.equal(hipSmall.garmentLengthCm,hipLarge.garmentLengthCm);
+});
