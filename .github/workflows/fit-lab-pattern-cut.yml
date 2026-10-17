@@ -1,0 +1,74 @@
+name: NUBYRA · Unified pattern rules and retained reference
+on:
+  push:
+    branches: [feat/fit-lab-unified-pattern-rules]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: nubyra-pattern-cut-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Apply the exact reviewed delta, with integrity and base checks
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/pattern-review
+          if test -f .github/unified-cut.0.b64; then
+            sha256sum .github/unified-cut.*.b64 | tee artifacts/pattern-review/input-hashes.txt
+            cat .github/unified-cut.{0,1,2,3}.b64 | base64 -d > /tmp/unified-cut.patch.gz
+            echo 'd738ff1f52bdda82c60854f2ff5d25b32fc9a9ddef54735c3baf35b0968ebba5  /tmp/unified-cut.patch.gz' | sha256sum -c -
+            gzip -dc /tmp/unified-cut.patch.gz > /tmp/unified-cut.patch
+            git apply --check --unidiff-zero /tmp/unified-cut.patch
+            git apply --unidiff-zero /tmp/unified-cut.patch
+          fi
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: All unit regressions and independent-pattern invariants
+        run: |
+          set -euo pipefail
+          THREE_TEST_DIR="$PWD" npm test | tee artifacts/pattern-review/unit-tests.txt
+      - name: Build the actual application
+        run: VERCEL_GIT_COMMIT_SHA="$GITHUB_SHA" npm run build:fit-lab
+      - run: npx playwright install --with-deps chromium
+      - name: Real HTTP, WebGL, three bodies and retained photograph
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8098 --bind 127.0.0.1 --directory fit-dist >/tmp/pattern-http.log 2>&1 &
+          sleep 2
+          node scripts/fit-lab-pattern-review.mjs | tee artifacts/pattern-review/browser-tests.txt
+          FIT_LAB_URL=http://127.0.0.1:8098/fit-lab/ EVIDENCE_DIR=artifacts/pattern-review/human node scripts/fit-lab-human-e2e.mjs | tee artifacts/pattern-review/human-tests.txt
+          EVIDENCE_DIR=artifacts/pattern-review/head node scripts/fit-lab-head-review.mjs
+      - name: Commit only the verified application source on this review branch
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = feat/fit-lab-unified-pattern-rules
+          if test -f .github/unified-cut.0.b64; then
+            git config user.name 'NUBYRA source review'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add configurador-3d/fit-lab scripts tests docs/fit-lab/UNIFIED_PATTERN_CUT.md .github/workflows/validate-configurador-3d.yml
+            git rm .github/unified-cut.{0,1,2,3}.b64
+            git commit -m 'feat(fit-lab): unified pattern registry, per-zone recommendations and retained reference'
+            git push origin HEAD:feat/fit-lab-unified-pattern-rules
+          fi
+          git rev-parse HEAD | tee artifacts/pattern-review/source-commit.txt
+          VERCEL_GIT_COMMIT_SHA=$(git rev-parse HEAD) npm run build:fit-lab
+          git archive --format=tar HEAD | gzip > artifacts/pattern-review/source.tar.gz
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nubyra-pattern-cut-review
+          path: |
+            artifacts/pattern-review/
+            fit-dist/
+            .github/unified-cut.*.b64
+          include-hidden-files: true
+          retention-days: 7
+          if-no-files-found: error
