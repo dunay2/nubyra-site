@@ -1,0 +1,63 @@
+name: NUBYRA · Reference measurements and accessible ranges
+on:
+  push:
+    branches: [feat/fit-lab-reference-measure-sync]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: nubyra-reference-sync-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Integrate reviewed callbacks once, application files only
+        run: |
+          set -euo pipefail
+          if test -f scripts/apply-reference-sync.mjs; then
+            test "$GITHUB_REF_NAME" = feat/fit-lab-reference-measure-sync
+            node scripts/apply-reference-sync.mjs
+            git config user.name 'NUBYRA source review'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add configurador-3d/fit-lab/app.mjs configurador-3d/fit-lab/lab-model.mjs configurador-3d/fit-lab/human-viewer.mjs configurador-3d/fit-lab/full-reference.mjs configurador-3d/fit-lab/index.html scripts/build-fit-lab.mjs
+            git rm scripts/apply-reference-sync.mjs
+            git commit -m 'feat(fit-lab): connect explicit reference presets and read-only automatic matching'
+            git push origin HEAD:feat/fit-lab-reference-measure-sync
+          fi
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Unit regressions and production build
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/reference-sync
+          THREE_TEST_DIR="$PWD" npm test | tee artifacts/reference-sync/unit-tests.txt
+          VERCEL_GIT_COMMIT_SHA=$(git rev-parse HEAD) npm run build:fit-lab
+      - run: npx playwright install --with-deps chromium
+      - name: Browser synchronization, hover, keyboard and touch
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8143 --bind 127.0.0.1 --directory fit-dist >/tmp/reference-http.log 2>&1 &
+          sleep 2
+          node scripts/fit-lab-reference-sync-review.mjs | tee artifacts/reference-sync/browser-tests.txt
+          FIT_LAB_URL=http://127.0.0.1:8143/fit-lab/ EVIDENCE_DIR=artifacts/reference-sync/human node scripts/fit-lab-human-e2e.mjs
+      - name: Reproducible source
+        if: always()
+        run: |
+          mkdir -p artifacts/reference-sync
+          git rev-parse HEAD > artifacts/reference-sync/source-commit.txt
+          git archive HEAD | gzip > artifacts/reference-sync/source.tar.gz
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nubyra-reference-sync-review
+          path: |
+            artifacts/reference-sync/
+            fit-dist/
+          retention-days: 7
+          if-no-files-found: error

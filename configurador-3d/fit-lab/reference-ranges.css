@@ -1,0 +1,14 @@
+/* Range consultation is distinct from selecting a body profile. */
+.reference-profile-card{position:relative;min-width:0}
+.reference-profile-card>.reference-profile{width:100%;height:100%;padding-top:28px}
+.reference-range-info{position:absolute;right:3px;top:3px;min-width:32px;min-height:32px;border:1px solid #c6d8e3;border-radius:50%;background:#fff;color:#173e64;font-size:18px;line-height:1}
+.reference-main-info{min-height:36px;padding:6px 10px;border:1px solid #c6d8e3;border-radius:7px;background:#fff;color:#173e64;font-size:11px;white-space:nowrap}
+.reference-profile:focus-visible,.reference-range-info:focus-visible,.reference-main-info:focus-visible,#profile-reference-photo:focus-visible{outline:3px solid #167994;outline-offset:3px}
+.reference-gallery-heading{flex-wrap:wrap}.reference-gallery-heading>div{flex:1 1 250px}
+.reference-range-tooltip{position:fixed;z-index:1000;box-sizing:border-box;padding:15px;background:#fff;color:#16334a;border:1px solid #adc6d6;border-radius:12px;box-shadow:0 10px 35px #12314930;font-size:12px;line-height:1.5;overflow:auto;overscroll-behavior:contain}
+.reference-range-tooltip[hidden]{display:none}.reference-range-tooltip>strong{display:block;font-size:14px}.reference-range-tooltip p{margin:6px 0}
+.reference-range-tooltip table{width:100%;border-collapse:collapse;margin:10px 0;font-variant-numeric:tabular-nums;font-size:11px}
+.reference-range-tooltip th,.reference-range-tooltip td{padding:7px 4px;border-bottom:1px solid #dce7ed;text-align:right}.reference-range-tooltip th:first-child{text-align:left}
+.reference-range-tooltip thead{background:#f1f6f8}.reference-range-tooltip tr[data-coverage=outside]{background:#fff0e7;color:#8d341d}
+.reference-range-tooltip .reference-range-result{font-weight:650}.reference-range-tooltip small{display:block;font-size:10px;color:#496578}
+@media(max-width:580px){.reference-main-info{font-size:12px}.reference-range-info{min-width:36px;min-height:36px}.reference-profile-card>.reference-profile{padding-top:34px}}

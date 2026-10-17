@@ -1,6 +1,6 @@
-/** Reference examples are independent of body/pattern state. No measurements are
- * inferred from an image. Mass is scenario metadata, never a sizing input. */
-export const REFERENCE_PROFILES_VERSION='reference-profiles/2.0';
+/** Declared laboratory scenarios, not measurements inferred from photographs.
+ * Mass is metadata, never an input to reference or garment selection. */
+export const REFERENCE_PROFILES_VERSION='reference-profiles/3.0';
 export const REFERENCE_PROFILES=Object.freeze([
  ['R01',145,43,74,82,'Contornos reducidos'],['R02',150,56,86,96,'Contornos medios'],
  ['R03',155,50,80,90,'Contornos reducidos'],['R04',160,68,94,106,'Contornos amplios'],
@@ -9,14 +9,31 @@ export const REFERENCE_PROFILES=Object.freeze([
 ].map(([id,heightCm,weightKg,chestCm,hipCm,label])=>Object.freeze({id,heightCm,weightKg,chestCm,hipCm,label,
  source:'generated-individual-portraits',measurementSource:'illustrative-targets',anthropometryValidated:false})));
 export function getReferenceProfile(id){const p=REFERENCE_PROFILES.find(p=>p.id===id);if(!p)throw Error('Referencia desconocida: '+id);return p;}
-/** Deterministic proximity in three independently normalised dimensions. */
+export const REFERENCE_COVERAGE_VERSION='reference-coverage/1.0';
+export const REFERENCE_TOLERANCES=Object.freeze({heightCm:10,chestCm:12,hipCm:12});
+export const REFERENCE_AXES=Object.freeze([
+ Object.freeze({key:'heightCm',bodyKey:'bodyHeightCm',label:'Altura'}),
+ Object.freeze({key:'chestCm',bodyKey:'bodyChestCm',label:'Pecho'}),
+ Object.freeze({key:'hipCm',bodyKey:'bodyHipCm',label:'Cadera'})
+]);
+/** Only an explicit user selection applies these three values. */
+export function referenceProfileMeasures(id){const p=getReferenceProfile(id);return Object.freeze({bodyHeightCm:p.heightCm,bodyChestCm:p.chestCm,bodyHipCm:p.hipCm});}
+export function assessReferenceProfile(profile,body){
+ const valid=REFERENCE_AXES.every(({bodyKey})=>typeof body?.[bodyKey]==='number'&&Number.isFinite(body[bodyKey])&&body[bodyKey]>0);
+ const delta={};
+ const zones=REFERENCE_AXES.map(({key,bodyKey,label})=>{
+  const base=profile[key],tolerance=REFERENCE_TOLERANCES[key],value=valid?body[bodyKey]:null;delta[key]=valid?value-base:null;
+  return {key,label,base,min:base-tolerance,max:base+tolerance,value,delta:delta[key],within:valid?Math.abs(delta[key])<=tolerance:null};
+ });
+ return {profile,valid,zones,delta,score:valid?zones.reduce((sum,z)=>sum+(z.delta/8)**2,0):null,
+  exact:valid&&zones.every(z=>Math.abs(z.delta)<1e-9),withinCoverage:valid&&zones.every(z=>z.within),
+  outside:zones.filter(z=>z.within===false).map(z=>z.label),coverageVersion:REFERENCE_COVERAGE_VERSION};
+}
+/** Covered candidates first, then normalized proximity and deterministic ID.
+ * Choosing the nearest illustration must never snap user-entered measurements. */
 export function nearestReferenceProfile(body){
- const values=[body?.bodyHeightCm,body?.bodyChestCm,body?.bodyHipCm];
- if(!values.every(v=>typeof v==='number'&&Number.isFinite(v)&&v>0))return null;
- const ranked=REFERENCE_PROFILES.map(profile=>{const delta={heightCm:values[0]-profile.heightCm,chestCm:values[1]-profile.chestCm,hipCm:values[2]-profile.hipCm};
-  return {profile,delta,score:(delta.heightCm/8)**2+(delta.chestCm/8)**2+(delta.hipCm/8)**2,
-   withinCoverage:Math.abs(delta.heightCm)<=10&&Math.abs(delta.chestCm)<=12&&Math.abs(delta.hipCm)<=12};
- }).sort((a,b)=>a.score-b.score||a.profile.id.localeCompare(b.profile.id));return ranked[0];
+ const ranked=REFERENCE_PROFILES.map(profile=>assessReferenceProfile(profile,body));if(!ranked[0].valid)return null;
+ ranked.sort((a,b)=>Number(b.withinCoverage)-Number(a.withinCoverage)||a.score-b.score||a.profile.id.localeCompare(b.profile.id));return ranked[0];
 }
 export function referenceImagePlacement({profile,asset,metrics}){
  if(!profile||!asset||!metrics||![profile.heightCm,asset.width,asset.height,metrics.pxPerCm,metrics.floorPx].every(Number.isFinite)||metrics.pxPerCm<=0||asset.width<=0||asset.height<=0)throw Error('Escala de referencia no válida');
