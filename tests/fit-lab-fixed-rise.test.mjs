@@ -23,5 +23,5 @@ test('Length variants preserve the exact authored pelvis and rise rather than re
 });
 test('Full reference uses the same kit and outer garment layer as the main viewer',async()=>{
  const s=await readFile(new URL('../configurador-3d/fit-lab/full-reference.mjs',import.meta.url),'utf8');
- assert.match(s,/kit\.attach\(shirt\)/);assert.match(s,/outerLayer\.setShorts\(shorts,true\)/);assert.match(s,/outerLayer\.render\(renderer,camera\)/);assert.match(s,/stencil:true/);assert.match(s,/photographInvented:false/);
+ assert.match(s,/kit\.attach\(shirt\)/);assert.match(s,/outerLayer\.setShorts\(shorts,true\)/);assert.match(s,/outerLayer\.render\(renderer,camera\)/);assert.match(s,/stencil:true/);assert.match(s,/originalExtended:false/);assert.match(s,/photographInvented:mode==='profiles'/);
 });
