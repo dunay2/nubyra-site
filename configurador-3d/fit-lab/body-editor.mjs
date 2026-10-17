@@ -50,7 +50,7 @@ export function mountBodyEditor({canvas,camera,controls,body,scene,getState,meas
  function preview(key,value){
   const spec=specs[key];if(!Number.isFinite(value)){status.textContent='Introduce un valor numérico válido.';return;}
   const capped=Math.max(spec.min,Math.min(spec.max,value));limited=value!==capped;let candidate={...draft,[key]:capped};
-  try{const result=measureDraft(candidate);draft=result.state;cage.geometry.attributes.position.array.set(result.positions);cage.geometry.attributes.position.needsUpdate=true;cage.geometry.computeBoundingSphere();cage.geometry.computeBoundingBox();lastValid={...draft};}
+  try{const result=measureDraft(candidate);draft=result.state;cage.geometry.attributes.position.array.set(result.positions);cage.geometry.attributes.position.needsUpdate=true;cage.geometry.computeBoundingSphere();cage.geometry.computeBoundingBox();cage.position.y=body.geometry.boundingBox.min.y-cage.geometry.boundingBox.min.y;lastValid={...draft};}
   catch(error){limited=true;status.textContent=error.message;return;}
   previews++;fields.get(key)?.input&&(fields.get(key).input.value=String(draft[key]));if(fields.has(key))fields.get(key).slider.value=String(draft[key]);report();invalidate();
  }
@@ -60,7 +60,7 @@ export function mountBodyEditor({canvas,camera,controls,body,scene,getState,meas
   refresh();invalidate();
  }
  function cancel(){drag=null;oldState=null;draft=null;lastValid=null;clearCage();lock(false);status.textContent='Edición cancelada: se conserva el cuerpo anterior.';refresh();invalidate();}
- function point(h){const model=cage||body;if(h.key==='bodyHeightCm')return new T.Vector3(0,model.geometry.boundingBox?.max.y??body.userData.headTopY,0).add(new T.Vector3(0,.25,0));return new T.Vector3().fromBufferAttribute(model.geometry.attributes.position,h.id).addScaledVector(h.axis,.12);}
+ function point(h){const model=cage||body;if(h.key==='bodyHeightCm')return new T.Vector3(0,model.geometry.boundingBox?.max.y??body.userData.headTopY,0).add(new T.Vector3(0,.25,0)).add(model.position);return new T.Vector3().fromBufferAttribute(model.geometry.attributes.position,h.id).addScaledVector(h.axis,.12).add(model.position);}
  function screen(p){const b=canvas.getBoundingClientRect(),q=p.clone().project(camera);return new T.Vector2((q.x+1)*b.width/2,(1-q.y)*b.height/2);}
  function startPointer(h,e){
   if(e.button!==0)return;e.preventDefault();e.stopPropagation();
@@ -79,7 +79,7 @@ export function mountBodyEditor({canvas,camera,controls,body,scene,getState,meas
  listen(panel,'toggle',()=>{if(!panel.open){cancel();enabled=false;overlay.hidden=true;toggle.setAttribute('aria-pressed','false');toggle.textContent='Mostrar puntos';}});
  return {
   render(){if(disposed)return;const n=getState(),neutral=JSON.stringify([n.bodyBaseChestCm??n.bodyChestCm,n.bodyBaseHipCm??n.bodyHipCm]);if(neutral!==neutralKey&&!oldState){if(neutralKey&&REGION_KEYS.every(k=>(n[k]??0)===0)){history.length=0;undo.disabled=true;}neutralKey=neutral;}const key=JSON.stringify([...REGION_KEYS,'bodyHeightCm'].map(k=>getState()[k]));if(key!==lastKey&&!oldState){lastKey=key;refresh();}if(!enabled)return;for(const h of handles){const p=point(h),q=p.clone().project(camera),v=screen(p);h.el.style.left=v.x+'px';h.el.style.top=v.y+'px';const axisPixels=screen(p.clone().add(h.axis)).sub(v).length();h.el.hidden=Math.abs(q.x)>1||Math.abs(q.y)>1||q.z<-1||q.z>1||axisPixels<15;h.el.dataset.limited=String(limited&&drag?.key===h.key);h.el.title=`${h.label}: ${fmt((draft||getState())[h.key]??0)} ${specs[h.key].unit} · ${specs[h.key].min} a ${specs[h.key].max}`;}},
-  snapshot:()=>({version:BODY_REGIONS_VERSION,enabled,previewing:Boolean(oldState),draft:draft?{...draft}:null,previews,commits,limits:BODY_REGION_LIMITS,clothRecalculatedDuringDrag:false,guard:'local-orientation-edge-ratio',globalSelfIntersectionValidated:false}),
+  snapshot:()=>({version:BODY_REGIONS_VERSION,enabled,previewing:Boolean(oldState),draftFloorY:cage?cage.geometry.boundingBox.min.y+cage.position.y:null,draft:draft?{...draft}:null,previews,commits,limits:BODY_REGION_LIMITS,clothRecalculatedDuringDrag:false,guard:'local-orientation-edge-ratio',globalSelfIntersectionValidated:false}),
   destroy(){disposed=true;clearCage();listeners.forEach(f=>f());panel.remove();overlay.remove();}
  };
 }

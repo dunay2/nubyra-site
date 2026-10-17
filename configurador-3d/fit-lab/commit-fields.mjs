@@ -5,7 +5,7 @@ export function bindCommitFields(root,{read,commit,onDraft=()=>{}}){
  const listen=(e,t,f)=>{e.addEventListener(t,f);listeners.push(()=>e.removeEventListener(t,f));};
  const report=()=>onDraft(Object.fromEntries(drafts));
  const sync=(key,value)=>{
-  for(const e of inputs.filter(i=>i.dataset.field===key))e.value=String(value);
+  for(const e of inputs.filter(i=>i.dataset.field===key))e.value=String(e.type==='number'&&typeof value==='number'&&Number.isFinite(value)?Math.round(value*10)/10:value);
   const output=root.getElementById?.(key+'-output')||root.querySelector('#'+key+'-output');
   if(output)output.textContent=String(value);
  };
@@ -29,7 +29,7 @@ export function bindCommitFields(root,{read,commit,onDraft=()=>{}}){
   listen(e,'keydown',event=>{
    if(event.key==='Escape'){event.preventDefault();cancel(e);}
    else if(event.key==='Enter'){event.preventDefault();keys.delete(e);apply(e);}
-   else if(e.type==='range'&&rangeKeys.has(event.key))keys.add(e);
+   else if(e.type==='range'&&rangeKeys.has(event.key)){keys.add(e);}
   });
   listen(e,'keyup',event=>{if(keys.has(e)&&rangeKeys.has(event.key)){keys.delete(e);apply(e);}});
   listen(e,'blur',()=>{keys.delete(e);if(drafts.has(e.dataset.field))apply(e);});

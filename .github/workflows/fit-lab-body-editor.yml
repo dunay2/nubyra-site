@@ -4,7 +4,7 @@ on:
     branches: [feat/fit-lab-bounded-body-camera]
   workflow_dispatch:
 permissions:
-  contents: write
+  contents: read
 concurrency:
   group: nubyra-body-editor-${{ github.ref }}
   cancel-in-progress: true
@@ -14,42 +14,20 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
-      - name: Integrate the reviewed state and handle corrections once
-        run: |
-          set -euo pipefail
-          mkdir -p artifacts/body-editor
-          if ! grep -q 'axisPixels' configurador-3d/fit-lab/body-editor.mjs; then
-            node --input-type=module <<'JS'
-          import {writeFile} from 'node:fs/promises';
-          import {createHash} from 'node:crypto';
-          import {gunzipSync} from 'node:zlib';
-          import {execFileSync} from 'node:child_process';
-          const url='https://sdmntprnortheu.oaiusercontent.com/files/00000000-9300-81f4-a9b7-9e3d1027348f/raw?se=2026-10-17T22%3A33%3A28Z&sp=r&sv=2026-02-06&sr=b&scid=28df78c2-022e-5ce1-888a-a569803912c7&skoid=6658dbdd-f305-4d30-8f6b-d62218202cb9&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-17T09%3A04%3A55Z&ske=2026-10-18T09%3A04%3A55Z&sks=b&skv=2026-02-06&sig=sjYiPOyObj%2Bz1rRFaeFDfMxr8sebri%2B0MjKqResMBpk%3D';
-          const response=await fetch(url,{signal:AbortSignal.timeout(30000)});if(!response.ok)throw Error('Source transfer failed: '+response.status);
-          const bytes=Buffer.from(await response.arrayBuffer()),hash=createHash('sha256').update(bytes).digest('hex');
-          if(bytes.length!==3605||hash!=='078df85d06e477f70ab979cad1cadb27c18a1372654ab206b0206f58af5dfa22')throw Error('Patch integrity mismatch');
-          const patch=gunzipSync(bytes);if(patch.length!==11149)throw Error('Patch size mismatch');await writeFile('/tmp/body-editor-fix.patch',patch);
-          execFileSync('git',['apply','--check','/tmp/body-editor-fix.patch'],{stdio:'inherit'});execFileSync('git',['apply','/tmp/body-editor-fix.patch'],{stdio:'inherit'});
-          JS
-            test "$GITHUB_REF_NAME" = feat/fit-lab-bounded-body-camera
-            git config user.name 'NUBYRA source review'
-            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git add configurador-3d/fit-lab/body-editor.mjs configurador-3d/fit-lab/app.mjs scripts/fit-lab-body-editor-review.mjs
-            git commit -m 'fix(fit-lab): show usable regional axes and check visible committed shape'
-            git push origin HEAD:feat/fit-lab-bounded-body-camera
-          fi
-          git rev-parse HEAD | tee artifacts/body-editor/source-commit.txt
+      - run: mkdir -p artifacts/body-editor && git rev-parse HEAD > artifacts/body-editor/source-commit.txt
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - name: All unit tests and deformation invariants
         run: |
           set -euo pipefail
           THREE_TEST_DIR="$PWD" npm test | tee artifacts/body-editor/unit-tests.txt
       - name: Build exact source
-        run: VERCEL_GIT_COMMIT_SHA=$(git rev-parse HEAD) npm run build:fit-lab
+        run: VERCEL_GIT_COMMIT_SHA="$GITHUB_SHA" npm run build:fit-lab
       - run: npx playwright install --with-deps chromium
       - name: Actual pointer, camera, limits, cancellation and mobile review
         run: |

@@ -30,6 +30,16 @@ try{
  await page.locator('#undo-body-region').click();await ready();after=await snap();assert.equal(after.state.hipWidthPct,0);assert.equal(after.state.gluteProjectionCm,-1.5);checks.push('Undo restores the preceding regional values');
  await page.locator('[data-view="side"]').click();await page.waitForTimeout(200);await shot('regional-editor-side');
  await page.locator('#region-abdomenProjectionCm').fill('200');await page.locator('#region-abdomenProjectionCm').press('Tab');await ready();after=await snap();assert.equal(after.state.abdomenProjectionCm,3);checks.push('Numeric input shares the same hard limit as the handle');
+ // Height is a body parameter, not a head scale. Its preview keeps the support plane.
+ await page.locator('[data-view="front"]').click();await page.waitForTimeout(300);await canvas.scrollIntoViewIfNeeded();
+ const heightHandle=page.locator('[data-body-handle="bodyHeightCm"]'),headRect=await heightHandle.boundingBox();before=await snap();
+ await page.mouse.move(headRect.x+15,headRect.y+headRect.height/2);await page.mouse.down();await page.mouse.move(headRect.x+15,headRect.y-20,{steps:5});
+ const heightDraft=await snap();assert.equal(heightDraft.lastFrame.bodyEditor.previewing,true);assert.ok(heightDraft.lastFrame.bodyEditor.draft.bodyHeightCm>before.state.bodyHeightCm);
+ assert.ok(Math.abs(heightDraft.lastFrame.bodyEditor.draftFloorY-before.lastFrame.outfit.floorY)<1e-5);assert.equal(heightDraft.lastFrame.workerRevision,before.lastFrame.workerRevision);
+ await page.keyboard.press('Escape');await page.mouse.up();await heightHandle.focus();await page.keyboard.press('ArrowUp');await ready();after=await snap();
+ assert.equal(after.state.bodyHeightCm,before.state.bodyHeightCm+1);assert.equal(after.lastFrame.workerRevision,before.lastFrame.workerRevision+1);
+ assert.ok((await page.locator('#bodyHipCm-number').inputValue()).length<=5);
+ checks.push('Height draft remains grounded; keyboard confirms one body update and derived fields stay readable');
  await page.locator('#body-region-editor summary').click();await page.setViewportSize({width:390,height:900});await page.waitForTimeout(300);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await shot('mobile-camera-editor');checks.push('Mobile layout does not overflow horizontally');
  assert.deepEqual(errors,[]);assert.equal(after.lastFrame.transition.unclothedFrames,0);checks.push('No recorded JavaScript error or unclothed frame during tested edits');
  await writeFile(dir+'/body-editor-review.json',JSON.stringify({checks,errors,before,during,after,final:await snap()},null,2));console.log(JSON.stringify({passed:checks.length,checks,errors}));
