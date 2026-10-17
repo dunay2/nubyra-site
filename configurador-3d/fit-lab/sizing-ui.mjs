@@ -12,7 +12,7 @@ export function mountSizingUI(){
  const selector=document.createElement('label');selector.textContent='Base y posición del pantalón';const select=document.createElement('select');select.id='shorts-size';
  for(const g of Object.values(SHORT_SIZES)){const o=document.createElement('option');o.value=g.code;o.textContent=`${g.code} · cintura reposo ${g.waistCm} / cadera ${g.hipCm} cm`;select.append(o);}select.value='N1-2';selector.append(select);document.querySelector('.shorts-controls').prepend(selector);
  const e=document.getElementById('shorts-length'),replacement=document.createElement('select');replacement.id=e.id;for(const length of SHORT_LENGTHS){const o=document.createElement('option');o.value=length;o.textContent=length+' cm · '+({34:'corto',42:'medio',50:'largo'}[length]);replacement.append(o);}replacement.value='42';e.replaceWith(replacement);
- document.getElementById('shorts-fit-status').textContent='Tiro y largos fijos. Elástico previsto, sin extensión útil validada. Apoyo geométrico sin elástico en este ensayo.';
+ document.getElementById('shorts-fit-status').textContent='Tiro y largos fijos. Elástico previsto, sin extensión útil validada. Amarre sujeto en cintura; elástico sin calibrar.';
  const trial=document.createElement('div');trial.className='invariance-trial';trial.innerHTML='<p class="micro">Misma prenda, tres cuerpos de ensayo. Cambia solo la altura; la talla queda fijada.</p>'+[145,170,200].map(h=>`<button type="button" data-trial-height="${h}">${h} cm</button>`).join('');
  document.getElementById('height-field').after(trial);
 }
@@ -26,6 +26,6 @@ export function updateSizingUI(state,frame){
  }
  document.querySelectorAll('[data-nominal]').forEach(e=>e.classList.toggle('selected',e.dataset.nominal===state.activeConfiguration));
  document.querySelectorAll('[data-garment]').forEach(b=>{const item=state.recommendation.candidates.find(x=>x.code===b.dataset.garment);if(item){b.title=item.assessment.reason;b.dataset.recommended=String(item.code===state.recommendation.recommendedCode);}});
- const s=frame?.outfit?.fixed;if(s){const p=s.nominal,r=s.support;document.getElementById('fixed-shorts-status').textContent=`${p.code} · cintura en reposo ${p.waistCm}, cadera ${p.hipCm}, largo ${p.lengthCm} cm. `+(r.status==='unsupported'?'Sin apoyo en el ensayo geométrico: desciende.':`Descenso geométrico: ${r.dropCm.toFixed(1)} cm.`)+' Elástico previsto: extensión y sujeción reales pendientes de calibración.';}
+ const s=frame?.outfit?.fixed;if(s){const p=s.nominal,r=s.support;document.getElementById('fixed-shorts-status').textContent=`${p.code} · cintura en reposo ${p.waistCm}, cadera ${p.hipCm}, largo ${p.lengthCm} cm. `+'Amarre sujeto en cintura; sin deslizamiento. '+(r.excessWaistCm>8?'Holgura recogida por el cordón: revisar ajuste. ':'')+' Sujeción geométrica de ensayo; elástico sin calibrar.';}
  if(frame?.sizeRejection)document.getElementById('fixed-shorts-status').textContent=frame.sizeRejection;
 }

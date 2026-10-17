@@ -66,7 +66,7 @@ export async function createHumanViewer(canvas,initial,onFrame=()=>{}){
  function update(next){const start=performance.now();counts.physicalUpdates++;
   const changed=keyOf(next)!==keyOf(state)||state.activeConfiguration!==next.activeConfiguration||Boolean(sizeRejection);state=next;
   let reason=next.selectionMode==='auto'&&!next.recommendation.hasConfiguration?next.recommendation.reason:assessJersey(next).blocked?assessJersey(next).reason:'';
-  if(!reason&&changed){const probe=new T.Mesh(body.geometry.clone(),body.material);probe.userData={...body.userData};try{updateHumanBody(probe,next,{collision:false});const fit=shortSupport(probe,{...SHORT_SIZES[shortsSize],lengthCm:shortsLengthCm});if(fit.blocked)reason='El pantalón '+shortsSize+' no cabe: cintura '+SHORT_SIZES[shortsSize].waistCm+' / cadera '+SHORT_SIZES[shortsSize].hipCm+' cm. Selecciona una talla mayor; se mantiene el cuerpo vestido anterior.';}finally{probe.geometry.dispose();}}
+  if(!reason&&changed){const probe=new T.Mesh(body.geometry.clone(),body.material);probe.userData={...body.userData};let outfit=null;try{updateHumanBody(probe,next,{collision:false});outfit=shortFactory.create(probe,{size:shortsSize,lengthCm:shortsLengthCm});}catch(error){reason=error.message;}finally{outfit?.destroy();probe.geometry.dispose();}}
   if(reason){sizeRejection=reason;transitionError=reason;revision++;pendingFrame=null;pendingSetup=null;clearTimeout(watchdog);const e=document.getElementById('scene-error');e.hidden=false;e.textContent=reason;onFrame(snapshot());return;}
   sizeRejection=null;
   if(changed){requestStarted=performance.now();revision++;pendingSetup=null;pendingFrame=null;transitionError=null;armWatchdog();worker.postMessage({type:'update',revision,state});}

@@ -1,0 +1,52 @@
+name: NUBYRA · Tied waist and HD references
+on:
+  push:
+    branches: [fix/fit-lab-tied-waist-hd-references]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: fit-lab-tied-waist-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Complete unit regressions and fixed pattern invariants
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/waist-hd
+          git rev-parse HEAD | tee artifacts/waist-hd/source-commit.txt
+          THREE_TEST_DIR="$PWD" npm test | tee artifacts/waist-hd/unit-tests.txt
+      - name: Build the exact source commit
+        run: VERCEL_GIT_COMMIT_SHA=$(git rev-parse HEAD) npm run build:fit-lab
+      - run: npx playwright install --with-deps chromium
+      - name: Real browser waist, HD, gallery and human checks
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8131 --bind 127.0.0.1 --directory fit-dist >/tmp/waist-http.log 2>&1 &
+          sleep 2
+          node scripts/fit-lab-waist-hd-review.mjs | tee artifacts/waist-hd/browser-tests.txt
+          FIT_LAB_URL=http://127.0.0.1:8131/fit-lab/ EVIDENCE_DIR=artifacts/waist-hd/gallery node scripts/fit-lab-reference-gallery-review.mjs
+          FIT_LAB_URL=http://127.0.0.1:8131/fit-lab/ EVIDENCE_DIR=artifacts/waist-hd/human node scripts/fit-lab-human-e2e.mjs
+      - name: Reproducible source evidence
+        if: always()
+        run: git archive --format=tar HEAD | gzip > artifacts/waist-hd/source.tar.gz
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nubyra-tied-waist-hd-review
+          path: |
+            artifacts/waist-hd/
+            fit-dist/
+          retention-days: 7
+          if-no-files-found: error

@@ -1,7 +1,7 @@
 import {BASE_SHIRTS} from './size-classifier.mjs';
 
 /** Engineering proposals, not approved sizes. No body measurements enter this registry. */
-export const PATTERN_REGISTRY_VERSION = 'nubyra.pattern-proposals/2.0';
+export const PATTERN_REGISTRY_VERSION = 'nubyra.pattern-proposals/2.1';
 export const FIT_POLICY_VERSION = 'nubyra.fit-rules/2.0';
 const freeze = value => { if(value && typeof value==='object'){Object.values(value).forEach(freeze);Object.freeze(value);} return value; };
 export const MATERIAL_REFERENCE = freeze({id:'recycled-polyester-demo',version:'1',calibrated:false,maxExtension:null});
@@ -25,8 +25,8 @@ export const SHORT_PATTERNS = freeze(Object.fromEntries([
  const code=`${base}-${position}`;
  return [code,{code,base,position,patternId:`shorts/${code}`,patternVersion:'2.0',waistCm,hipCm:hipCm+(position-2)*4,
   riseCm:33.5,material:MATERIAL_REFERENCE,
-  waistband:{construction:'elastic-intended',restCm:waistCm,usableMaxCm:null,stiffness:null,validated:false},
-  supportModel:'rigid-waist-geometric-demonstration',industrialApproved:false}];
+  waistband:{construction:'elastic-with-drawstring',attachment:'tied-in-viewer',restCm:waistCm,usableMaxCm:null,stiffness:null,validated:false},
+  supportModel:'tied-drawstring-constraint',industrialApproved:false}];
 }))));
 export const DEFAULT_SHORT_CODE='N1-2';
 const legacy={P1:'N1-2',P2:'N1-3',P3:'N2-2',P4:'N2-3'};

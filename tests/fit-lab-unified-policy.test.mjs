@@ -43,7 +43,7 @@ test('Manual mode fixes the same pattern on three bodies; auto no-match never si
 });
 test('Both garments have two bases and three positions; shorts waist does not pretend to be calibrated elastic',()=>{
  for(const catalog of[JERSEY_PATTERNS,SHORT_PATTERNS]){assert.equal(Object.keys(catalog).length,6);for(const base of['N1','N2'])assert.deepEqual(Object.values(catalog).filter(p=>p.base===base).map(p=>p.position),[1,2,3]);}
- for(const p of Object.values(SHORT_PATTERNS)){assert.equal(p.waistband.construction,'elastic-intended');assert.equal(p.waistband.usableMaxCm,null);assert.equal(p.material.calibrated,false);assert.equal(p.industrialApproved,false);assert.equal(Object.isFrozen(p),true);}
+ for(const p of Object.values(SHORT_PATTERNS)){assert.equal(p.waistband.construction,'elastic-with-drawstring');assert.equal(p.waistband.usableMaxCm,null);assert.equal(p.material.calibrated,false);assert.equal(p.industrialApproved,false);assert.equal(Object.isFrozen(p),true);}
 });
 test('Original supplied photograph is preserved byte for byte',async()=>{
  const file=await readFile(new URL('../configurador-3d/fit-lab/assets/reference-user.webp',import.meta.url));

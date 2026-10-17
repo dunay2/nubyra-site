@@ -4,12 +4,12 @@ import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {REFERENCE_PROFILES,getReferenceProfile,nearestReferenceProfile,referenceImagePlacement} from '../configurador-3d/fit-lab/reference-profiles.mjs';
 const assets=JSON.parse(await readFile(new URL('../configurador-3d/fit-lab/assets/reference-profiles.json',import.meta.url),'utf8'));
-test('Eight sorted references have distinct images and explicit illustrative provenance',()=>{
+test('Eight sorted references have distinct images and explicit illustrative provenance',async()=>{
  assert.equal(REFERENCE_PROFILES.length,8);assert.equal(new Set(REFERENCE_PROFILES.map(x=>x.id)).size,8);
  const hashes=new Set();for(const [i,p]of REFERENCE_PROFILES.entries()){
   assert.ok(Object.isFrozen(p));assert.equal(p.measurementSource,'illustrative-targets');assert.equal(p.anthropometryValidated,false);
   if(i)assert.ok(p.heightCm>REFERENCE_PROFILES[i-1].heightCm);
-  const a=assets.assets[p.id],b=Buffer.from(a.data.split(',')[1],'base64');assert.equal(b.toString('ascii',0,4),'RIFF');assert.equal(b.toString('ascii',8,12),'WEBP');
+  const a=assets.assets[p.id],b=await readFile(new URL('../configurador-3d/fit-lab/'+a.src,import.meta.url));assert.ok(a.width>=1000&&a.height>=1400);assert.equal(createHash('sha256').update(b).digest('hex'),a.sha256);assert.ok(b.length<120000);assert.equal(b.toString('ascii',0,4),'RIFF');assert.equal(b.toString('ascii',8,12),'WEBP');
   assert.ok(a.head<a.feet);hashes.add(createHash('sha256').update(b).digest('hex'));
  }assert.equal(hashes.size,8);
 });
