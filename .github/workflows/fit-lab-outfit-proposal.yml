@@ -1,0 +1,82 @@
+name: NUBYRA · Outfit proposals and photo preview
+on:
+  push:
+    branches: [feat/fit-lab-outfit-proposal-hover]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: nubyra-outfit-proposal-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Import the integrity-checked application delta once
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/outfit-proposal
+          if ! test -f docs/fit-lab/OUTFIT_PROPOSAL_PREVIEW_CUT.md; then
+            node --input-type=module <<'JS'
+          import {writeFile} from 'node:fs/promises';
+          import {createHash} from 'node:crypto';
+          import {gunzipSync} from 'node:zlib';
+          import {execFileSync} from 'node:child_process';
+          const url='https://sdmntpritalynorth.oaiusercontent.com/files/00000000-406c-8246-81de-7f24ecfd4847/raw?se=2026-10-17T20%3A35%3A43Z&sp=r&sv=2026-02-06&sr=b&scid=77a0b825-a9e1-5f43-8cca-dee5c210275b&skoid=82a3371f-2f6c-4f81-8a78-2701b362559b&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-17T07%3A12%3A37Z&ske=2026-10-18T07%3A12%3A37Z&sks=b&skv=2026-02-06&sig=a99QZVW/8pnBAG3YhX1n%2BxUcY8PTCZmHIe/7xTCY098%3D';
+          const response=await fetch(url,{signal:AbortSignal.timeout(30000)});if(!response.ok)throw Error('Source transfer failed '+response.status);
+          const bytes=Buffer.from(await response.arrayBuffer()),sha=createHash('sha256').update(bytes).digest('hex');
+          if(bytes.length!==37646||sha!=='08b525d787745d823ffdada2372209c5015e799555b146ef3c42aea5130f5b1e')throw Error('Source integrity mismatch');
+          const patch=gunzipSync(bytes);if(patch.length!==137139)throw Error('Patch length mismatch');
+          await writeFile('/tmp/outfit.patch',patch);
+          const changes=execFileSync('git',['apply','--numstat','/tmp/outfit.patch'],{encoding:'utf8'});
+          for(const line of changes.trim().split('\n')){const path=line.split('\t')[2];if(!/^(configurador-3d\/fit-lab\/|scripts\/|tests\/|docs\/fit-lab\/)/.test(path)||path.includes('..'))throw Error('Invalid application path');}
+          execFileSync('git',['apply','--check','/tmp/outfit.patch'],{stdio:'inherit'});execFileSync('git',['apply','/tmp/outfit.patch'],{stdio:'inherit'});
+          await writeFile('artifacts/outfit-proposal/transfer-integrity.json',JSON.stringify({sha256:sha,bytes:bytes.length,base:'ff9248ea79a6e764e1947cb7e4d0ced03ce9771e',changes},null,2));
+          JS
+            test "$GITHUB_REF_NAME" = feat/fit-lab-outfit-proposal-hover
+            git config user.name 'NUBYRA source review'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add configurador-3d/fit-lab scripts tests docs/fit-lab/OUTFIT_PROPOSAL_PREVIEW_CUT.md
+            git commit -m 'feat(fit-lab): propose complete outfits and finite length cuts; preview photos on hover'
+            git push origin HEAD:feat/fit-lab-outfit-proposal-hover
+          fi
+          git rev-parse HEAD | tee artifacts/outfit-proposal/source-commit.txt
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: All unit tests and fixed-pattern invariants
+        run: |
+          set -euo pipefail
+          THREE_TEST_DIR="$PWD" npm test | tee artifacts/outfit-proposal/unit-tests.txt
+      - name: Build exact source
+        run: VERCEL_GIT_COMMIT_SHA=$(git rev-parse HEAD) npm run build:fit-lab
+      - run: npx playwright install --with-deps chromium
+      - name: Inspect head with actual geometry and lighting
+        run: EVIDENCE_DIR=artifacts/outfit-head node scripts/fit-lab-head-review.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nubyra-outfit-head
+          path: artifacts/outfit-head/
+          retention-days: 7
+      - name: Real browser all profiles, visible length, read-only hover and mobile
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8150 --bind 127.0.0.1 --directory fit-dist >/tmp/outfit-http.log 2>&1 &
+          sleep 2
+          FIT_LAB_URL=http://127.0.0.1:8150/fit-lab/ node scripts/fit-lab-outfit-proposal-review.mjs | tee artifacts/outfit-proposal/browser-tests.txt
+      - name: Exact source evidence
+        if: always()
+        run: git archive --format=tar HEAD | gzip > artifacts/outfit-proposal/source.tar.gz
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nubyra-outfit-proposal-review
+          path: |
+            artifacts/outfit-proposal/
+            fit-dist/
+          retention-days: 7
+          if-no-files-found: error
