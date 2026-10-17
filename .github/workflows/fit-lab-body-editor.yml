@@ -1,0 +1,74 @@
+name: NUBYRA · Bounded body points and free camera
+on:
+  push:
+    branches: [feat/fit-lab-bounded-body-camera]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: nubyra-body-editor-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Integrate the exact integrity-checked application delta once
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/body-editor
+          if ! test -f docs/fit-lab/BOUNDED_BODY_EDITOR_CUT.md; then
+            node --input-type=module <<'JS'
+          import {writeFile} from 'node:fs/promises';
+          import {createHash} from 'node:crypto';
+          import {gunzipSync} from 'node:zlib';
+          import {execFileSync} from 'node:child_process';
+          const url='https://sdmntprdenmarkeast.oaiusercontent.com/files/00000000-7dcc-8210-90ab-e2e9ac80a1a5/raw?se=2026-10-17T22%3A24%3A06Z&sp=r&sv=2026-02-06&sr=b&scid=59e3b4b9-3c1b-5e54-a3ca-687d5d997d12&skoid=6658dbdd-f305-4d30-8f6b-d62218202cb9&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-17T06%3A54%3A49Z&ske=2026-10-18T06%3A54%3A49Z&sks=b&skv=2026-02-06&sig=MfYyh6ZljWD8NP7Tfi6krtTI6QLXOGMqFghaAwrEG4Y%3D';
+          const response=await fetch(url,{signal:AbortSignal.timeout(30000)});if(!response.ok)throw Error('Source transfer failed: '+response.status);
+          const bytes=Buffer.from(await response.arrayBuffer());const hash=createHash('sha256').update(bytes).digest('hex');
+          if(bytes.length!==24219||hash!=='711b1a42d9c0ea04934365fdc65f09b2a610ebb84d9a1fb1297af56cceea9d7c')throw Error('Patch integrity mismatch');
+          const patch=gunzipSync(bytes);if(patch.length!==81200)throw Error('Patch size mismatch');await writeFile('/tmp/body-editor.patch',patch);
+          const changes=execFileSync('git',['apply','--numstat','/tmp/body-editor.patch'],{encoding:'utf8'});
+          for(const line of changes.trim().split('\n')){const p=line.split('\t')[2];if(!/^(configurador-3d\/fit-lab\/|scripts\/|tests\/|docs\/fit-lab\/)/.test(p)||p.includes('..'))throw Error('Unexpected application path');}
+          execFileSync('git',['apply','--check','/tmp/body-editor.patch'],{stdio:'inherit'});execFileSync('git',['apply','/tmp/body-editor.patch'],{stdio:'inherit'});
+          await writeFile('artifacts/body-editor/source-integrity.json',JSON.stringify({sha256:hash,base:'e23efbc6d580ee085aa7b87f40a00fe63f0d72bd',changes},null,2));
+          JS
+            test "$GITHUB_REF_NAME" = feat/fit-lab-bounded-body-camera
+            git config user.name 'NUBYRA source review'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add configurador-3d/fit-lab scripts tests docs/fit-lab/BOUNDED_BODY_EDITOR_CUT.md
+            git commit -m 'feat(fit-lab): bounded regional body points and independent free camera'
+            git push origin HEAD:feat/fit-lab-bounded-body-camera
+          fi
+          git rev-parse HEAD | tee artifacts/body-editor/source-commit.txt
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: All unit tests and deformation invariants
+        run: |
+          set -euo pipefail
+          THREE_TEST_DIR="$PWD" npm test | tee artifacts/body-editor/unit-tests.txt
+      - name: Build exact source
+        run: VERCEL_GIT_COMMIT_SHA=$(git rev-parse HEAD) npm run build:fit-lab
+      - run: npx playwright install --with-deps chromium
+      - name: Actual pointer, camera, limits, cancellation and mobile review
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8170 --bind 127.0.0.1 --directory fit-dist >/tmp/body-editor-http.log 2>&1 &
+          sleep 2
+          FIT_LAB_URL=http://127.0.0.1:8170/fit-lab/ node scripts/fit-lab-body-editor-review.mjs | tee artifacts/body-editor/browser-tests.txt
+      - name: Exact source evidence
+        if: always()
+        run: git archive --format=tar HEAD | gzip > artifacts/body-editor/source.tar.gz
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nubyra-body-editor-review
+          path: |
+            artifacts/body-editor/
+            fit-dist/
+          retention-days: 7
+          if-no-files-found: error
