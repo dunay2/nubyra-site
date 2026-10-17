@@ -1,3 +1,4 @@
+import {mountReferenceGallery} from './reference-gallery.mjs';
 import {cleanReferenceAnnotation} from './reference-photo.mjs';
 import {createShortsOuterContact} from './shorts-outer-contact.mjs';
 import * as T from 'three';
@@ -26,6 +27,7 @@ export async function createFullReference(canvas,bytes,seed,shortFactory){
  const camera=new T.OrthographicCamera(-2,2,3,-3,.1,50),photo=document.getElementById('full-reference-photo'),stage=canvas.parentElement,title=document.getElementById('full-reference-title');
  const controls=document.getElementById('reference-file'),height=document.getElementById('reference-height'),head=document.getElementById('reference-head'),feet=document.getElementById('reference-feet'),modeControl=document.getElementById('reference-mode'),status=document.getElementById('reference-photo-status');
  let metrics=null,key='',objectURL=null,mode='original',photoLoaded=false,localPhotoURL=null;
+ const gallery=mountReferenceGallery({stage,onSelectMode(value){modeControl.value=value;choose();}});
  function syncPhoto(){
   if(!metrics||!photoLoaded)return;const cm=Number(height.value),h=Number(head.value)/100,f=Number(feet.value)/100;
   if(!(cm>=100&&cm<=220&&f>h+.10)){status.textContent='Revisa estatura y marcas: pies por debajo de la cabeza.';return;}
@@ -33,20 +35,20 @@ export async function createFullReference(canvas,bytes,seed,shortFactory){
   title.textContent='FOTO · '+cm+' cm declarados';status.textContent='Foto local. Escala según estatura y marcas introducidas; perspectiva sin calibrar.';
  }
  function render(next){
-  metrics=next;if(mode==='original')return;if(mode==='photo'){syncPhoto();return;}const rect=canvas.getBoundingClientRect(),w=rect.width,h=rect.height;if(!w||!h||!next.pxPerCm)return;
+  metrics=next;gallery.render(next);if(mode==='original'||mode==='profiles')return;if(mode==='photo'){syncPhoto();return;}const rect=canvas.getBoundingClientRect(),w=rect.width,h=rect.height;if(!w||!h||!next.pxPerCm)return;
   if(mode==='photo'){syncPhoto();return;}const signature=[w,h,next.pxPerCm,next.floorPx].join(':');if(signature===key)return;key=signature;
   renderer.setSize(w,h,false);const half=h/(2*next.pxPerCm*CM_PER_UNIT);camera.left=-half*w/h;camera.right=half*w/h;camera.top=half;camera.bottom=-half;
   const target=body.userData.floorY+(next.floorPx-h/2)/(next.pxPerCm*CM_PER_UNIT);camera.position.set(0,target,8);camera.lookAt(0,target,0);camera.updateProjectionMatrix();renderer.clear(true,true,true);outerLayer.render(renderer,camera);renderer.render(scene,camera);
  }
  function choose(){
-  mode=modeControl.value==='synthetic'?'synthetic':modeControl.value==='photo'&&photoLoaded?'photo':'original';
-  canvas.hidden=mode!=='synthetic';photo.hidden=mode==='synthetic';photo.dataset.kind=mode;
+  mode=modeControl.value==='profiles'?'profiles':modeControl.value==='synthetic'?'synthetic':modeControl.value==='photo'&&photoLoaded?'photo':'original';
+  canvas.hidden=mode!=='synthetic';photo.hidden=mode==='synthetic'||mode==='profiles';gallery.setActive(mode==='profiles');photo.dataset.kind=mode;
   if(mode==='original'){
    photo.src=new URL('./assets/reference-user.webp',import.meta.url).href;delete photo.dataset.annotationRemoved;cleanReferenceAnnotation(photo);
    photo.style.cssText='';photo.alt='Foto original de referencia, conservada sin sustituir rostro ni equipación';
   }else if(mode==='photo'){photo.src=localPhotoURL;photo.alt='Foto local de referencia';}
-  title.textContent=mode==='synthetic'?'REFERENCIA 3D · 170 cm':mode==='original'?'FOTO ORIGINAL':'FOTO LOCAL';
-  const label=document.getElementById('reference-kind-label');if(label)label.textContent=mode==='synthetic'?'Cuerpo entero · misma escala y suelo':mode==='original'?'Original ampliada · encuadre parcial, sin escala de altura':'Foto local · escala declarada';
+  title.textContent=mode==='synthetic'?'REFERENCIA 3D · 170 cm':mode==='original'?'FOTO ORIGINAL':mode==='profiles'?'REFERENCIA ILUSTRATIVA':'FOTO LOCAL';
+  const label=document.getElementById('reference-kind-label');if(label)label.textContent=mode==='synthetic'?'Cuerpo entero · misma escala y suelo':mode==='original'?'Original ampliada · encuadre parcial, sin escala de altura':mode==='profiles'?'*Escala del perfil ilustrativo · no medida fotográfica':'Foto local · escala declarada';
   document.querySelectorAll('[data-reference-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.referenceMode===mode)));
   stage.dataset.source=mode;key='';if(metrics)render(metrics);
  }
@@ -57,5 +59,5 @@ export async function createFullReference(canvas,bytes,seed,shortFactory){
   const next=URL.createObjectURL(file);try{const img=new Image();img.src=next;await img.decode();if(img.width*img.height>40000000)throw Error('Imagen demasiado grande');if(objectURL)URL.revokeObjectURL(objectURL);objectURL=next;localPhotoURL=next;photo.src=next;photoLoaded=true;modeControl.value='photo';choose();}catch(e){URL.revokeObjectURL(next);status.textContent='No se pudo cargar la foto: '+e.message;}
  }
  controls.addEventListener('change',upload);modeControl.addEventListener('change',choose);for(const el of[height,head,feet])el.addEventListener('input',syncPhoto);choose();
- return{render,snapshot:()=>({mode,fullBody:mode==='synthetic',heightCm:mode==='synthetic'?170:mode==='original'?null:Number(height.value),heightSource:mode==='synthetic'?'fixed-synthetic-avatar':mode==='original'?'not-calibrated':'user-declaration',samePixelScale:mode!=='original',originalPreserved:true,photographInvented:false,outerGarmentLayer:outerLayer.snapshot().enabled}),destroy(){switches.forEach(b=>b.removeEventListener('click',switchMode));if(objectURL)URL.revokeObjectURL(objectURL);controls.removeEventListener('change',upload);modeControl.removeEventListener('change',choose);for(const el of[height,head,feet])el.removeEventListener('input',syncPhoto);outerLayer.destroy();kit.destroy();lowerContact.destroy();finish.destroy();shirt.traverse(m=>{if(m.isMesh){m.geometry.dispose();m.material.dispose();}});shorts.destroy();appearance.destroy();face.destroy();body.geometry.dispose();body.material.dispose();renderer.dispose();}};
+ return{render,snapshot:()=>({profiles:gallery.snapshot(),mode,fullBody:mode==='synthetic'||mode==='profiles',heightCm:mode==='profiles'?gallery.snapshot().profile.heightCm:mode==='synthetic'?170:mode==='original'?null:Number(height.value),heightSource:mode==='profiles'?'illustrative-profile':mode==='synthetic'?'fixed-synthetic-avatar':mode==='original'?'not-calibrated':'user-declaration',samePixelScale:mode!=='original',originalPreserved:true,photographInvented:mode==='profiles',originalExtended:false,outerGarmentLayer:outerLayer.snapshot().enabled}),destroy(){gallery.destroy();switches.forEach(b=>b.removeEventListener('click',switchMode));if(objectURL)URL.revokeObjectURL(objectURL);controls.removeEventListener('change',upload);modeControl.removeEventListener('change',choose);for(const el of[height,head,feet])el.removeEventListener('input',syncPhoto);outerLayer.destroy();kit.destroy();lowerContact.destroy();finish.destroy();shirt.traverse(m=>{if(m.isMesh){m.geometry.dispose();m.material.dispose();}});shorts.destroy();appearance.destroy();face.destroy();body.geometry.dispose();body.material.dispose();renderer.dispose();}};
 }

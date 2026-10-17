@@ -1,0 +1,72 @@
+name: NUBYRA · Eight right-side references
+on:
+  push:
+    branches: [feat/fit-lab-eight-reference-profiles]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: nubyra-reference-gallery-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Apply the exact source delta with integrity verification
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/reference-gallery
+          if test -f .github/reference-cut.0.b64; then
+            cat .github/reference-cut.{0,1,2}.b64 | base64 -d > /tmp/reference-cut.patch.gz
+            echo '8ed15248b4f6ce790622c139530364112d74c1a3727dcf8cf798aace76be65e9  /tmp/reference-cut.patch.gz' | sha256sum -c -
+            gzip -dc /tmp/reference-cut.patch.gz > /tmp/reference-cut.patch
+            git apply --check --unidiff-zero /tmp/reference-cut.patch
+            git apply --unidiff-zero /tmp/reference-cut.patch
+            node .github/finish-reference-cut.mjs
+          fi
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Full Node regressions and reference invariants
+        run: |
+          set -euo pipefail
+          THREE_TEST_DIR="$PWD" npm test | tee artifacts/reference-gallery/node-tests.txt
+      - name: Build application
+        run: VERCEL_GIT_COMMIT_SHA="$GITHUB_SHA" npm run build:fit-lab
+      - run: npx playwright install --with-deps chromium
+      - name: Real browser integration and fixed-pattern regressions
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8108 --bind 127.0.0.1 --directory fit-dist >/tmp/reference-http.log 2>&1 &
+          sleep 2
+          FIT_LAB_URL=http://127.0.0.1:8108/fit-lab/ node scripts/fit-lab-reference-gallery-review.mjs | tee artifacts/reference-gallery/browser-tests.txt
+          FIT_LAB_URL=http://127.0.0.1:8108/fit-lab/ EVIDENCE_DIR=artifacts/reference-gallery/human node scripts/fit-lab-human-e2e.mjs | tee artifacts/reference-gallery/human-tests.txt
+          FIT_LAB_URL=http://127.0.0.1:8108/fit-lab/ EVIDENCE_DIR=artifacts/reference-gallery/shorts node scripts/fit-lab-shorts-review.mjs | tee artifacts/reference-gallery/shorts-tests.txt
+      - name: Commit only verified application source on the review branch
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = feat/fit-lab-eight-reference-profiles
+          if test -f .github/reference-cut.0.b64; then
+            git config user.name 'NUBYRA source review'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add configurador-3d/fit-lab scripts/build-fit-lab.mjs scripts/fit-lab-reference-gallery-review.mjs scripts/fit-lab-shorts-review.mjs tests/fit-lab-fixed-rise.test.mjs tests/fit-lab-reference-profiles.test.mjs docs/fit-lab/REFERENCE_GALLERY.md
+            git rm .github/reference-cut.{0,1,2}.b64 .github/finish-reference-cut.mjs
+            git commit -m 'feat(fit-lab): retain real central viewer and original photo; add eight right-side reference profiles'
+            git push origin HEAD:feat/fit-lab-eight-reference-profiles
+          fi
+          git rev-parse HEAD | tee artifacts/reference-gallery/source-commit.txt
+          VERCEL_GIT_COMMIT_SHA=$(git rev-parse HEAD) npm run build:fit-lab
+          git archive --format=tar HEAD | gzip > artifacts/reference-gallery/source.tar.gz
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nubyra-eight-reference-review
+          path: |
+            artifacts/reference-gallery/
+            fit-dist/
+          retention-days: 7
+          if-no-files-found: error
