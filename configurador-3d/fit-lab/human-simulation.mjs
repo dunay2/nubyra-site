@@ -1,3 +1,4 @@
+import {BODY_SHAPE_KEYS} from './body-regions.mjs';
 import * as T from 'three';
 import {createOptimizedHumanCollider} from './static-mesh-query.mjs';
 import {loadHumanBody,updateHumanBody,createHumanCollider} from './human-body.mjs';
@@ -9,7 +10,7 @@ import {addHumanSurfaceContacts} from './human-contacts.mjs';
 export const SIMULATION_VERSION='human-simulation/1.1-length-cuts';
 export const HUMAN_CLOTH={...DEMO_CLOTH,id:'human-bvh-demo-v1',stepSeconds:1/240,iterations:4};
 export const SETTLE_STEPS=360;
-const FIELDS=['bodyChestCm','bodyHipCm','bodyHeightCm','frontVolume','sideVolume','backVolume','armLoweringDeg','activeConfiguration','garmentLengthCm'];
+const FIELDS=['bodyChestCm','bodyHipCm','bodyHeightCm','frontVolume','sideVolume','backVolume','armLoweringDeg','activeConfiguration','garmentLengthCm',...BODY_SHAPE_KEYS];
 export const simulationKey=state=>SIMULATION_VERSION+':'+JSON.stringify(FIELDS.map(key=>state[key]));
 
 /** Bounded session cache. Entries are settled physical results, never scaled render meshes. */

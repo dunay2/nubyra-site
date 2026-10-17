@@ -1,0 +1,49 @@
+name: NUBYRA · Bounded body points and free camera
+on:
+  push:
+    branches: [feat/fit-lab-bounded-body-camera]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: nubyra-body-editor-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: mkdir -p artifacts/body-editor && git rev-parse HEAD > artifacts/body-editor/source-commit.txt
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: All unit tests and deformation invariants
+        run: |
+          set -euo pipefail
+          THREE_TEST_DIR="$PWD" npm test | tee artifacts/body-editor/unit-tests.txt
+      - name: Build exact source
+        run: VERCEL_GIT_COMMIT_SHA="$GITHUB_SHA" npm run build:fit-lab
+      - run: npx playwright install --with-deps chromium
+      - name: Actual pointer, camera, limits, cancellation and mobile review
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8170 --bind 127.0.0.1 --directory fit-dist >/tmp/body-editor-http.log 2>&1 &
+          sleep 2
+          FIT_LAB_URL=http://127.0.0.1:8170/fit-lab/ node scripts/fit-lab-body-editor-review.mjs | tee artifacts/body-editor/browser-tests.txt
+      - name: Exact source evidence
+        if: always()
+        run: git archive --format=tar HEAD | gzip > artifacts/body-editor/source.tar.gz
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nubyra-body-editor-review
+          path: |
+            artifacts/body-editor/
+            fit-dist/
+          retention-days: 7
+          if-no-files-found: error

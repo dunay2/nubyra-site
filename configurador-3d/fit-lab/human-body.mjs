@@ -1,3 +1,4 @@
+import {applyBodyRegions,inspectRegionalGeometry,REGION_KEYS,BODY_REGIONS_VERSION,boundedRegions} from './body-regions.mjs';
 import * as T from 'three';
 import {applyArmPose} from './human-pose.mjs';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
@@ -39,6 +40,7 @@ export async function loadHumanBody(bytes){
 /** Smooth, bounded metric deformation of an existing human; not anatomy inferred from a photograph. */
 export function updateHumanBody(body,state,{collision=true}={}){
  for(const k of ['bodyHeightCm','bodyChestCm','bodyHipCm','frontVolume','sideVolume','backVolume'])if(!Number.isFinite(state[k]))throw Error('Medida no válida: '+k);
+ const regions=boundedRegions(state);
  const {base,sections}=body.userData,p=body.geometry.attributes.position.array,s=state.bodyHeightCm/100/SOURCE_HEIGHT;
  const height=y=>1.20+(y-LANDMARKS.shoulder)*s/unit;
  let chestFactor=1,hipFactor=1;
@@ -55,7 +57,12 @@ export function updateHumanBody(body,state,{collision=true}={}){
    p[i]=x*s/unit*factor*side;p[i+1]=height(y);p[i+2]=z*s/unit*factor*depth;
   }
  }
- apply();for(let n=0;n<3;n++){chestFactor*=state.bodyChestCm/measure(p,sections.chest);hipFactor*=state.bodyHipCm/measure(p,sections.hip);apply();}
+ apply();for(let n=0;n<3;n++){chestFactor*=(state.bodyBaseChestCm??state.bodyChestCm)/measure(p,sections.chest);hipFactor*=(state.bodyBaseHipCm??state.bodyHipCm)/measure(p,sections.hip);apply();}
+ const neutral=REGION_KEYS.some(k=>regions[k])?p.slice():null;
+ const applied=applyBodyRegions(p,base,state,{scale:s/unit,cmPerUnit:CM_PER_UNIT});
+ const regionGuard=neutral?inspectRegionalGeometry(neutral,p,body.geometry.index.array):{valid:true,minNormalDot:1,minEdgeRatio:1,maxEdgeRatio:1,invalid:0};
+ if(!regionGuard.valid){p.set(neutral);throw Error(regionGuard.reason);}
+ body.userData.regions={version:BODY_REGIONS_VERSION,values:applied,guard:regionGuard,perimeterCompensated:false};
  const unposedMeasures={chestCm:measure(p,sections.chest),hipCm:measure(p,sections.hip)};
  applyArmPose(p,base,{degrees:state.armLoweringDeg??0,scale:s/unit,shoulderX:.18*s/unit*Math.pow(chestFactor,.25),shoulderY:height(1.385)});
  const g=body.geometry;g.attributes.position.needsUpdate=true;g.computeVertexNormals();g.computeBoundingBox();g.computeBoundingSphere();
