@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {BODY_REGION_LIMITS,REGION_KEYS,REGION_DEFAULTS,BODY_REGIONS_VERSION} from './body-regions.mjs';
+import {BODY_REGION_LIMITS,REGION_KEYS,BODY_REGIONS_VERSION} from './body-regions.mjs';
 /** Bounded, read-only draft cage; cloth and committed body stay intact until release. */
 export function mountBodyEditor({canvas,camera,controls,body,scene,getState,measureDraft,commit,lock,invalidate,isReady}){
  const panel=document.createElement('details');panel.id='body-region-editor';panel.className='body-region-editor';
@@ -7,7 +7,7 @@ export function mountBodyEditor({canvas,camera,controls,body,scene,getState,meas
  document.querySelector('.shape-section').after(panel);
  const overlay=document.createElement('div');overlay.className='body-edit-points';overlay.hidden=true;canvas.parentElement.append(overlay);
  const status=panel.querySelector('#body-region-result'),toggle=panel.querySelector('#toggle-body-points'),undo=panel.querySelector('#undo-body-region');
- const fields=new Map(),listeners=[],history=[];let enabled=false,drag=null,draft=null,oldState=null,cage=null,disposed=false,lastKey='',lastValid=null,limited=false,previews=0,commits=0;
+ const fields=new Map(),listeners=[],history=[];let enabled=false,drag=null,draft=null,oldState=null,cage=null,disposed=false,lastKey='',neutralKey='',lastValid=null,limited=false,previews=0,commits=0;
  const listen=(el,type,fn,opts)=>{el.addEventListener(type,fn,opts);listeners.push(()=>el.removeEventListener(type,fn,opts));};
  const fmt=n=>Number(n).toLocaleString('es-ES',{maximumFractionDigits:2});
  const specs={bodyHeightCm:{label:'Estatura',min:125,max:210,step:1,unit:'cm'},...BODY_REGION_LIMITS};
@@ -16,6 +16,7 @@ export function mountBodyEditor({canvas,camera,controls,body,scene,getState,meas
  const handles=definitions.map(([key,label,target,axis])=>{
   let id=0,best=Infinity;for(let i=0;i<base.length;i+=3){const d=(base[i]-target[0])**2+(base[i+1]-target[1])**2+(base[i+2]-target[2])**2;if(d<best){best=d;id=i/3;}}
   const el=document.createElement('button');el.type='button';el.dataset.bodyHandle=key;el.className='body-handle';el.setAttribute('aria-label',label+': arrastra o usa las flechas');el.innerHTML='<span class="handle-dot">↔</span><span class="handle-name"></span>';el.querySelector('.handle-name').textContent=label;overlay.append(el);
+  el.querySelector('.handle-dot').textContent=key==='bodyHeightCm'?'↕':'↔';
   const h={key,label,id,axis:new T.Vector3(...axis),el};
   listen(el,'pointerdown',e=>startPointer(h,e));
   listen(el,'pointermove',e=>movePointer(h,e));
@@ -77,7 +78,7 @@ export function mountBodyEditor({canvas,camera,controls,body,scene,getState,meas
  listen(window,'keydown',e=>{if(e.key==='Escape'&&oldState){e.preventDefault();cancel();}});
  listen(panel,'toggle',()=>{if(!panel.open){cancel();enabled=false;overlay.hidden=true;toggle.setAttribute('aria-pressed','false');toggle.textContent='Mostrar puntos';}});
  return {
-  render(){if(disposed)return;const key=JSON.stringify([...REGION_KEYS,'bodyHeightCm'].map(k=>getState()[k]));if(key!==lastKey&&!oldState){lastKey=key;refresh();}if(!enabled)return;for(const h of handles){const p=point(h),q=p.clone().project(camera),v=screen(p);h.el.style.left=v.x+'px';h.el.style.top=v.y+'px';h.el.hidden=Math.abs(q.x)>1||Math.abs(q.y)>1||q.z<-1||q.z>1;h.el.dataset.limited=String(limited&&drag?.key===h.key);h.el.title=`${h.label}: ${fmt((draft||getState())[h.key]??0)} ${specs[h.key].unit} · ${specs[h.key].min} a ${specs[h.key].max}`;}},
+  render(){if(disposed)return;const n=getState(),neutral=JSON.stringify([n.bodyBaseChestCm??n.bodyChestCm,n.bodyBaseHipCm??n.bodyHipCm]);if(neutral!==neutralKey&&!oldState){if(neutralKey&&REGION_KEYS.every(k=>(n[k]??0)===0)){history.length=0;undo.disabled=true;}neutralKey=neutral;}const key=JSON.stringify([...REGION_KEYS,'bodyHeightCm'].map(k=>getState()[k]));if(key!==lastKey&&!oldState){lastKey=key;refresh();}if(!enabled)return;for(const h of handles){const p=point(h),q=p.clone().project(camera),v=screen(p);h.el.style.left=v.x+'px';h.el.style.top=v.y+'px';const axisPixels=screen(p.clone().add(h.axis)).sub(v).length();h.el.hidden=Math.abs(q.x)>1||Math.abs(q.y)>1||q.z<-1||q.z>1||axisPixels<15;h.el.dataset.limited=String(limited&&drag?.key===h.key);h.el.title=`${h.label}: ${fmt((draft||getState())[h.key]??0)} ${specs[h.key].unit} · ${specs[h.key].min} a ${specs[h.key].max}`;}},
   snapshot:()=>({version:BODY_REGIONS_VERSION,enabled,previewing:Boolean(oldState),draft:draft?{...draft}:null,previews,commits,limits:BODY_REGION_LIMITS,clothRecalculatedDuringDrag:false,guard:'local-orientation-edge-ratio',globalSelfIntersectionValidated:false}),
   destroy(){disposed=true;clearCage();listeners.forEach(f=>f());panel.remove();overlay.remove();}
  };

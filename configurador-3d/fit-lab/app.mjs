@@ -18,7 +18,7 @@ for(const [hex,name] of FABRIC_COLORS){const b=document.createElement('button');
 $('fabric-colors').firstElementChild.setAttribute('aria-pressed','true');
 function syncUI(){
  const c=garmentForState(state);
- document.querySelectorAll('[data-field]').forEach(input=>{if(document.activeElement!==input||input.type==='range')input.value=state[input.dataset.field];});
+ document.querySelectorAll('[data-field]').forEach(input=>{if(document.activeElement!==input||input.type==='range')input.value=Math.round(state[input.dataset.field]*10)/10;});
  for(const key of ['frontVolume','sideVolume','backVolume'])$(key+'-output').textContent=fmt(state[key]);
  document.querySelectorAll('[data-selection-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.selectionMode===state.selectionMode)));
  document.querySelectorAll('[data-garment]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.garment===state.activeConfiguration)));
