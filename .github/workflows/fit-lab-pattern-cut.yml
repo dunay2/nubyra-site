@@ -18,7 +18,7 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-      - name: Apply the exact reviewed delta, with integrity and base checks
+      - name: Apply the reviewed application delta without changing workflows
         run: |
           set -euo pipefail
           mkdir -p artifacts/pattern-review
@@ -29,6 +29,14 @@ jobs:
             gzip -dc /tmp/unified-cut.patch.gz > /tmp/unified-cut.patch
             git apply --check --unidiff-zero /tmp/unified-cut.patch
             git apply --unidiff-zero /tmp/unified-cut.patch
+            # The Actions token cannot write workflows. Preserve that boundary.
+            git restore .github/workflows/validate-configurador-3d.yml
+            python3 - <<'PY'
+          from pathlib import Path
+          p=Path('docs/fit-lab/UNIFIED_PATTERN_CUT.md')
+          s=p.read_text().replace('The old automatic "all shorts above knee" CI gate is replaced with the requested invariant: selected lengths remain fixed even when their relation to the knee changes.', 'The cut-specific CI verifies fixed selected lengths even when their relation to the knee changes. The general workflow historical above-knee gate remains unchanged: updating that workflow requires a workflow-authorized repository owner.')
+          p.write_text(s)
+          PY
           fi
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - name: All unit regressions and independent-pattern invariants
@@ -46,15 +54,16 @@ jobs:
           node scripts/fit-lab-pattern-review.mjs | tee artifacts/pattern-review/browser-tests.txt
           FIT_LAB_URL=http://127.0.0.1:8098/fit-lab/ EVIDENCE_DIR=artifacts/pattern-review/human node scripts/fit-lab-human-e2e.mjs | tee artifacts/pattern-review/human-tests.txt
           EVIDENCE_DIR=artifacts/pattern-review/head node scripts/fit-lab-head-review.mjs
-      - name: Commit only the verified application source on this review branch
+      - name: Commit verified application source, never workflow files
         run: |
           set -euo pipefail
           test "$GITHUB_REF_NAME" = feat/fit-lab-unified-pattern-rules
           if test -f .github/unified-cut.0.b64; then
             git config user.name 'NUBYRA source review'
             git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git add configurador-3d/fit-lab scripts tests docs/fit-lab/UNIFIED_PATTERN_CUT.md .github/workflows/validate-configurador-3d.yml
+            git add configurador-3d/fit-lab scripts tests docs/fit-lab/UNIFIED_PATTERN_CUT.md
             git rm .github/unified-cut.{0,1,2,3}.b64
+            if git diff --cached --name-only | grep '^.github/workflows/'; then exit 1; fi
             git commit -m 'feat(fit-lab): unified pattern registry, per-zone recommendations and retained reference'
             git push origin HEAD:feat/fit-lab-unified-pattern-rules
           fi
