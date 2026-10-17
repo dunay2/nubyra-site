@@ -1,7 +1,7 @@
 import {BASE_SHIRTS} from './size-classifier.mjs';
 
 /** Engineering proposals, not approved sizes. No body measurements enter this registry. */
-export const PATTERN_REGISTRY_VERSION = 'nubyra.pattern-proposals/2.1';
+export const PATTERN_REGISTRY_VERSION = 'nubyra.pattern-proposals/2.2';
 export const FIT_POLICY_VERSION = 'nubyra.fit-rules/2.0';
 const freeze = value => { if(value && typeof value==='object'){Object.values(value).forEach(freeze);Object.freeze(value);} return value; };
 export const MATERIAL_REFERENCE = freeze({id:'recycled-polyester-demo',version:'1',calibrated:false,maxExtension:null});
@@ -36,4 +36,21 @@ export function patternSpecification(pattern,lengthCm=pattern.lengthCm){
   base:pattern.base,position:pattern.position,material:pattern.material,
   dimensions:{...('chestCm' in pattern?{chestCm:pattern.chestCm}:{waistRestCm:pattern.waistCm,riseCm:pattern.riseCm}),hipCm:pattern.hipCm,lengthCm},
   waistband:pattern.waistband||null,industrialApproved:false};
+}
+
+/** Explicit laboratory cuts, not factory-approved dimensions. */
+export const JERSEY_LENGTHS=Object.freeze([48,56,64,72,80,84]);
+export function nearestJerseyLength(value){
+ const n=Number(value);if(!Number.isFinite(n)||n<=0)throw Error('Largo deseado inválido');
+ return [...JERSEY_LENGTHS].sort((a,b)=>Math.abs(a-n)-Math.abs(b-n)||a-b)[0];
+}
+export function jerseyLengthVariant(pattern,lengthCm=pattern.lengthCm){
+ if(!pattern||!JERSEY_LENGTHS.includes(Number(lengthCm)))throw Error('Corte de largo no disponible');
+ return Object.freeze({...pattern,lengthCm:Number(lengthCm),patternId:`jersey/${pattern.code}/L${lengthCm}`,patternVersion:'2.0',lengthVariant:true});
+}
+/** Authored rise alternatives, never derived continuously from body geometry. */
+export const SHORT_RISES=Object.freeze([33.5,35.5,37.5]);
+export function shortRiseKey(code,lengthCm,riseCm=33.5){
+ if(!SHORT_LENGTHS.includes(lengthCm)||!SHORT_RISES.includes(riseCm)||riseCm>lengthCm-.5)throw Error('Combinación fija de tiro y largo no disponible');
+ return code+'-'+lengthCm+(riseCm===33.5?'':'-R'+riseCm);
 }

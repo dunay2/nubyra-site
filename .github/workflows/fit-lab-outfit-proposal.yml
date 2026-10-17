@@ -1,0 +1,58 @@
+name: NUBYRA · Outfit proposals and photo preview
+on:
+  push:
+    branches: [feat/fit-lab-outfit-proposal-hover]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: nubyra-outfit-proposal-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: All unit tests and fixed-pattern invariants
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/outfit-proposal
+          git rev-parse HEAD | tee artifacts/outfit-proposal/source-commit.txt
+          THREE_TEST_DIR="$PWD" npm test | tee artifacts/outfit-proposal/unit-tests.txt
+      - name: Build exact source
+        run: VERCEL_GIT_COMMIT_SHA="$GITHUB_SHA" npm run build:fit-lab
+      - run: npx playwright install --with-deps chromium
+      - name: Inspect head with actual geometry and lighting
+        run: EVIDENCE_DIR=artifacts/outfit-head node scripts/fit-lab-head-review.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nubyra-outfit-head
+          path: artifacts/outfit-head/
+          retention-days: 7
+      - name: Real browser all profiles, visible length, read-only hover and mobile
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8150 --bind 127.0.0.1 --directory fit-dist >/tmp/outfit-http.log 2>&1 &
+          sleep 2
+          FIT_LAB_URL=http://127.0.0.1:8150/fit-lab/ node scripts/fit-lab-outfit-proposal-review.mjs | tee artifacts/outfit-proposal/browser-tests.txt
+          FIT_LAB_URL=http://127.0.0.1:8150/fit-lab/ EVIDENCE_DIR=artifacts/outfit-proposal/human node scripts/fit-lab-human-e2e.mjs | tee artifacts/outfit-proposal/human-tests.txt
+      - name: Exact source evidence
+        if: always()
+        run: git archive --format=tar HEAD | gzip > artifacts/outfit-proposal/source.tar.gz
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nubyra-outfit-proposal-review
+          path: |
+            artifacts/outfit-proposal/
+            fit-dist/
+          retention-days: 7
+          if-no-files-found: error

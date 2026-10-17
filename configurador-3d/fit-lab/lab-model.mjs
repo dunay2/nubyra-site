@@ -11,12 +11,12 @@ export function resolveState(input){
  state.selectionMode=state.selectionMode==='manual'?'manual':'auto';
  if(!GARMENT_CATALOG[state.activeConfiguration])state.activeConfiguration=DEFAULT_CONFIGURATION;
  const recommendation=recommendPreviewConfiguration(state);
- if(state.selectionMode==='auto'&&recommendation.hasDemoCoverage)state.activeConfiguration=recommendation.previewCode;
- Object.assign(state,stateForConfiguration(state.activeConfiguration));
+ if(state.selectionMode==='auto'&&recommendation.hasConfiguration)state.activeConfiguration=recommendation.previewCode;
+ Object.assign(state,stateForConfiguration(state.activeConfiguration,recommendation.proposedLengthCm));
  return Object.freeze({...state,recommendation:Object.freeze(recommendation),reviewRequired:!recommendation.hasDemoCoverage});
 }
 export function transition(state,event){
- if(event.type==='reference-profile')return resolveState({...state,...referenceProfileMeasures(event.id)});
+ if(event.type==='reference-profile')return resolveState({...state,...referenceProfileMeasures(event.id),selectionMode:'auto'});
  if(event.type==='reset')return resolveState(DEFAULT_INPUT);
  if(event.type==='measure'&&Object.hasOwn(FIELD_LIMITS,event.key))return resolveState({...state,[event.key]:event.value});
  if(event.type==='mode')return resolveState({...state,selectionMode:event.value});

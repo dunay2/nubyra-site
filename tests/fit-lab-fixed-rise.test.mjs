@@ -21,7 +21,7 @@ test('Length variants preserve the exact authored pelvis and rise rather than re
   }
  }finally{await rm(dir,{recursive:true,force:true});}
 });
-test('Full reference uses the same kit and outer garment layer as the main viewer',async()=>{
- const s=await readFile(new URL('../configurador-3d/fit-lab/full-reference.mjs',import.meta.url),'utf8');
- assert.match(s,/kit\.attach\(shirt\)/);assert.match(s,/outerLayer\.setShorts\(shorts,true\)/);assert.match(s,/outerLayer\.render\(renderer,camera\)/);assert.match(s,/stencil:true/);assert.match(s,/originalExtended:false/);assert.match(s,/photographInvented:mode==='profiles'/);
+test('Photo reference uses no second WebGL and removes obsolete tabs',async()=>{
+ const s=await readFile(new URL('../configurador-3d/fit-lab/full-reference.mjs',import.meta.url),'utf8');assert.match(s,/mountReferenceGallery/);assert.match(s,/secondaryWebGL:false/);assert.doesNotMatch(s,/new T\.WebGLRenderer/);
+ const html=await readFile(new URL('../configurador-3d/fit-lab/index.html',import.meta.url),'utf8');assert.match(html,/id="fit-canvas"/);assert.match(html,/id="profile-reference-photo"/);assert.doesNotMatch(html,/data-reference-mode=/);
 });

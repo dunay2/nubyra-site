@@ -5,7 +5,7 @@ import {createReferenceRangeHelp} from './reference-range-help.mjs';
 export function mountReferenceGallery({stage,onSelectMode,onApplyProfile=()=>{}}){
  const root=document.getElementById('reference-gallery'),image=document.getElementById('profile-reference-photo'),meta=document.getElementById('profile-reference-meta'),auto=document.getElementById('reference-profile-auto'),message=document.getElementById('reference-match-status'),gauge=document.getElementById('profile-height-gauge');
  let data=null,active=false,automatic=auto.checked,selected='R05',nearest=null,body=null,bodyKey='',metrics=null;
- let disposed=false,token=0,lastMs=0,appliedId=null,applyCount=0;
+ let disposed=false,token=0,lastMs=0,appliedId=null,applyCount=0,previewId=null,previewCount=0,restoreTimer=null;
  const listeners=[],images=new Map(),buttons=[];const help=createReferenceRangeHelp(()=>body);
  const listen=(el,event,fn)=>{el.addEventListener(event,fn);listeners.push(()=>el.removeEventListener(event,fn));};
  const fmt=n=>Number(n).toLocaleString('es-ES',{maximumFractionDigits:1});
@@ -17,25 +17,35 @@ export function mountReferenceGallery({stage,onSelectMode,onApplyProfile=()=>{}}
   const title=document.createElement('strong');title.textContent=profile.heightCm+' cm';const mass=document.createElement('span');mass.textContent=profile.weightKg+' kg · escenario';const type=document.createElement('small');type.textContent=profile.label;button.append(img,title,mass,type);
   const info=document.createElement('button');info.type='button';info.className='reference-range-info';info.textContent='ⓘ';info.dataset.referenceInfo=profile.id;info.setAttribute('aria-label',`Consultar rangos de ${profile.id}, sin aplicar medidas`);
   card.append(button,info);root.querySelector('.reference-profile-grid').append(card);buttons.push(button);
-  help.bind(button,()=>profile.id);help.bind(info,()=>profile.id,{info:true});
-  listen(button,'click',()=>{selected=profile.id;appliedId=profile.id;applyCount++;help.hide();onApplyProfile(profile.id);onSelectMode('profiles');show();});
+  help.bind(info,()=>profile.id,{info:true});
+  listen(button,'pointerenter',e=>{if(e.pointerType!=='touch')preview(profile.id);});
+  listen(button,'pointerleave',scheduleRestore);listen(button,'focus',()=>preview(profile.id));listen(button,'blur',scheduleRestore);
+  listen(button,'click',()=>{clearTimeout(restoreTimer);previewId=null;selected=profile.id;appliedId=profile.id;applyCount++;help.hide();onApplyProfile(profile.id);onSelectMode('profiles');show();});
  }
  image.tabIndex=0;help.bind(image,()=>image.dataset.profile||selected);
  const mainInfo=document.createElement('button');mainInfo.type='button';mainInfo.className='reference-main-info';mainInfo.id='reference-current-ranges';mainInfo.textContent='ⓘ Rangos de la foto';mainInfo.setAttribute('aria-label','Consultar rangos de la foto actual, sin aplicar medidas');root.querySelector('.reference-gallery-heading').append(mainInfo);help.bind(mainInfo,()=>image.dataset.profile||selected,{info:true});
+ function preview(id){clearTimeout(restoreTimer);if(previewId===id)return;previewId=id;previewCount++;if(!active)onSelectMode('profiles');show();}
+ function restore(){clearTimeout(restoreTimer);if(!previewId)return;previewId=null;show();}
+ function scheduleRestore(){clearTimeout(restoreTimer);restoreTimer=setTimeout(()=>{if(!stage.matches(':hover')&&!root.querySelector('.reference-profile:hover')&&!root.querySelector('.reference-profile:focus-visible'))restore();},180);}
+ listen(stage,'pointerenter',()=>clearTimeout(restoreTimer));listen(stage,'pointerleave',scheduleRestore);
+ listen(document,'keydown',e=>{if(e.key==='Escape')restore();});
  function decorate(){
   const assessment=assessReferenceProfile(getReferenceProfile(selected),body);
   buttons.forEach(b=>{b.setAttribute('aria-pressed',String(active&&b.dataset.referenceProfile===selected));b.dataset.nearest=String(nearest?.profile.id===b.dataset.referenceProfile);});
-  const p=getReferenceProfile(image.dataset.profile||selected);meta.textContent=`${p.heightCm} cm · ${p.weightKg} kg de escenario · pecho ${p.chestCm} / cadera ${p.hipCm} cm`;mainInfo.hidden=!active;
+  const p=getReferenceProfile(image.dataset.profile||selected);meta.textContent=`${p.heightCm} cm · ${p.weightKg} kg de escenario · pecho ${p.chestCm} / cadera ${p.hipCm} cm`;mainInfo.hidden=!active;stage.dataset.preview=String(Boolean(previewId));const label=document.getElementById('reference-kind-label');if(label)label.textContent=previewId?'Vista previa · pulsa la tarjeta para aplicar':'Referencia seleccionada · retrato ilustrativo';
   const applied=appliedId===selected&&assessment.exact;
-  message.textContent=!active?'Pulsa una foto para aplicar su altura, pecho y cadera. Consulta ⓘ sin cambiar medidas.':!assessment.valid?'Introduce medidas válidas para buscar una referencia.':applied?`Perfil ${selected} aplicado: altura ${fmt(body.bodyHeightCm)}, pecho ${fmt(body.bodyChestCm)} y cadera ${fmt(body.bodyHipCm)} cm. Largo deseado y prendas manuales conservados.`:automatic?(assessment.withinCoverage?`Referencia próxima ${selected}. Se conservan tus medidas exactas; la foto no las sustituye.`:'Fuera de cobertura: se muestra el ejemplo más próximo, no una equivalencia corporal.'):`Referencia ajustada manualmente. ${assessment.withinCoverage?'Coincidencia parcial dentro del rango.':'Fuera del rango: '+assessment.outside.join(', ')+'.'} Tus medidas se conservan.`;
+  message.textContent=!active?'Pulsa una foto para aplicar su altura, pecho y cadera. Consulta ⓘ sin cambiar medidas.':!assessment.valid?'Introduce medidas válidas para buscar una referencia.':applied?`Perfil ${selected} aplicado: altura ${fmt(body.bodyHeightCm)}, pecho ${fmt(body.bodyChestCm)} y cadera ${fmt(body.bodyHipCm)} cm. Propuesta de camiseta y pantalón actualizada; largo deseado conservado.`:automatic?(assessment.withinCoverage?`Referencia próxima ${selected}. Se conservan tus medidas exactas; la foto no las sustituye.`:'Fuera de cobertura: se muestra el ejemplo más próximo, no una equivalencia corporal.'):`Referencia ajustada manualmente. ${assessment.withinCoverage?'Coincidencia parcial dentro del rango.':'Fuera del rango: '+assessment.outside.join(', ')+'.'} Tus medidas se conservan.`;
+  if(previewId)message.textContent=`Vista previa ${previewId}: solo cambia la foto. Pulsa para aplicar medidas y proponer equipación.`;
   help.refresh();
  }
  function place(){
-  if(!active||!data||!metrics)return;const id=image.dataset.profile||selected,p=getReferenceProfile(id),a=data.assets[id];const s=referenceImagePlacement({profile:p,asset:a,metrics});
-  image.style.height=s.height+'px';image.style.width=s.width+'px';image.style.top=s.top+'px';gauge.style.top=s.headPx+'px';gauge.style.height=(s.feetPx-s.headPx)+'px';gauge.querySelector('span').textContent=p.heightCm+' cm*';gauge.hidden=metrics.fullView===false;
+  if(!active||!data||!metrics)return;const id=image.dataset.profile||selected,asset=data.assets[id];
+  const availableWidth=Math.max(20,stage.clientWidth-24),availableHeight=Math.max(20,stage.clientHeight-94);
+  const scale=Math.min(availableWidth/asset.width,availableHeight/asset.height),height=asset.height*scale,width=asset.width*scale;
+  image.style.height=height+'px';image.style.width=width+'px';image.style.top=(46+(availableHeight-height)/2)+'px';gauge.hidden=true;
  }
  async function show(){
-  decorate();place();if(!active||!data)return;const request=++token,id=selected,start=performance.now();
+  decorate();place();if(!active||!data)return;const request=++token,id=previewId||selected,start=performance.now();
   try{let promise=images.get(id);if(!promise){const next=new Image();next.src=new URL(data.assets[id].src,import.meta.url).href;promise=next.decode().then(()=>next);images.set(id,promise);}const next=await promise;if(disposed||request!==token||!active)return;
    image.src=next.src;image.alt=`Referencia ilustrativa ${id}. ${getReferenceProfile(id).label}. No es una fotografía medida.`;image.dataset.profile=id;image.hidden=false;lastMs=performance.now()-start;decorate();place();help.retarget(image,id);help.retarget(mainInfo,id);
   }catch{images.delete(id);message.textContent='No se pudo cargar esta referencia. Se conserva la imagen anterior. Puedes volver a intentarlo.';}
@@ -51,7 +61,7 @@ export function mountReferenceGallery({stage,onSelectMode,onApplyProfile=()=>{}}
   data=value;buttons.forEach(b=>b.querySelector('img').src=new URL(data.assets[b.dataset.referenceProfile].thumbnail,import.meta.url).href);root.dataset.loaded='true';show();
  }).catch(()=>{if(!disposed){root.dataset.loaded='error';message.textContent='No se pudieron cargar los ocho perfiles.';}});
  return {ready,setBody,setActive(value){active=value;token++;image.hidden=!active;gauge.hidden=!active;meta.hidden=!active;if(!active)help.hide();decorate();if(active)show();},render(next){metrics=next;place();},
-  snapshot(){const a=assessReferenceProfile(getReferenceProfile(selected),body);return{version:REFERENCE_PROFILES_VERSION,mode:automatic?'auto':'manual',active,selectedId:selected,displayedId:image.dataset.profile||null,profile:{...a.profile},nearestId:nearest?.profile.id??null,withinCoverage:a.withinCoverage,score:a.score,coverage:a,appliedId,applyCount,rangeHelp:help.snapshot(),selectionWritesMeasures:false,explicitApplyWritesMeasures:true,lastSwapMs:lastMs,loaded:Boolean(data),patternsMutated:false,weightUsedForSelection:false,source:'generated-individual-portraits',assetResolution:data?{width:data.assets[selected].width,height:data.assets[selected].height}:null,anthropometryValidated:false};},
-  destroy(){disposed=true;token++;listeners.forEach(fn=>fn());help.destroy();images.clear();buttons.forEach(b=>b.parentElement.remove());mainInfo.remove();}
+  snapshot(){const a=assessReferenceProfile(getReferenceProfile(selected),body);return{version:REFERENCE_PROFILES_VERSION,previewId,previewCount,hoverWritesMeasures:false,photoScale:'contain-independent',mode:automatic?'auto':'manual',active,selectedId:selected,displayedId:image.dataset.profile||null,profile:{...a.profile},nearestId:nearest?.profile.id??null,withinCoverage:a.withinCoverage,score:a.score,coverage:a,appliedId,applyCount,rangeHelp:help.snapshot(),selectionWritesMeasures:false,explicitApplyWritesMeasures:true,lastSwapMs:lastMs,loaded:Boolean(data),patternsMutated:false,weightUsedForSelection:false,source:'generated-individual-portraits',assetResolution:data?{width:data.assets[selected].width,height:data.assets[selected].height}:null,anthropometryValidated:false};},
+  destroy(){disposed=true;clearTimeout(restoreTimer);token++;listeners.forEach(fn=>fn());help.destroy();images.clear();buttons.forEach(b=>b.parentElement.remove());mainInfo.remove();}
  };
 }

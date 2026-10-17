@@ -2,14 +2,14 @@ import * as T from 'three';
 import {createOptimizedHumanCollider} from './static-mesh-query.mjs';
 import {loadHumanBody,updateHumanBody,createHumanCollider} from './human-body.mjs';
 import {createRestGarment,createClothAdapter} from './fit-mesh.mjs';
-import {GARMENT_CATALOG} from './garment-catalog.mjs';
+import {GARMENT_CATALOG,garmentForState} from './garment-catalog.mjs';
 import {DEMO_CLOTH} from './cloth-material.mjs';
 import {addHumanSurfaceContacts} from './human-contacts.mjs';
 
-export const SIMULATION_VERSION='human-simulation/1.0';
+export const SIMULATION_VERSION='human-simulation/1.1-length-cuts';
 export const HUMAN_CLOTH={...DEMO_CLOTH,id:'human-bvh-demo-v1',stepSeconds:1/240,iterations:4};
 export const SETTLE_STEPS=360;
-const FIELDS=['bodyChestCm','bodyHipCm','bodyHeightCm','frontVolume','sideVolume','backVolume','armLoweringDeg','activeConfiguration'];
+const FIELDS=['bodyChestCm','bodyHipCm','bodyHeightCm','frontVolume','sideVolume','backVolume','armLoweringDeg','activeConfiguration','garmentLengthCm'];
 export const simulationKey=state=>SIMULATION_VERSION+':'+JSON.stringify(FIELDS.map(key=>state[key]));
 
 /** Bounded session cache. Entries are settled physical results, never scaled render meshes. */
@@ -26,7 +26,7 @@ export async function createHumanSimulation(bytes,{colliderFactory=createOptimiz
  function disposeGarment(){contacts?.destroy();if(garment){const materials=new Set();garment.traverse(m=>{if(m.isMesh){m.geometry.dispose();for(const mat of Array.isArray(m.material)?m.material:[m.material])materials.add(mat);}});materials.forEach(m=>m.dispose());}}
  function prepare(next,rev,cached){
   state=next;revision=rev;disposeGarment();updateHumanBody(body,state);
-  garment=createRestGarment(T,GARMENT_CATALOG[state.activeConfiguration]);
+  garment=createRestGarment(T,garmentForState(state));
   adapter=createClothAdapter(garment,body,{colliderFactory,material:HUMAN_CLOTH,clearance:.016});
   contacts=addHumanSurfaceContacts(adapter,body);remaining=total=SETTLE_STEPS;cacheHit=false;
   const s=adapter.solver;

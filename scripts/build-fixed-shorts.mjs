@@ -1,3 +1,4 @@
+import {SHORT_RISES,shortRiseKey} from '../configurador-3d/fit-lab/pattern-registry.mjs';
 import {readFile,writeFile} from 'node:fs/promises';
 import {loadHumanBody,updateHumanBody} from '../configurador-3d/fit-lab/human-body.mjs';
 import {createHumanOutfit} from '../configurador-3d/fit-lab/human-outfit.mjs';
@@ -34,6 +35,16 @@ export async function buildFixedShorts(destination){
    }
    const key=fixedShortKey(size.code,length);patterns[key]={positions:Array.from(p.array),indices:Array.from(g.index.array),groups:[{start:0,count:g.index.count,materialIndex:0}],nominal:{...size,lengthCm:length,measuredWaistCm:horizontalPerimeter(g,-.001),measuredHipCm:horizontalPerimeter(g,hipY),riseReferenceCm:riseCm,geometrySource:'fixed-canonical-pattern-proposal',riseIndependentOfLength:true}};g.dispose();
   }src.dispose();}
- await writeFile(destination,JSON.stringify({version:FIXED_SHORTS_VERSION,industrialApproved:false,patterns}));
+ const riseVariants={};
+ for(const [key,base] of Object.entries(patterns))for(const rise of SHORT_RISES){
+  if(rise===riseCm||rise>base.nominal.lengthCm-.5)continue;
+  const positions=base.positions.slice(),length=base.nominal.lengthCm;
+  for(let i=1;i<positions.length;i+=3){const d=-positions[i]*CM_PER_UNIT;
+   const next=d<=hipDepth?d:d<=riseCm?hipDepth+(d-hipDepth)/(riseCm-hipDepth)*(rise-hipDepth):rise+(d-riseCm)/(length-riseCm)*(length-rise);
+   positions[i]=Math.fround(-next/CM_PER_UNIT);
+  }
+  riseVariants[shortRiseKey(base.nominal.code,length,rise)]={...base,positions,nominal:{...base.nominal,patternId:`shorts/${base.nominal.code}/L${length}/R${rise}`,patternVersion:'3.0',riseReferenceCm:rise,riseCm:rise,riseVariant:true}};
+ }
+ await writeFile(destination,JSON.stringify({version:FIXED_SHORTS_VERSION,industrialApproved:false,patterns,riseVariants}));
  }finally{authored.destroy();body.geometry.dispose();body.material.dispose();}
 }

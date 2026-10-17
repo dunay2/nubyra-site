@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {createBody,updateBody,createRestGarment,createClothAdapter,ringPerimeter,CM_PER_UNIT} from './fit-mesh.mjs';
-import {GARMENT_CATALOG} from './garment-catalog.mjs';
+import {GARMENT_CATALOG,garmentForState} from './garment-catalog.mjs';
 import {createKitDesign} from './kit-design.mjs';
 import {createOutfitReference} from './outfit-reference.mjs';
 import {createBustReference} from './bust-reference.mjs';
@@ -32,11 +32,11 @@ export function createFitViewer(canvas,initial,onFrame=()=>{}){
  function update(next){
   counts.physicalUpdates++;const heightChanged=state.bodyHeightCm!==next.bodyHeightCm;
   const bodyChanged=!adapter||['bodyChestCm','bodyHipCm','bodyHeightCm','frontVolume','sideVolume','backVolume'].some(key=>state[key]!==next[key]);
-  const garmentChanged=!adapter||garment.userData.configuration!==next.activeConfiguration;
+  const garmentChanged=!adapter||garment.userData.configuration!==next.activeConfiguration||state.garmentLengthCm!==next.garmentLengthCm;
   state=next;
   if(bodyChanged){updateBody(body,state);updateRings();if(bustGuide)rebuildBustGuide();bodyReference=null;counts.bodyBuilds++;if(fullView){rebuildOutfit();if(heightChanged)frameOutfit();}}
   if(garmentChanged){
-   disposeGarment();garment=createRestGarment(THREE,GARMENT_CATALOG[state.activeConfiguration]);garment.userData.configuration=state.activeConfiguration;scene.add(garment);adapter=createClothAdapter(garment,body);kit.attach(garment);applyFabricColor();adapter.solver.settle(55);counts.garmentBuilds++;
+   disposeGarment();garment=createRestGarment(THREE,garmentForState(state));garment.userData.configuration=state.activeConfiguration;scene.add(garment);adapter=createClothAdapter(garment,body);kit.attach(garment);applyFabricColor();adapter.solver.settle(55);counts.garmentBuilds++;
   }else if(bodyChanged){adapter.retarget(body);if(reduced.matches)adapter.solver.settle(40);}
   if(bodyChanged||garmentChanged){adapter.sync();garmentReference=null;referenceDirty=true;wake();}
   visual();onFrame(snapshot());invalidate();

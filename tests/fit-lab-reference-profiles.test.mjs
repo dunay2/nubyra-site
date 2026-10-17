@@ -31,9 +31,9 @@ test('Image scale remains isotropic and feet share the model floor at three view
   assert.ok(Math.abs(r.top+asset.feet*r.height-612)<1e-10);
  }
 });
-test('Reference selector cannot mutate body or pattern state, and original supplied photo remains in the UI',async()=>{
+test('Reference selector cannot mutate body or pattern state, and only the central WebGL canvas stays in the UI',async()=>{
  const source=await readFile(new URL('../configurador-3d/fit-lab/reference-gallery.mjs',import.meta.url),'utf8');
  assert.doesNotMatch(source,/import .*?(human-body|fit-policy|pattern-registry|app\.mjs|human-simulation)/);
  const html=await readFile(new URL('../configurador-3d/fit-lab/index.html',import.meta.url),'utf8');
- assert.match(html,/id="fit-canvas"/);assert.match(html,/data-reference-mode="original"/);assert.match(html,/src="\.\/assets\/reference-user.webp"/);
+ assert.match(html,/id="fit-canvas"/);assert.match(html,/id="profile-reference-photo"/);assert.doesNotMatch(html,/data-reference-mode=/);
 });

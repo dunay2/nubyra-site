@@ -1,9 +1,10 @@
+import {SHORT_RISES,shortRiseKey} from './pattern-registry.mjs';
 import * as T from 'three';
 import {clearFixedShortContact} from './fixed-short-contact.mjs';
 import {MeshBVH} from 'three-mesh-bvh';
 import {CM_PER_UNIT} from './body-surface.mjs';
 import {SHORT_SIZES,SHORT_LENGTHS,fixedShortKey,normalizeShortCode} from './fixed-sizes.mjs';
-export const FIXED_SHORTS_VERSION='fixed-shorts-envelope/2.2';
+export const FIXED_SHORTS_VERSION='fixed-shorts-envelope/3.0';
 /** Perimeter of an indexed triangle section; source torso membership excludes arms. */
 export function horizontalPerimeter(geometry,y,base=null){
  const p=geometry.attributes.position,idx=geometry.index;let length=0;
@@ -69,15 +70,15 @@ export function gatherWaist(geometry,body,pattern){
 export function createFixedShortFactory(asset){
  if(asset?.version!==FIXED_SHORTS_VERSION||!asset.patterns)throw Error('Faltan patrones fijos del pantalón');
  const templates=new Map();
- for(const[size]of Object.entries(SHORT_SIZES))for(const length of SHORT_LENGTHS){
-  const key=fixedShortKey(size,length),v=asset.patterns[key];
+ for(const[size]of Object.entries(SHORT_SIZES))for(const length of SHORT_LENGTHS)for(const riseCm of SHORT_RISES.filter(r=>r<=length-.5)){
+  const key=shortRiseKey(size,length,riseCm),v=(riseCm===33.5?asset.patterns:asset.riseVariants)?.[key];
   if(!v||v.positions.length%3||v.indices.length%3||!v.positions.every(Number.isFinite)||!v.indices.every(i=>Number.isInteger(i)&&i>=0&&i<v.positions.length/3))throw Error('Patrón fijo no válido: '+key);
   const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(v.positions,3));g.setIndex(v.indices);if(v.uvs)g.setAttribute('uv',new T.Float32BufferAttribute(v.uvs,2));g.computeVertexNormals();g.computeBoundingBox();g.computeBoundingSphere();for(const q of v.groups)g.addGroup(q.start,q.count,q.materialIndex);
   if(Math.abs((g.boundingBox.max.y-g.boundingBox.min.y)*CM_PER_UNIT-length)>.02)throw Error('Largo de patrón inconsistente');templates.set(key,{geometry:g,pattern:v.nominal});
  }
  return{
-  create(body,{size='N1-2',lengthCm=42,base='#173e64',accent='#f8c12e'}={}){
-   size=normalizeShortCode(size);const key=fixedShortKey(size,Number(lengthCm)),template=templates.get(key),pattern=template.pattern,support=shortSupport(body,pattern);
+  create(body,{size='N1-2',lengthCm=42,riseCm=33.5,base='#173e64',accent='#f8c12e'}={}){
+   size=normalizeShortCode(size);const key=shortRiseKey(size,Number(lengthCm),Number(riseCm)),template=templates.get(key),pattern=template.pattern,support=shortSupport(body,pattern);
    if(support.blocked)throw Error('Pantalón '+size+' demasiado pequeño. El amarre no amplía el patrón; selecciona otra configuración.');
    const geometry=template.geometry.clone();let waistGather,surfaceContact;
    try{waistGather=gatherWaist(geometry,body,pattern);surfaceContact=clearFixedShortContact(geometry,body);
@@ -93,7 +94,7 @@ export function createFixedShortFactory(asset){
    };
    primary.customProgramCacheKey=()=>FIXED_SHORTS_VERSION+'-stripe';
    const mesh=new T.Mesh(geometry,[primary,secondary]);mesh.name='Pantalón fijo '+key;mesh.position.y=support.startY;
-   return{mesh,version:FIXED_SHORTS_VERSION,fit:'fixed-size',lengthCm:pattern.lengthCm,requestedLengthCm:pattern.lengthCm,minLengthCm:34,maxLengthCm:50,kneeTop:body.userData.sourceToY(.53),pattern,support,
+   return{mesh,version:FIXED_SHORTS_VERSION,fit:'fixed-size',riseCm:pattern.riseReferenceCm,lengthCm:pattern.lengthCm,requestedLengthCm:pattern.lengthCm,minLengthCm:34,maxLengthCm:50,kneeTop:body.userData.sourceToY(.53),pattern,support,
     coverage:{bodyHidden:false,bodyGeometryChanged:false,garmentAdaptedToBody:true,restPatternChanged:false,adaptation:"waistband-and-bounded-surface-contact"},clothSimulated:false,
     get top(){return mesh.position.y;},get bottom(){return mesh.position.y-pattern.lengthCm/CM_PER_UNIT;},get moving(){return false;},
     advance(){mesh.position.y=support.startY;return false;},
