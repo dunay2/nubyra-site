@@ -37,7 +37,7 @@ export function mountReferenceGallery({stage,onSelectMode}){
  async function show(){
   decorate();place();if(!active||!data)return;const request=++token,id=selected,start=performance.now();
   try{
-   let promise=images.get(id);if(!promise){const next=new Image();next.src=data.assets[id].data;promise=next.decode().then(()=>next);images.set(id,promise);}
+   let promise=images.get(id);if(!promise){const next=new Image();next.src=new URL(data.assets[id].src,import.meta.url).href;promise=next.decode().then(()=>next);images.set(id,promise);}
    const next=await promise;if(disposed||request!==token||!active)return;
    image.src=next.src;image.alt=`Referencia ilustrativa ${id}. ${getReferenceProfile(id).label}. No es una fotografía medida.`;
    image.dataset.profile=id;image.hidden=false;lastMs=performance.now()-start;place();
@@ -45,16 +45,16 @@ export function mountReferenceGallery({stage,onSelectMode}){
  }
  listen(auto,'change',()=>{automatic=auto.checked;if(automatic&&nearest)selected=nearest.profile.id;onSelectMode('profiles');show();});
  const ready=fetch(new URL('./assets/reference-profiles.json',import.meta.url)).then(r=>{if(!r.ok)throw Error('Referencias no disponibles');return r.json();}).then(value=>{
-  if(disposed)return;if(value.version!=='reference-photo-assets/1.0')throw Error('Versión de referencias no válida');
-  for(const p of REFERENCE_PROFILES){const a=value.assets?.[p.id];if(!a||!/^data:image\/webp;base64,[A-Za-z0-9+/]+=*$/.test(a.data)||!Number.isInteger(a.width)||!Number.isInteger(a.height)||a.width<1||a.height<1)throw Error('Imagen de referencia inválida');}
-  data=value;buttons.forEach(b=>b.querySelector('img').src=data.assets[b.dataset.referenceProfile].data);root.dataset.loaded='true';show();
+  if(disposed)return;if(value.version!=='reference-photo-assets/2.0')throw Error('Versión de referencias no válida');
+  for(const p of REFERENCE_PROFILES){const a=value.assets?.[p.id];if(!a||a.src!==`./assets/references-hd-v2/${p.id}.webp`||a.thumbnail!==`./assets/references-hd-v2/${p.id}-thumb.webp`||!Number.isInteger(a.width)||!Number.isInteger(a.height)||a.width<1000||a.height<1400)throw Error('Imagen de referencia inválida');}
+  data=value;buttons.forEach(b=>b.querySelector('img').src=new URL(data.assets[b.dataset.referenceProfile].thumbnail,import.meta.url).href);root.dataset.loaded='true';show();
  }).catch(()=>{if(!disposed){root.dataset.loaded='error';message.textContent='No se pudieron cargar los ocho perfiles. La foto original sigue disponible.';}});
  return {
   ready,
   setActive(value){active=value;token++;image.hidden=!active;gauge.hidden=!active;meta.hidden=!active;decorate();if(active)show();},
   render(next){metrics=next;const body=next.body,key=JSON.stringify([body?.bodyHeightCm,body?.bodyChestCm,body?.bodyHipCm]);
    if(key!==bodyKey){bodyKey=key;nearest=nearestReferenceProfile(body);if(automatic&&nearest){const old=selected;selected=nearest.profile.id;if(old!==selected&&active)show();}decorate();}place();},
-  snapshot:()=>({version:REFERENCE_PROFILES_VERSION,mode:automatic?'auto':'manual',active,selectedId:selected,profile:{...getReferenceProfile(selected)},nearestId:nearest?.profile.id??null,withinCoverage:nearest?.withinCoverage??false,score:nearest?.score??null,lastSwapMs:lastMs,loaded:Boolean(data),bodyMutated:false,patternsMutated:false,weightUsedForSelection:false,source:'user-approved-synthetic-board',assetResolution:data?{width:data.assets[selected].width,height:data.assets[selected].height}:null,anthropometryValidated:false}),
+  snapshot:()=>({version:REFERENCE_PROFILES_VERSION,mode:automatic?'auto':'manual',active,selectedId:selected,profile:{...getReferenceProfile(selected)},nearestId:nearest?.profile.id??null,withinCoverage:nearest?.withinCoverage??false,score:nearest?.score??null,lastSwapMs:lastMs,loaded:Boolean(data),bodyMutated:false,patternsMutated:false,weightUsedForSelection:false,source:'generated-individual-portraits',assetResolution:data?{width:data.assets[selected].width,height:data.assets[selected].height}:null,anthropometryValidated:false}),
   destroy(){disposed=true;token++;listeners.forEach(fn=>fn());images.clear();}
  };
 }

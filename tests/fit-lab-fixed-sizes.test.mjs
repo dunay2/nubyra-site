@@ -19,16 +19,16 @@ test('All fixed shorts proposals retain their exact waist, hip and selected leng
  const factory=createFixedShortFactory(asset);assert.equal(Object.keys(asset.patterns).length,Object.keys(SHORT_SIZES).length*SHORT_LENGTHS.length);
  for(const p of Object.values(asset.patterns)){assert.ok(Math.abs(p.nominal.measuredWaistCm-p.nominal.waistCm)<.02);assert.ok(Math.abs(p.nominal.measuredHipCm-p.nominal.hipCm)<.02);assert.equal(p.nominal.industrialApproved,false);}factory.destroy();
 });
-test('Same shorts geometry is byte-identical across bodies; the knee never clamps length',async()=>{
+test('Shorts rest templates and lower panels stay fixed across bodies; only the waist is gathered',async()=>{
  const factory=createFixedShortFactory(asset),body=await loadHumanBody(bytes),checks=new Map();
  for(const h of[137,170,200,210]){updateHumanBody(body,resolveState({bodyHeightCm:h,bodyChestCm:75,bodyHipCm:79,armLoweringDeg:25}));const before=body.geometry.attributes.position.array.slice(),bottoms=[];
-  for(const length of SHORT_LENGTHS){const o=factory.create(body,{size:'P4',lengthCm:length});o.settle();const key=hash(o.mesh.geometry);if(checks.has(length))assert.equal(key,checks.get(length));else checks.set(length,key);assert.ok(Math.abs((o.mesh.geometry.boundingBox.max.y-o.mesh.geometry.boundingBox.min.y)*CM_PER_UNIT-length)<.02);assert.equal(o.lengthCm,length);bottoms.push(o.lengthCm);assert.equal(o.snapshot().restGeometryIndependent,true);o.destroy();}
+  for(const length of SHORT_LENGTHS){const o=factory.create(body,{size:'P4',lengthCm:length});o.settle();const dressed=o.mesh.geometry.attributes.position.array;const source=asset.patterns[o.snapshot().key].positions;for(let j=0;j<source.length;j+=3){assert.equal(dressed[j+1],source[j+1]);if(-source[j+1]*CM_PER_UNIT>=12){assert.equal(dressed[j],source[j]);assert.equal(dressed[j+2],source[j+2]);}}const key=createHash('sha256').update(JSON.stringify(source)).digest('hex');if(checks.has(length))assert.equal(key,checks.get(length));else checks.set(length,key);assert.ok(Math.abs((o.mesh.geometry.boundingBox.max.y-o.mesh.geometry.boundingBox.min.y)*CM_PER_UNIT-length)<.02);assert.equal(o.lengthCm,length);bottoms.push(o.lengthCm);assert.equal(o.snapshot().restGeometryIndependent,true);o.destroy();}
   assert.deepEqual(body.geometry.attributes.position.array,before);assert.deepEqual(bottoms,[34,42,50]);
  }factory.destroy();body.geometry.dispose();body.material.dispose();
 });
-test('A waistband wider than the hip loses support and falls without resizing',async()=>{
+test('A tied waistband remains at the waist even with excess circumference',async()=>{
  const factory=createFixedShortFactory(asset),body=updateHumanBody(await loadHumanBody(bytes),resolveState({bodyHeightCm:153,bodyChestCm:75,bodyHipCm:72})),o=factory.create(body,{size:'P4',lengthCm:42}),before=hash(o.mesh.geometry);
- assert.equal(o.support.status,'unsupported');const initial=o.mesh.position.y;for(let i=0;i<100;i++)o.advance(.02);assert.equal(o.moving,false);assert.ok(o.mesh.position.y<initial);assert.ok(Math.abs(o.bottom-body.userData.floorY)<.0001);assert.equal(hash(o.mesh.geometry),before);assert.equal(o.support.clothSimulated,false);o.destroy();factory.destroy();body.geometry.dispose();body.material.dispose();
+ assert.equal(o.support.status,'tied');assert.equal(o.support.dropCm,0);assert.ok(o.snapshot().waistGather.adjustedVertices>0);const initial=o.mesh.position.y;for(let i=0;i<100;i++)o.advance(.02);assert.equal(o.moving,false);assert.equal(o.mesh.position.y,initial);assert.equal(initial,body.userData.waistY);assert.equal(o.bottom,initial-42/CM_PER_UNIT);assert.equal(hash(o.mesh.geometry),before);assert.equal(o.support.clothSimulated,false);o.destroy();factory.destroy();body.geometry.dispose();body.material.dispose();
 });
 test('A too-small shorts waist or hip is rejected rather than stretched over the avatar',async()=>{
  const factory=createFixedShortFactory(asset),body=updateHumanBody(await loadHumanBody(bytes),resolveState({bodyChestCm:116,bodyHipCm:124,bodyHeightCm:200})),before=body.geometry.attributes.position.array.slice();
