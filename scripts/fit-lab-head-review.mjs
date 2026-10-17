@@ -23,7 +23,7 @@ window.inspectHead={setView(angle){camera.position.set(Math.sin(angle)*8,y,Math.
 const result=await build({stdin:{contents:code,resolveDir:process.cwd()},bundle:true,format:'esm',write:false,minify:true});
 const js=result.outputFiles[0].text.replaceAll('</script','<\\/script');
 const html='<html><head><style>html,body{margin:0}canvas{display:block}</style></head><body><script>window.HEAD_GLB='+JSON.stringify(glb)+';</script><script type="module">'+js+'</script></body></html>';
-const browser=await chromium.launch({headless:true,args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+const browser=await chromium.launch({headless:true,...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{}),args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
 const page=await browser.newPage({viewport:{width:800,height:800}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
 try{
  await page.setContent(html);await page.waitForFunction(()=>window.inspectHead,null,{timeout:30000});

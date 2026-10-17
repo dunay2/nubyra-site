@@ -1,7 +1,7 @@
 import * as T from 'three';
 import {CM_PER_UNIT} from './body-surface.mjs';
-import {SHORT_SIZES,SHORT_LENGTHS,fixedShortKey} from './fixed-sizes.mjs';
-export const FIXED_SHORTS_VERSION='fixed-shorts-envelope/1.1';
+import {SHORT_SIZES,SHORT_LENGTHS,fixedShortKey,normalizeShortCode} from './fixed-sizes.mjs';
+export const FIXED_SHORTS_VERSION='fixed-shorts-envelope/2.0';
 /** Perimeter of an indexed triangle section; source torso membership excludes arms. */
 export function horizontalPerimeter(geometry,y,base=null){
  const p=geometry.attributes.position,idx=geometry.index;let length=0;
@@ -18,7 +18,7 @@ export function shortSupport(body,pattern){
  const maximum=Math.max(...slices.map(x=>x.cm)),hip=d.measurements.hipCm,blocked=waist>pattern.waistCm+.4||hip>pattern.hipCm+.4;
  let stopY=waistY,status=blocked?'too-small':'supported';
  if(!blocked){const i=slices.findIndex(x=>x.cm>=pattern.waistCm);if(i<0){status='unsupported';stopY=d.floorY+pattern.lengthCm/CM_PER_UNIT;}else if(i>0){const a=slices[i-1],b=slices[i];stopY=a.y+(b.y-a.y)*(pattern.waistCm-a.cm)/(b.cm-a.cm);}}
- return{status,blocked,waistCm:waist,hipCm:hip,maxSupportCm:maximum,startY:waistY,stopY,dropCm:Math.max(0,(waistY-stopY)*CM_PER_UNIT),kind:'fixed-waist-geometric-contact',elasticityModelled:false,clothSimulated:false};
+ return{status,blocked,waistCm:waist,hipCm:hip,maxSupportCm:maximum,startY:waistY,stopY,dropCm:Math.max(0,(waistY-stopY)*CM_PER_UNIT),kind:'fixed-waist-geometric-contact',waistband:pattern.waistband,elasticityModelled:false,clothSimulated:false};
 }
 /** Current body only sets placement/support, never any pattern vertex. */
 export function createFixedShortFactory(asset){
@@ -31,9 +31,9 @@ export function createFixedShortFactory(asset){
   if(Math.abs((g.boundingBox.max.y-g.boundingBox.min.y)*CM_PER_UNIT-length)>.02)throw Error('Largo de patrón inconsistente');templates.set(key,{geometry:g,pattern:v.nominal});
  }
  return{
-  create(body,{size='P1',lengthCm=42,base='#173e64',accent='#f8c12e'}={}){
-   const key=fixedShortKey(size,Number(lengthCm)),template=templates.get(key),pattern=template.pattern,support=shortSupport(body,pattern);
-   if(support.blocked)throw Error('Pantalón '+size+' demasiado pequeño para el cuerpo: conserva cintura y cadera fijas.');
+  create(body,{size='N1-2',lengthCm=42,base='#173e64',accent='#f8c12e'}={}){
+   size=normalizeShortCode(size);const key=fixedShortKey(size,Number(lengthCm)),template=templates.get(key),pattern=template.pattern,support=shortSupport(body,pattern);
+   if(support.blocked)throw Error('Pantalón '+size+' demasiado pequeño para el ensayo de cintura rígida. No se amplía el patrón; la extensión del elástico aún no está calibrada.');
    const geometry=template.geometry.clone(),primary=new T.MeshStandardMaterial({color:base,roughness:.87,side:T.DoubleSide}),secondary=primary.clone();secondary.color.set(accent);
    // Smooth colour boundaries are independent of triangle resolution.
    const stripeColor={value:new T.Color(accent)};

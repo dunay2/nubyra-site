@@ -8,7 +8,7 @@ import {GARMENT_CATALOG} from '../configurador-3d/fit-lab/garment-catalog.mjs';
 import {garmentSection,measureLayers} from '../scripts/fit-lab-layering-probe.mjs';
 const cases=[{},
  {bodyChestCm:117,bodyHipCm:72,desiredLengthCm:52,bodyHeightCm:143,selectionMode:'manual',activeConfiguration:'N1-1'},
- {bodyChestCm:113,bodyHipCm:130,desiredLengthCm:64},
+ {selectionMode:'manual',activeConfiguration:'N2-3',bodyChestCm:113,bodyHipCm:130,desiredLengthCm:64},
  {bodyChestCm:72,bodyHipCm:74,selectionMode:'manual',activeConfiguration:'N2-3'}];
 function fixture(input){const state=resolveState(input),body=updateBody(createBody(T),state),outfit=createOutfitReference(T,body,state);return {state,body,outfit};}
 function extentAt(mesh,row){const p=mesh.geometry.attributes.position,{around}=mesh.geometry.userData;let xlo=Infinity,xhi=-Infinity,zlo=Infinity,zhi=-Infinity;for(let a=0;a<around;a++){const i=row*(around+1)+a;xlo=Math.min(xlo,p.getX(i));xhi=Math.max(xhi,p.getX(i));zlo=Math.min(zlo,p.getZ(i));zhi=Math.max(zhi,p.getZ(i));}return {width:xhi-xlo,depth:zhi-zlo};}

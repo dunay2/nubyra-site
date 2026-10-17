@@ -27,7 +27,7 @@ test('Same shorts geometry is byte-identical across bodies; the knee never clamp
  }factory.destroy();body.geometry.dispose();body.material.dispose();
 });
 test('A waistband wider than the hip loses support and falls without resizing',async()=>{
- const factory=createFixedShortFactory(asset),body=updateHumanBody(await loadHumanBody(bytes),resolveState({bodyHeightCm:153,bodyChestCm:75,bodyHipCm:79})),o=factory.create(body,{size:'P4',lengthCm:42}),before=hash(o.mesh.geometry);
+ const factory=createFixedShortFactory(asset),body=updateHumanBody(await loadHumanBody(bytes),resolveState({bodyHeightCm:153,bodyChestCm:75,bodyHipCm:72})),o=factory.create(body,{size:'P4',lengthCm:42}),before=hash(o.mesh.geometry);
  assert.equal(o.support.status,'unsupported');const initial=o.mesh.position.y;for(let i=0;i<100;i++)o.advance(.02);assert.equal(o.moving,false);assert.ok(o.mesh.position.y<initial);assert.ok(Math.abs(o.bottom-body.userData.floorY)<.0001);assert.equal(hash(o.mesh.geometry),before);assert.equal(o.support.clothSimulated,false);o.destroy();factory.destroy();body.geometry.dispose();body.material.dispose();
 });
 test('A too-small shorts waist or hip is rejected rather than stretched over the avatar',async()=>{

@@ -2,7 +2,7 @@ import {chromium} from 'playwright';
 import {mkdir,writeFile} from 'node:fs/promises';
 import assert from 'node:assert/strict';
 const url=process.env.FIT_LAB_URL||'http://127.0.0.1:8097/fit-lab/',dir=process.env.EVIDENCE_DIR||'artifacts/fixed-sizes';await mkdir(dir,{recursive:true});
-const browser=await chromium.launch({headless:true,args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']}),page=await browser.newPage({viewport:{width:1440,height:1080}}),errors=[],results=[],checks=[];
+const browser=await chromium.launch({headless:true,...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{}),args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']}),page=await browser.newPage({viewport:{width:1440,height:1080}}),errors=[],results=[],checks=[];
 page.on('pageerror',e=>errors.push(e.message));
 const snap=()=>page.evaluate(()=>window.lab.getLabSnapshot().lastFrame);
 const set=async(key,value)=>{await page.locator('#'+key+'-number').fill(String(value));await page.locator('#'+key+'-number').press('Enter');};
