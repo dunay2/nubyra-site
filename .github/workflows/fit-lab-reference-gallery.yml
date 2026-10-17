@@ -28,6 +28,7 @@ jobs:
             gzip -dc /tmp/reference-cut.patch.gz > /tmp/reference-cut.patch
             git apply --check --unidiff-zero /tmp/reference-cut.patch
             git apply --unidiff-zero /tmp/reference-cut.patch
+            node .github/finish-reference-cut.mjs
           fi
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Full Node regressions and reference invariants
@@ -53,7 +54,7 @@ jobs:
             git config user.name 'NUBYRA source review'
             git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
             git add configurador-3d/fit-lab scripts/build-fit-lab.mjs scripts/fit-lab-reference-gallery-review.mjs scripts/fit-lab-shorts-review.mjs tests/fit-lab-fixed-rise.test.mjs tests/fit-lab-reference-profiles.test.mjs docs/fit-lab/REFERENCE_GALLERY.md
-            git rm .github/reference-cut.{0,1,2}.b64
+            git rm .github/reference-cut.{0,1,2}.b64 .github/finish-reference-cut.mjs
             git commit -m 'feat(fit-lab): retain real central viewer and original photo; add eight right-side reference profiles'
             git push origin HEAD:feat/fit-lab-eight-reference-profiles
           fi
