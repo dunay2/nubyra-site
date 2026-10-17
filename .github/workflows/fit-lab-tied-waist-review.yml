@@ -1,0 +1,81 @@
+name: NUBYRA · Tied waist and HD references
+on:
+  push:
+    branches: [fix/fit-lab-tied-waist-hd-references]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: fit-lab-tied-waist-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Apply integrity-checked application source and image assets
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/waist-hd
+          if ! test -f docs/fit-lab/TIED_WAIST_HD_CUT.md; then
+            node --input-type=module <<'JS'
+          import {readFile,writeFile,mkdir} from 'node:fs/promises';
+          import {createHash} from 'node:crypto';
+          import {gunzipSync} from 'node:zlib';
+          import path from 'node:path';
+          const url='https://sdmntpritalynorth.oaiusercontent.com/files/00000000-68f8-8246-bb92-e0eb978f6e7b/raw?se=2026-10-17T17%3A26%3A29Z&sp=r&sv=2026-02-06&sr=b&scid=83687bc0-9d61-52b8-88fc-88f083615f1f&skoid=1d6acb5b-b3f4-43ec-a5ec-b05c4a7708c8&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-17T07%3A43%3A25Z&ske=2026-10-18T07%3A43%3A25Z&sks=b&skv=2026-02-06&sig=Zt3kqzW9X1%2BLUZcOGvNK3tIhzIuZnUOdmzTNhPvAz0o%3D';
+          const response=await fetch(url,{signal:AbortSignal.timeout(30000)});if(!response.ok)throw Error('Source transfer failed: '+response.status);
+          const bytes=Buffer.from(await response.arrayBuffer());const hash=b=>createHash('sha256').update(b).digest('hex');
+          if(bytes.length!==364087||hash(bytes)!=='fb11bc4719710f1f7fefefa565718ef5866095a762604e185397d830704bd245')throw Error('Delta integrity mismatch');
+          const delta=JSON.parse(gunzipSync(bytes));if(delta.base!=='9f3df80fa1b03a75bf17d33f768592b865444d28'||delta.files.length!==29)throw Error('Unexpected delta');
+          const prepared=[];
+          for(const f of delta.files){
+            if(!/^(configurador-3d\/fit-lab\/|scripts\/|tests\/|docs\/fit-lab\/)/.test(f.path)||f.path.split('/').includes('..')||path.isAbsolute(f.path))throw Error('Unsafe application path');
+            let old=null;try{old=await readFile(f.path);}catch(e){if(e.code!=='ENOENT')throw e;}
+            if((old?hash(old):null)!==f.oldSha256)throw Error('Base mismatch: '+f.path);
+            const data=Buffer.from(f.data,'base64');if(hash(data)!==f.sha256)throw Error('File integrity mismatch');prepared.push({path:f.path,data});
+          }
+          for(const f of prepared){await mkdir(path.dirname(f.path),{recursive:true});await writeFile(f.path,f.data);}
+          await writeFile('artifacts/waist-hd/source-integrity.json',JSON.stringify({base:delta.base,sha256:hash(bytes),files:delta.files.map(({path,sha256})=>({path,sha256}))},null,2));
+          JS
+            test "$GITHUB_REF_NAME" = fix/fit-lab-tied-waist-hd-references
+            git config user.name 'NUBYRA source review'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add configurador-3d/fit-lab scripts tests docs/fit-lab/TIED_WAIST_HD_CUT.md
+            git commit -m 'fix(fit-lab): hold drawstring waist and integrate eight individual HD references'
+            git push origin HEAD:fix/fit-lab-tied-waist-hd-references
+          fi
+          git rev-parse HEAD | tee artifacts/waist-hd/source-commit.txt
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Complete unit regressions and fixed pattern invariants
+        run: |
+          set -euo pipefail
+          THREE_TEST_DIR="$PWD" npm test | tee artifacts/waist-hd/unit-tests.txt
+      - name: Build the exact source commit
+        run: VERCEL_GIT_COMMIT_SHA=$(git rev-parse HEAD) npm run build:fit-lab
+      - run: npx playwright install --with-deps chromium
+      - name: Real browser waist, HD, gallery and human checks
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8131 --bind 127.0.0.1 --directory fit-dist >/tmp/waist-http.log 2>&1 &
+          sleep 2
+          node scripts/fit-lab-waist-hd-review.mjs | tee artifacts/waist-hd/browser-tests.txt
+          FIT_LAB_URL=http://127.0.0.1:8131/fit-lab/ EVIDENCE_DIR=artifacts/waist-hd/gallery node scripts/fit-lab-reference-gallery-review.mjs
+          FIT_LAB_URL=http://127.0.0.1:8131/fit-lab/ EVIDENCE_DIR=artifacts/waist-hd/human node scripts/fit-lab-human-e2e.mjs
+      - name: Reproducible source evidence
+        if: always()
+        run: git archive --format=tar HEAD | gzip > artifacts/waist-hd/source.tar.gz
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nubyra-tied-waist-hd-review
+          path: |
+            artifacts/waist-hd/
+            fit-dist/
+          retention-days: 7
+          if-no-files-found: error
