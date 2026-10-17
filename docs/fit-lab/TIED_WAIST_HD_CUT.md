@@ -13,3 +13,9 @@ Conservado: visor interactivo central, referencias a la derecha, foto original s
 La ampliación fotográfica de la chica original no forma parte de estos ocho retratos; sigue disponible intacta. La física del elástico y un sistema deformable completo de pantalón continúan sin calibración.
 
 Validación: suite Node completa y revisión de navegador `scripts/fit-lab-waist-hd-review.mjs`, junto a galería y visor humano existentes. Las capturas de cintura se inspeccionan antes de asignar el alias del laboratorio. El navegador local restringe navegación a localhost; la validación HTTP/WebGL se ejecuta en GitHub Actions, sin modificar esa política local.
+
+## Revisión visual posterior
+
+La primera ejecución mostró dos pequeñas penetraciones en la zona posterior inferior. Se añadió un acabado de contacto local frente/espalda sobre vértices, centros y aristas, con un máximo de 3 cm y sin cambiar Y, longitud, tiro ni plantilla. No se oculta el cuerpo. El código rechaza el conjunto antes del intercambio cuando ese límite no basta; por ejemplo, el patrón de tiro fijo actual no resuelve el caso de 200 cm. Se conserva el cuerpo vestido anterior y se explica la incompatibilidad. No se trata de una restricción por altura: es el contacto geométrico del patrón con el cuerpo concreto.
+
+La revisión de navegador comprueba 18 combinaciones en cuerpos de 145, 153 y 170 cm y añade un caso explícito de rechazo de 200 cm. Las ocho miniaturas ahora usan un área de retrato mayor, sin deformar la imagen.

@@ -1,8 +1,9 @@
 import * as T from 'three';
+import {clearFixedShortContact} from './fixed-short-contact.mjs';
 import {MeshBVH} from 'three-mesh-bvh';
 import {CM_PER_UNIT} from './body-surface.mjs';
 import {SHORT_SIZES,SHORT_LENGTHS,fixedShortKey,normalizeShortCode} from './fixed-sizes.mjs';
-export const FIXED_SHORTS_VERSION='fixed-shorts-envelope/2.1';
+export const FIXED_SHORTS_VERSION='fixed-shorts-envelope/2.2';
 /** Perimeter of an indexed triangle section; source torso membership excludes arms. */
 export function horizontalPerimeter(geometry,y,base=null){
  const p=geometry.attributes.position,idx=geometry.index;let length=0;
@@ -78,7 +79,11 @@ export function createFixedShortFactory(asset){
   create(body,{size='N1-2',lengthCm=42,base='#173e64',accent='#f8c12e'}={}){
    size=normalizeShortCode(size);const key=fixedShortKey(size,Number(lengthCm)),template=templates.get(key),pattern=template.pattern,support=shortSupport(body,pattern);
    if(support.blocked)throw Error('Pantalón '+size+' demasiado pequeño. El amarre no amplía el patrón; selecciona otra configuración.');
-   const geometry=template.geometry.clone(),waistGather=gatherWaist(geometry,body,pattern),primary=new T.MeshStandardMaterial({color:base,roughness:.87,side:T.DoubleSide}),secondary=primary.clone();secondary.color.set(accent);
+   const geometry=template.geometry.clone();let waistGather,surfaceContact;
+   try{waistGather=gatherWaist(geometry,body,pattern);surfaceContact=clearFixedShortContact(geometry,body);
+    if(surfaceContact.requiresReview)throw Error('El patrón de pantalón '+key+' no resuelve el contacto de cadera/tiro en este cuerpo sin exceder el ajuste local permitido. Se conserva la equipación anterior; no se alarga el tiro ni se deforma el cuerpo.');
+   }catch(error){geometry.dispose();throw error;}
+   const primary=new T.MeshStandardMaterial({color:base,roughness:.87,side:T.DoubleSide}),secondary=primary.clone();secondary.color.set(accent);
    // Smooth colour boundaries are independent of triangle resolution.
    const stripeColor={value:new T.Color(accent)};
    primary.onBeforeCompile=shader=>{
@@ -89,11 +94,11 @@ export function createFixedShortFactory(asset){
    primary.customProgramCacheKey=()=>FIXED_SHORTS_VERSION+'-stripe';
    const mesh=new T.Mesh(geometry,[primary,secondary]);mesh.name='Pantalón fijo '+key;mesh.position.y=support.startY;
    return{mesh,version:FIXED_SHORTS_VERSION,fit:'fixed-size',lengthCm:pattern.lengthCm,requestedLengthCm:pattern.lengthCm,minLengthCm:34,maxLengthCm:50,kneeTop:body.userData.sourceToY(.53),pattern,support,
-    coverage:{bodyHidden:false,bodyGeometryChanged:false,garmentAdaptedToBody:true,restPatternChanged:false,adaptation:"waistband-only"},clothSimulated:false,
+    coverage:{bodyHidden:false,bodyGeometryChanged:false,garmentAdaptedToBody:true,restPatternChanged:false,adaptation:"waistband-and-bounded-surface-contact"},clothSimulated:false,
     get top(){return mesh.position.y;},get bottom(){return mesh.position.y-pattern.lengthCm/CM_PER_UNIT;},get moving(){return false;},
     advance(){mesh.position.y=support.startY;return false;},
     settle(){mesh.position.y=support.startY;},
-    snapshot:()=>({key,nominal:{...pattern},support:{...support},translationY:mesh.position.y,moving:false,restGeometryIndependent:true,waistGather:{...waistGather},clothSimulated:false}),
+    snapshot:()=>({key,nominal:{...pattern},support:{...support},translationY:mesh.position.y,moving:false,restGeometryIndependent:true,waistGather:{...waistGather},surfaceContact:{...surfaceContact},clothSimulated:false}),
     colors(base,accent){primary.color.set(base);secondary.color.set(accent);stripeColor.value.set(accent);},destroy(){geometry.dispose();primary.dispose();secondary.dispose();}};
   },destroy(){for(const p of templates.values())p.geometry.dispose();templates.clear();}
  };

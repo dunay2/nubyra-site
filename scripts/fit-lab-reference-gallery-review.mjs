@@ -34,11 +34,11 @@ try{
  await page.waitForFunction(()=>document.getElementById('profile-reference-photo').dataset.profile==='R01');
  assert.equal((await snap()).referenceSource.profiles.selectedId,'R01');checks.push('Rapid reference changes keep the last choice');
  await page.locator('#reference-profile-auto').check();
- await page.locator('[data-trial-height="200"]').click();await ready();
+ await page.locator('#bodyHeightCm-number').fill('125');await page.locator('#bodyHeightCm-number').press('Enter');await ready();
  let s=await snap();assert.equal(s.referenceSource.profiles.mode,'auto');assert.equal(s.referenceSource.profiles.withinCoverage,false);
  assert.match(await page.locator('#reference-match-status').innerText(),/Fuera de cobertura/);
  assert.equal(s.transition.unclothedFrames,0);assert.equal(s.garment.restLengthCm,before.garment.restLengthCm);
- await shot('auto-reference-200cm');checks.push('Auto follows visible measurements; out-of-range case disclosed; fixed shirt retained');
+ await shot('auto-reference-outside-coverage');checks.push('Auto follows visible measurements; out-of-range case disclosed; fixed shirt retained');
  const alignment=await page.evaluate(()=>{const a=document.getElementById('profile-reference-photo').getBoundingClientRect(),b=document.getElementById('profile-height-gauge').getBoundingClientRect();return {image:a.toJSON(),gauge:b.toJSON()};});
  assert.ok(alignment.image.height>100);assert.ok(alignment.gauge.height>100);
  await page.locator('[data-reference-mode="original"]').click();assert.equal((await snap()).referenceSource.mode,'original');assert.ok(await page.locator('#full-reference-photo').isVisible());

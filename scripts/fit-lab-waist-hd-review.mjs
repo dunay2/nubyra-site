@@ -12,8 +12,8 @@ try{
  await page.goto(process.env.FIT_LAB_URL||'http://127.0.0.1:8131/fit-lab/');await page.evaluate(async()=>window.lab=await import('./app.mjs'));await ready();
  await page.locator('#show-dimensions').uncheck();await page.locator('[data-view="back"]').click();
  await page.locator('#kit-panel').evaluate(e=>e.open=true);
- for(const height of[145,170,200]){
-  await page.locator('[data-trial-height="'+height+'"]').click();await ready();
+ for(const height of[145,153,170]){
+  await page.locator('#bodyHeightCm-number').fill(String(height));await page.locator('#bodyHeightCm-number').press('Enter');await ready();
   for(const size of ['N1-2','N2-3']){
    await page.locator('#shorts-size').selectOption(size);
    for(const length of [34,42,50]){
@@ -21,12 +21,13 @@ try{
     const s=await snap();assert.equal(s.outfit.fixed.support.kind,'tied-drawstring-constraint');
     assert.equal(s.outfit.fixed.support.dropCm,0);assert.equal(s.outfit.fixed.moving,false);
     assert.equal(s.outfit.fixed.translationY,s.outfit.fixed.support.startY);
-    assert.equal(s.outfit.shortsLengthCm,length);assert.equal(s.transition.visibleGarments,1);assert.equal(s.transition.unclothedFrames,0);
-    cases.push({height,size,length,waist:s.outfit.fixed.support,waistGather:s.outfit.fixed.waistGather,lowerContact:s.lowerContact});
+    assert.equal(s.outfit.fixed.surfaceContact.requiresReview,false);assert.ok(s.outfit.fixed.surfaceContact.remainingDeficitCm<.1);assert.equal(s.outfit.shortsLengthCm,length);assert.equal(s.transition.visibleGarments,1);assert.equal(s.transition.unclothedFrames,0);
+    cases.push({height,size,length,waist:s.outfit.fixed.support,waistGather:s.outfit.fixed.waistGather,surfaceContact:s.outfit.fixed.surfaceContact,lowerContact:s.lowerContact});
    }
   }
  }
  checks.push('18 height/size/length combinations: waist tied and lengths fixed, no automatic falling');
+ const safeBody=(await snap()).body;await page.locator('[data-trial-height="200"]').click();await page.waitForFunction(()=>Boolean(window.lab.getLabSnapshot().lastFrame.sizeRejection));assert.deepEqual((await snap()).body,safeBody);assert.equal((await snap()).transition.unclothedFrames,0);await shot('unsupported-rise-retains-outfit');checks.push('Unsupported 200cm body contact is refused before swap; no stretched rise, exposed pelvis or body mutation');
  await page.locator('[data-trial-height="170"]').click();await ready();await page.locator('#shorts-size').selectOption('N1-2');await page.locator('#shorts-length').selectOption('42');
  const start=await snap();await page.waitForTimeout(2000);assert.equal((await snap()).outfit.fixed.translationY,start.outfit.fixed.translationY);
  await page.locator('#kit-panel').evaluate(e=>e.open=false);await page.locator('#show-garment').uncheck();
