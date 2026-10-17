@@ -4,7 +4,7 @@ on:
     branches: [fix/fit-lab-tied-waist-hd-references]
   workflow_dispatch:
 permissions:
-  contents: write
+  contents: read
 concurrency:
   group: fit-lab-tied-waist-${{ github.ref }}
   cancel-in-progress: true
@@ -14,38 +14,18 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
-      - name: Apply verified visual-review corrections
-        run: |
-          set -euo pipefail
-          mkdir -p artifacts/waist-hd
-          if ! test -f configurador-3d/fit-lab/fixed-short-contact.mjs; then
-            node --input-type=module <<'JS'
-          import {writeFile} from 'node:fs/promises';
-          import {createHash} from 'node:crypto';
-          import {gunzipSync} from 'node:zlib';
-          const response=await fetch('https://sdmntprpolandcentral.oaiusercontent.com/files/00000000-f6ec-820a-b2ff-42a10ee65e4b/raw?se=2026-10-17T17%3A46%3A21Z&sp=r&sv=2026-02-06&sr=b&scid=61d89eb4-08c4-5290-8650-79a93d66da9b&skoid=d4d17077-8f33-42a9-bd8b-aa9d5eaf5320&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-16T19%3A25%3A58Z&ske=2026-10-17T19%3A25%3A58Z&sks=b&skv=2026-02-06&sig=zBfBDaR9RUnN3z4qp6v76ZXjg6%2BgONQKubwjviX7Fi8%3D',{signal:AbortSignal.timeout(30000)});
-          if(!response.ok)throw Error('Source transfer failed: '+response.status);
-          const bytes=Buffer.from(await response.arrayBuffer());if(bytes.length!==7446||createHash('sha256').update(bytes).digest('hex')!=='d671ec9de312bd5182d1677460fd69fd30405848fafcccd675c8d617bc0fe861')throw Error('Patch integrity mismatch');
-          await writeFile('/tmp/waist-clearance.patch',gunzipSync(bytes));
-          JS
-            git apply --check /tmp/waist-clearance.patch
-            git apply /tmp/waist-clearance.patch
-            test "$GITHUB_REF_NAME" = fix/fit-lab-tied-waist-hd-references
-            git config user.name 'NUBYRA source review'
-            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git add configurador-3d/fit-lab scripts tests docs/fit-lab/TIED_WAIST_HD_CUT.md
-            git commit -m 'fix(fit-lab): clear local short contacts and retain outfit when fixed rise is infeasible'
-            git push origin HEAD:fix/fit-lab-tied-waist-hd-references
-          fi
-          git rev-parse HEAD | tee artifacts/waist-hd/source-commit.txt
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Complete unit regressions and fixed pattern invariants
         run: |
           set -euo pipefail
+          mkdir -p artifacts/waist-hd
+          git rev-parse HEAD | tee artifacts/waist-hd/source-commit.txt
           THREE_TEST_DIR="$PWD" npm test | tee artifacts/waist-hd/unit-tests.txt
       - name: Build the exact source commit
         run: VERCEL_GIT_COMMIT_SHA=$(git rev-parse HEAD) npm run build:fit-lab
