@@ -1,0 +1,80 @@
+name: NUBYRA · Coverage, comparison and appearance
+on:
+  push:
+    branches: [fix/fit-lab-coverage-scale-avatar]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: nubyra-coverage-scale-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Integrate verified application source once
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/coverage-scale
+          if ! test -f docs/fit-lab/COVERAGE_SCALE_AVATAR_CUT.md; then
+            node --input-type=module <<'JS'
+          import {writeFile} from 'node:fs/promises';
+          import {createHash} from 'node:crypto';
+          import {gunzipSync} from 'node:zlib';
+          import {execFileSync} from 'node:child_process';
+          const url='https://sdmntprdenmarkeast.oaiusercontent.com/files/00000000-4200-8210-8511-9bed2f04d9c7/raw?se=2026-10-18T12%3A33%3A40Z&sp=r&sv=2026-02-06&sr=b&scid=ee36400f-c550-50e7-a4e6-fe41fe0e0a28&skoid=6658dbdd-f305-4d30-8f6b-d62218202cb9&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-18T08%3A35%3A52Z&ske=2026-10-19T08%3A35%3A52Z&sks=b&skv=2026-02-06&sig=zXgeuasgQ/aD9FPBx4FEui5v9%2BdNHcqIfmHdWHsrTiE%3D';
+          const response=await fetch(url,{signal:AbortSignal.timeout(30000)});if(!response.ok)throw Error('Source transfer failed '+response.status);
+          const bytes=Buffer.from(await response.arrayBuffer()),sha=createHash('sha256').update(bytes).digest('hex');
+          if(bytes.length!==17162||sha!=='00c887b1175f59e200ded98f9ff62048f4d6cf92dc1a608a36391f6ea1f8d100')throw Error('Integrity mismatch');
+          const patch=gunzipSync(bytes);if(patch.length!==55885)throw Error('Patch size mismatch');await writeFile('/tmp/coverage.patch',patch);
+          const changes=execFileSync('git',['apply','--numstat','/tmp/coverage.patch'],{encoding:'utf8'});
+          for(const line of changes.trim().split('\n')){const p=line.split('\t')[2];if(!/^(configurador-3d\/fit-lab\/|scripts\/|tests\/|docs\/fit-lab\/)/.test(p)||p.includes('..'))throw Error('Unexpected source path');}
+          execFileSync('git',['apply','--check','/tmp/coverage.patch'],{stdio:'inherit'});execFileSync('git',['apply','/tmp/coverage.patch'],{stdio:'inherit'});
+          JS
+            test "$GITHUB_REF_NAME" = fix/fit-lab-coverage-scale-avatar
+            git config user.name 'NUBYRA source review'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add configurador-3d/fit-lab scripts tests docs/fit-lab/COVERAGE_SCALE_AVATAR_CUT.md
+            git commit -m 'fix(fit-lab): depth-correct garment coverage, linked scale and refined avatar'
+            git push origin HEAD:fix/fit-lab-coverage-scale-avatar
+          fi
+          git rev-parse HEAD | tee artifacts/coverage-scale/source-commit.txt
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Unit regressions and production build
+        run: |
+          set -euo pipefail
+          THREE_TEST_DIR="$PWD" npm test | tee artifacts/coverage-scale/unit-tests.txt
+          VERCEL_GIT_COMMIT_SHA=$(git rev-parse HEAD) npm run build:fit-lab
+      - run: npx playwright install --with-deps chromium
+      - name: Isolated head inspection with actual geometry
+        run: EVIDENCE_DIR=artifacts/coverage-head node scripts/fit-lab-head-review.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nubyra-coverage-head
+          path: artifacts/coverage-head/
+          retention-days: 7
+      - name: Real WebGL coverage, scale, zoom and mobile
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8230 --bind 127.0.0.1 --directory fit-dist >/tmp/coverage-http.log 2>&1 &
+          sleep 2
+          FIT_LAB_URL=http://127.0.0.1:8230/fit-lab/ node scripts/fit-lab-coverage-scale-review.mjs | tee artifacts/coverage-scale/browser-tests.txt
+          FIT_LAB_URL=http://127.0.0.1:8230/fit-lab/ EVIDENCE_DIR=artifacts/coverage-scale/gravity node scripts/fit-lab-gravity-cut-review.mjs
+      - name: Exact source evidence
+        if: always()
+        run: git archive --format=tar HEAD | gzip > artifacts/coverage-scale/source.tar.gz
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nubyra-coverage-scale-review
+          path: |
+            artifacts/coverage-scale/
+            fit-dist/
+          retention-days: 7
+          if-no-files-found: error
