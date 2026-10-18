@@ -1,0 +1,67 @@
+name: NUBYRA · Hair geometry inspection
+on:
+  push:
+    branches: [fix/fit-lab-rounded-hair-review]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: hair-quality-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - name: Matched close inspection before and after
+        run: |
+          set -euo pipefail
+          git show 0c5e754f09aadb5f22e03e711e5c7e0521b46aa0:configurador-3d/fit-lab/human-appearance.mjs > configurador-3d/fit-lab/baseline-hair.mjs
+          HAIR_MODULE=baseline-hair.mjs EVIDENCE_DIR=artifacts/hair-quality/before node scripts/fit-lab-hair-quality-review.mjs
+          EVIDENCE_DIR=artifacts/hair-quality/after node scripts/fit-lab-hair-quality-review.mjs
+          rm configurador-3d/fit-lab/baseline-hair.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nubyra-hair-close-review
+          path: artifacts/hair-quality/
+          retention-days: 7
+      - name: Unit tests and exact application build
+        run: |
+          set -euo pipefail
+          THREE_TEST_DIR="$PWD" npm test | tee artifacts/hair-quality/tests.txt
+          VERCEL_GIT_COMMIT_SHA="$GITHUB_SHA" npm run build:fit-lab
+      - name: Eight profiles and clothing regression in the real application
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8180 --bind 127.0.0.1 --directory fit-dist >/tmp/hair-http.log 2>&1 &
+          sleep 2
+          FIT_LAB_URL=http://127.0.0.1:8180/fit-lab/ node scripts/fit-lab-gravity-cut-review.mjs | tee artifacts/hair-quality/browser-tests.txt
+      - name: Exact source evidence
+        if: always()
+        run: |
+          git rev-parse HEAD > artifacts/hair-quality/source-commit.txt
+          git archive --format=tar HEAD | gzip > artifacts/hair-quality/source.tar.gz
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nubyra-hair-application-review
+          path: |
+            artifacts/hair-quality/
+            artifacts/gravity-cut/
+            fit-dist/
+          retention-days: 7
+          if-no-files-found: error

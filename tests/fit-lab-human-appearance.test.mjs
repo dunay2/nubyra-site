@@ -17,7 +17,7 @@ test('Hair and natural skin do not alter body geometry, measurements or BVH', as
  assert.deepEqual(body.geometry.attributes.position.array,before);assert.deepEqual(body.geometry.index.array,indices);assert.deepEqual(body.userData.measurements,measures);
  assert.equal(body.geometry.boundsTree,tree);assert.equal(collider.gap(0,body.userData.chestY,.8),gap);assert.equal('#'+body.material.color.getHexString(),SKIN_COLOR);
  assert.equal(appearance.group.parent,body);assert.equal(appearance.group.children.length,3);assert.equal(appearance.snapshot().hairStyle,'low-gathered-ponytail');
- assert.equal(appearance.snapshot().scalpLocks,340);assert.equal(appearance.snapshot().tailLocks,24);assert.equal(appearance.snapshot().hairTie,true);
+ assert.equal(appearance.snapshot().scalpLocks,266);assert.equal(appearance.snapshot().tailLocks,36);assert.equal(appearance.snapshot().hairTie,true);
  assert.ok(appearance.group.getObjectByName('avatar-hair-swept-locks'));assert.ok(appearance.group.getObjectByName('avatar-hair-ponytail'));
  assert.ok(appearance.snapshot().scalpTriangles>100);assert.ok(appearance.snapshot().scalpTriangles<20000);
  for(const mesh of appearance.group.children){assert.equal(mesh.material.metalness,0);assert.ok([...mesh.geometry.attributes.position.array].every(Number.isFinite));}
@@ -28,7 +28,7 @@ test('Hair and natural skin do not alter body geometry, measurements or BVH', as
 
 test('Hair follows head scale, clears the jersey and inherits body visibility',async()=>{
  const body=updateHumanBody(await loadHumanBody(bytes),state,{collision:false}),appearance=createHumanAppearance(body),geometry=appearance.group.children[0].geometry;
- for(const height of [143,170,195]){
+ for(const height of [125,143,170,195,210]){
   updateHumanBody(body,{...state,bodyHeightCm:height},{collision:false});const before=body.geometry.attributes.position.array.slice();appearance.update();
   assert.deepEqual(body.geometry.attributes.position.array,before);assert.equal(appearance.group.children[0].geometry,geometry);body.updateMatrixWorld(true);
   const box=new T.Box3().setFromObject(appearance.group);assert.ok(box.min.y>body.userData.shoulderY+.2,'hair intersects shoulder/jersey area');
