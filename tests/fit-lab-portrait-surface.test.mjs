@@ -47,6 +47,6 @@ test('Total refined head and hair triangle budget stays below the published 1318
  try{
   let count=b.geometry.index.count/3;for(const m of [...a.group.children,...f.group.children])count+=m.geometry.index.count/3;
   assert.ok(count<105000,`Head-scene geometry budget regressed: ${count}`);
-  assert.equal(a.snapshot().scalpLocks,42);assert.equal(a.snapshot().scalpDetail,'filtered-surface-fibres');
+  assert.equal(a.snapshot().scalpLocks,46);assert.equal(a.snapshot().templeLocks,4);assert.equal(a.snapshot().scalpDetail,'filtered-surface-fibres');
  }finally{f.destroy();a.destroy();dispose(b);}
 });

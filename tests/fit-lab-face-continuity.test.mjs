@@ -10,7 +10,7 @@ test('Integrated head has one skin batch, finite optical coordinates and a bound
  try{
   const g=face.group.children[0].geometry,s=face.snapshot();
   assert.equal(s.displayHeadRefined,true);assert.equal(s.drawBatches,2);assert.equal(s.extraTextureRequests,0);
-  assert.ok(s.skinVertices>15000&&s.skinVertices<18000);assert.ok(s.constructionVertices<25000);assert.ok(s.sampleQueries<=1500);
+  assert.ok(s.skinVertices>15000&&s.skinVertices<18000);assert.ok(s.constructionVertices<25000);assert.equal(s.lashHairs,40);assert.ok(s.sampleQueries<=2000,'Aperture-fitted lashes must stay within the one-time sampling budget');
   assert.equal(g.groups[0].materialIndex,0);assert.equal(g.groups[1].materialIndex,1);
   for(const key of ['position','normal','color','eyeCoord'])assert.ok(g.attributes[key].array.every(Number.isFinite));
  }finally{face.destroy();body.geometry.dispose();body.material.dispose();}

@@ -6,6 +6,8 @@ on:
     paths:
       - 'configurador-3d/fit-lab/human-face.mjs'
       - 'configurador-3d/fit-lab/portrait-surface.mjs'
+      - 'configurador-3d/fit-lab/portrait-style.mjs'
+      - 'tests/fit-lab-portrait-style.test.mjs'
       - 'configurador-3d/fit-lab/human-appearance.mjs'
       - 'tests/fit-lab-portrait-surface.test.mjs'
       - 'tests/fit-lab-face-portrait.test.mjs'
@@ -35,14 +37,16 @@ jobs:
       - run: |
           set -euo pipefail
           mkdir -p artifacts/face-portrait
-          node --test tests/fit-lab-portrait-surface.test.mjs tests/fit-lab-face-continuity.test.mjs tests/fit-lab-face-portrait.test.mjs tests/fit-lab-face-surface.test.mjs tests/fit-lab-human-appearance.test.mjs tests/fit-lab-avatar-polish.test.mjs | tee artifacts/face-portrait/unit-tests.txt
+          node --test tests/fit-lab-portrait-style.test.mjs tests/fit-lab-portrait-surface.test.mjs tests/fit-lab-face-continuity.test.mjs tests/fit-lab-face-portrait.test.mjs tests/fit-lab-face-surface.test.mjs tests/fit-lab-human-appearance.test.mjs tests/fit-lab-avatar-polish.test.mjs | tee artifacts/face-portrait/unit-tests.txt
       - run: npx playwright install --with-deps chromium
       - name: Before - published face with matched lights and camera
         run: |
-          git show d28fdbf6dc301962b2585303949e33da1e7c3a86:configurador-3d/fit-lab/human-face.mjs > configurador-3d/fit-lab/human-face-baseline.mjs
-          git show d28fdbf6dc301962b2585303949e33da1e7c3a86:configurador-3d/fit-lab/human-appearance.mjs > configurador-3d/fit-lab/human-appearance-baseline.mjs
+          git show c6518716a2899ecc436a260fa927ea922d41b1e4:configurador-3d/fit-lab/human-face.mjs > configurador-3d/fit-lab/human-face-baseline.mjs
+          git show c6518716a2899ecc436a260fa927ea922d41b1e4:configurador-3d/fit-lab/human-appearance.mjs > configurador-3d/fit-lab/human-appearance-baseline.mjs
+          git show c6518716a2899ecc436a260fa927ea922d41b1e4:configurador-3d/fit-lab/portrait-surface.mjs > configurador-3d/fit-lab/portrait-surface-baseline.mjs
+          sed -i 's|./portrait-surface.mjs|./portrait-surface-baseline.mjs|' configurador-3d/fit-lab/human-face-baseline.mjs
           APPEARANCE_MODULE=./configurador-3d/fit-lab/human-appearance-baseline.mjs FACE_MODULE=./configurador-3d/fit-lab/human-face-baseline.mjs EVIDENCE_DIR=artifacts/face-portrait/before node scripts/fit-lab-face-review.mjs
-          rm configurador-3d/fit-lab/human-face-baseline.mjs configurador-3d/fit-lab/human-appearance-baseline.mjs
+          rm configurador-3d/fit-lab/human-face-baseline.mjs configurador-3d/fit-lab/human-appearance-baseline.mjs configurador-3d/fit-lab/portrait-surface-baseline.mjs
       - name: After - four real WebGL views
         run: EVIDENCE_DIR=artifacts/face-portrait/after node scripts/fit-lab-face-review.mjs
       - name: Early visual evidence

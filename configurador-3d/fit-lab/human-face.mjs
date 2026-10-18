@@ -3,8 +3,8 @@ import {MeshBVH} from 'three-mesh-bvh';
 import {SKIN_COLOR} from './human-appearance.mjs';
 import {buildPortraitSurface,PORTRAIT_JOIN_Y,PORTRAIT_SURFACE_VERSION} from './portrait-surface.mjs';
 
-export const FACE_VERSION='human-face/3.0-integrated-portrait';
-const IRIS_RADIUS=.0052,PUPIL_RADIUS=.00195;
+export const FACE_VERSION='human-face/3.2-soft-athletic';
+const IRIS_RADIUS=.0053,PUPIL_RADIUS=.00185;
 const smooth=t=>{t=Math.max(0,Math.min(1,t));return t*t*(3-2*t);};
 
 /** A single refined skin surface and recessed optical eyes replace the old
@@ -20,15 +20,33 @@ export function createHumanFace(body){
  const skin=new T.Color(SKIN_COLOR),brow=new T.Color('#473128');
  const positions=Array.from(head.attributes.position.array),normals=Array.from(head.attributes.normal.array),indices=Array.from(head.index.array),colors=[],coords=[],ranges=[];
  for(let i=0;i<head.attributes.position.count;i++){colors.push(skin.r,skin.g,skin.b);coords.push(0,0);}
- const headVertexCount=head.attributes.position.count;let headIndexCount=indices.length;
+ const headVertexCount=head.attributes.position.count,portraitStyle={version:head.userData.styleVersion,maxDisplacementMm:head.userData.maxStyleDisplacementMm};let headIndexCount=indices.length;
  const attachments=head.userData.attachments,restSkin=head.attributes.position.array.slice(),restNormals=head.attributes.normal.array.slice();
  const sample=(x,y)=>{ray.origin.set(x,y,.5);queries++;const h=tree.raycastFirst(ray,T.DoubleSide);if(!h)throw Error('Detalle fuera de la superficie de la cara');return h.point;};
  const append=(p,n,c,uv=[0,0])=>{positions.push(p.x,p.y,p.z);normals.push(n.x,n.y,n.z);colors.push(c.r,c.g,c.b);coords.push(...uv);};
+ // Short tapered upper lashes anchored by the actual display aperture. This
+ // finite search locates a skin/cavity boundary in Y; it never offsets an eye in Z.
+ let lashHairs=0;
+ for(const side of [-1,1])for(let i=0;i<20;i++){
+  const t=(i+.5)/20,x=side*.0315+(t-.5)*.021;
+  let inside=1.589,outside=1.604;
+  if(sample(x,inside).z>.12)continue;
+  for(let j=0;j<10;j++){const y=(inside+outside)/2;if(sample(x,y).z>.12)outside=y;else inside=y;}
+  const root=sample(x,outside+.00012);root.z+=.00016;
+  const phase=i*2.399,arch=Math.sin(Math.PI*t),length=(.0009+.0007*arch)*(.90+.15*Math.sin(phase)**2);
+  const start=positions.length/3;
+  for(let j=0;j<=3;j++)for(let k=0;k<2;k++){
+   const v=j/3,p=root.clone();p.x+=(t-.5)*.0009*v+(k-.5)*.00011*(1-v);
+   p.y+=length*v;p.z+=.0007*Math.sin(v*Math.PI/2);
+   append(p,new T.Vector3(0,0,1),new T.Color('#302720').lerp(skin,.12+.42*v*v));
+  }
+  for(let j=0;j<3;j++){const a=start+j*2;indices.push(a,a+1,a+2,a+1,a+3,a+2);}lashHairs++;
+ }
  // Low-contrast irregular brow strokes. No straight comb of identical hairs.
  const browHairs=144;
  for(const side of[-1,1])for(let i=0;i<browHairs/2;i++){
   const phase=i*2.3999632,t=(i+.35+.20*Math.sin(phase))/72,arch=Math.pow(Math.sin(Math.PI*t),.55);
-  const x=side*(.014+.036*t),y=1.602+.0034*Math.sin(Math.PI*t)-.0012*t+Math.sin(phase*2.1)*.00055;
+  const x=side*(.014+.036*t),y=1.602+.0040*Math.sin(Math.PI*t)-.0016*t+Math.sin(phase*2.1)*.00055;
   const length=(.0011+.0013*Math.sin(phase)**2)*arch,width=(.00008+.00009*Math.sin(phase*.8)**2)*arch;
   const start=positions.length/3;
   for(let j=0;j<=4;j++)for(let k=0;k<2;k++){
@@ -67,12 +85,12 @@ export function createHumanFace(body){
    if(vPortraitPosition.y < ${PORTRAIT_JOIN_Y.toFixed(4)}) discard;
    float front=smoothstep(0.10,0.125,vPortraitPosition.z);
    float browT=(abs(vPortraitPosition.x)-0.014)/0.036;
-   float browY=1.602+0.0034*sin(clamp(browT,0.0,1.0)*3.14159)-0.0012*browT;
+   float browY=1.602+0.0040*sin(clamp(browT,0.0,1.0)*3.14159)-0.0016*browT;
    float browArch=pow(max(0.0,sin(clamp(browT,0.0,1.0)*3.14159)),0.65);
    float browWidth=0.0010*browArch;
    float browNoise=sin(vPortraitPosition.x*7200.0+vPortraitPosition.y*3300.0)*0.00012;
    float browMask=(1.0-smoothstep(browWidth*0.15,browWidth+0.0005,abs(vPortraitPosition.y-browY)+browNoise))*browArch*front;
-   diffuseColor.rgb=mix(diffuseColor.rgb,vec3(0.093,0.051,0.034),browMask*0.78);
+   diffuseColor.rgb=mix(diffuseColor.rgb,vec3(0.093,0.051,0.034),browMask*0.68);
    float u=vPortraitPosition.x/0.0235;
    float arch=pow(max(0.0,1.0-u*u),0.72);
    float centre=1.5235-0.0003*u*u;
@@ -138,5 +156,5 @@ export function createHumanFace(body){
   gp.needsUpdate=true;gn.needsUpdate=true;geometry.computeBoundingBox();geometry.computeBoundingSphere();
  }
  update();head.dispose();tree.geometry.dispose();const buildMs=performance.now()-started;
- return {group,update,snapshot:()=>({version:FACE_VERSION,buildMs,updates,eyes:true,eyebrows:true,lips:true,eyeSurface:'recessed-ellipsoid',eyeVertices:ranges.reduce((n,r)=>n+r.count,0),gaze:'parallel-forward',irisRadiusMm:IRIS_RADIUS*1000,pupilRadiusMm:PUPIL_RADIUS*1000,eyelids:'integrated-head-surface',browHairs,expression:'neutral',continuousEyePigment:true,constructionVertices:positions.length/3,skinVertices:headVertexCount,skinSurfaceVersion:PORTRAIT_SURFACE_VERSION,drawBatches:2,extraTextureRequests:0,sampleQueries:queries,bodyGeometryChanged:false,bodyMeasurementsChanged:false,clothChanged:false,displayHeadRefined:true,neckAttachmentVertices:attachments.length,headJoinY:PORTRAIT_JOIN_Y}),destroy(){if(destroyed)return;destroyed=true;body.remove(group);geometry.dispose();material.dispose();ocular.dispose();if(body.material.onBeforeCompile===skinCompile){body.material.onBeforeCompile=previousCompile;body.material.customProgramCacheKey=previousKey;body.material.needsUpdate=true;}}};
+ return {group,update,snapshot:()=>({version:FACE_VERSION,buildMs,updates,eyes:true,eyebrows:true,lips:true,eyeSurface:'recessed-ellipsoid',eyeVertices:ranges.reduce((n,r)=>n+r.count,0),gaze:'parallel-forward',irisRadiusMm:IRIS_RADIUS*1000,pupilRadiusMm:PUPIL_RADIUS*1000,eyelids:'integrated-head-surface',browHairs,lashHairs,expression:'neutral',continuousEyePigment:true,constructionVertices:positions.length/3,skinVertices:headVertexCount,skinSurfaceVersion:PORTRAIT_SURFACE_VERSION,portraitStyle,drawBatches:2,extraTextureRequests:0,sampleQueries:queries,bodyGeometryChanged:false,bodyMeasurementsChanged:false,clothChanged:false,displayHeadRefined:true,neckAttachmentVertices:attachments.length,headJoinY:PORTRAIT_JOIN_Y}),destroy(){if(destroyed)return;destroyed=true;body.remove(group);geometry.dispose();material.dispose();ocular.dispose();if(body.material.onBeforeCompile===skinCompile){body.material.onBeforeCompile=previousCompile;body.material.customProgramCacheKey=previousKey;body.material.needsUpdate=true;}}};
 }

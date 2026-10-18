@@ -1,7 +1,8 @@
 import * as T from 'three';
 import {mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
+import {refinePortraitPoint,PORTRAIT_STYLE_VERSION} from './portrait-style.mjs';
 
-export const PORTRAIT_SURFACE_VERSION='portrait-surface/1.0';
+export const PORTRAIT_SURFACE_VERSION='portrait-surface/1.1-soft-athletic';
 export const PORTRAIT_JOIN_Y=1.475;
 const clamp=(t)=>Math.max(0,Math.min(1,t));
 const smooth=t=>{t=clamp(t);return t*t*(3-2*t);};
@@ -9,7 +10,7 @@ const gauss=(v,c,w)=>Math.exp(-(((v-c)/w)**2));
 
 /** A render-only head surface. Canonical body arrays and metric/collision data
  * are never touched. The neck seam and scalp stay in the canonical coordinates. */
-export function buildPortraitSurface(base,index){
+export function buildPortraitSurface(base,index,{styleAmount=1}={}){
  const packed=[],ids=[];const map=new Map(),sourceByPosition=new Map();
  const positionKey=(x,y,z)=>Math.round(x*1e7)+':'+Math.round(y*1e7)+':'+Math.round(z*1e7);
  for(let i=0;i<index.count;i+=3){
@@ -47,6 +48,7 @@ export function buildPortraitSurface(base,index){
  const triangles=[];
  const edge=(a,b)=>edges.get(Math.min(a,b)+':'+Math.max(a,b)).vertex;
  for(let i=0;i<idx.count;i+=3){const a=idx.getX(i),b=idx.getX(i+1),c=idx.getX(i+2),ab=edge(a,b),bc=edge(b,c),ca=edge(c,a);triangles.push(a,ab,ca,ab,b,bc,ca,bc,c,ab,bc,ca);}
+ let maxStyleDisplacementMm=0;
  // Display-only regional refinement. No global head scaling or body fitting.
  for(const v of out){
   const front=smooth((v.z-.118)/.015),eyeX=Math.abs(v.x)-.0315;
@@ -58,9 +60,11 @@ export function buildPortraitSurface(base,index){
   // mapping around the seam keeps a closed neutral reading and an actual cleft.
   v.y-=w*dy*.85*Math.exp(-((dy/.0034)**4));
   v.z+=w*.0018*gauss(dy,0,.0037)-w*.0017*gauss(v.y,1.532,.0058);
+  const ox=v.x,oy=v.y,oz=v.z;refinePortraitPoint(v,styleAmount);
+  maxStyleDisplacementMm=Math.max(maxStyleDisplacementMm,Math.hypot(v.x-ox,v.y-oy,v.z-oz)*1000);
  }
  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(out.flatMap(v=>v.toArray()),3));g.setIndex(triangles);g.computeVertexNormals();g.computeBoundingBox();g.computeBoundingSphere();
  const attachments=[];for(let i=0;i<out.length;i++)if(out[i].y<1.535){const [a,b]=bindings[i];attachments.push({vertex:i,a,b,basePoint:[(base[a*3]+base[b*3])/2,(base[a*3+1]+base[b*3+1])/2,(base[a*3+2]+base[b*3+2])/2]});}
- g.userData={attachments,version:PORTRAIT_SURFACE_VERSION,sourceVertices:p.count,sourceTriangles:idx.count/3,subdivision:1,joinY:PORTRAIT_JOIN_Y,scalpUnchanged:true,renderOnly:true};merged.dispose();
+ g.userData={attachments,styleVersion:PORTRAIT_STYLE_VERSION,styleAmount,maxStyleDisplacementMm,version:PORTRAIT_SURFACE_VERSION,sourceVertices:p.count,sourceTriangles:idx.count/3,subdivision:1,joinY:PORTRAIT_JOIN_Y,scalpUnchanged:true,renderOnly:true};merged.dispose();
  return g;
 }
