@@ -35,7 +35,10 @@ test('Facial features follow stature without adding geometry or cumulative defor
 test('Shader hooks preserve upstream hooks and add continuous iris without network textures',async()=>{
  const b=await fixture();let called=0;b.material.onBeforeCompile=()=>called++;
  const f=createHumanFace(b),skinShader={uniforms:{},vertexShader:T.ShaderLib.standard.vertexShader,fragmentShader:T.ShaderLib.standard.fragmentShader};
- b.material.onBeforeCompile(skinShader,{});assert.equal(called,1);assert.ok(skinShader.uniforms.faceSourceScale.value>0);assert.match(skinShader.fragmentShader,/faceMask/);
+ b.material.onBeforeCompile(skinShader,{});assert.equal(called,1);assert.ok(skinShader.uniforms.faceSourceScale.value>0);assert.match(skinShader.fragmentShader,/if\(vFaceSource.y > 1.4650\) discard/);
+ const portraitShader={uniforms:{},vertexShader:T.ShaderLib.standard.vertexShader,fragmentShader:T.ShaderLib.standard.fragmentShader};
+ f.group.getObjectByName('avatar-display-head').material.onBeforeCompile(portraitShader,{});assert.match(portraitShader.fragmentShader,/cheek/);
+ assert.match(portraitShader.fragmentShader,/if\(vPortraitSource.y < 1.4650\) discard/);
  const eyeShader={uniforms:{},vertexShader:T.ShaderLib.physical.vertexShader,fragmentShader:T.ShaderLib.physical.fragmentShader};f.group.children[0].material[1].onBeforeCompile(eyeShader,{});assert.match(eyeShader.fragmentShader,/fwidth\(r\)/);assert.doesNotMatch(eyeShader.fragmentShader,/https?:/);
  f.destroy();dispose(b);
 });

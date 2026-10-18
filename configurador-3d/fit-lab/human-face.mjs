@@ -3,7 +3,7 @@ import {MeshBVH} from 'three-mesh-bvh';
 import {SKIN_COLOR} from './human-appearance.mjs';
 import {createPortraitSurface,configurePortraitMaterial,PORTRAIT_CUT_Y} from './portrait-surface.mjs';
 
-export const FACE_VERSION='human-face/3.0-display-surface';
+export const FACE_VERSION='human-face/3.1-anatomical-eye-cap';
 const clamp=x=>Math.max(0,Math.min(1,x));
 const smooth=x=>{const t=clamp(x);return t*t*(3-2*t);};
 
@@ -17,7 +17,7 @@ export function createHumanFace(body){
  if(anchor<0){source.dispose();portraitGeometry.dispose();throw Error('No se encuentra la referencia de la cabeza');}
  const tree=new MeshBVH(source,{maxLeafTris:8}),ray=new T.Ray(new T.Vector3(),new T.Vector3(0,0,-1));
  const positions=[],colors=[],indices=[],eyeCoords=[],groups=[],eyeVertexRanges=[];
- const skin=new T.Color(SKIN_COLOR),warmSkin=skin.clone().lerp(new T.Color('#b87867'),.12);
+ const skin=new T.Color(SKIN_COLOR);
  const brown=new T.Color('#3c2c23'),sclera=new T.Color('#cbc3b7'),iris=new T.Color('#64432d'),pupil=new T.Color('#131510');
  const pointCache=new Map();let sampleQueries=0;
  function sample(x,y){
@@ -42,34 +42,20 @@ export function createHumanFace(body){
  let eyeVertices=0,browHairs=0;
  try{
   for(const side of[-1,1]){
-   const cx=.0315*side,cy=1.5895,halfWidth=.0125;
-   // Fixed outer samples sit on the actual skin, outside the empty socket.
-   // Never use a stepped depth search per vertex: it produced vertical stripes.
-   const bounds=u=>{const arch=Math.max(0,1-u*u)**.66,tilt=side*u*.00065;return {bottom:cy-.0038*arch+tilt,top:cy+.0040*arch+tilt,arch};};
-   const rimCache=new Map();
-   function rimAt(u){
-    if(rimCache.has(u))return rimCache.get(u);
-    const x=cx+u*halfWidth,{bottom,top,arch}=bounds(u);
-    const lower=sample(x,cy-.0075),upper=sample(x,cy+.0075);
-    // Endpoints converge at the canthi; central lid depth remains continuous.
-    const end=u<0?-1:1;const corner=sample(cx+end*halfWidth,cy+side*end*.00065);
-    const endBlend=smooth((Math.abs(u)-.4)/.6);
-    const lowerZ=lower.z+(corner.z-lower.z)*endBlend;
-    const upperZ=upper.z+(corner.z-upper.z)*endBlend;
-    const value={x,bottom,top,arch,lower,upper,lowerZ,upperZ};rimCache.set(u,value);return value;
-   }
-   function ocularPoint(u,v){const q=rimAt(u);return new T.Vector3(q.x,q.bottom+(q.top-q.bottom)*v,q.lowerZ+(q.upperZ-q.lowerZ)*v+.00085*q.arch*Math.sin(Math.PI*v)+.00040);}
+   const cx=.0315*side,cy=1.5880;
+   // An actual curved ocular cap sits inside the source orbit. Source eyelids
+   // occlude its perimeter. Do not span the orbital skin with rectangular patches,
+   // nor translate a flat eye forward just to pass a one-sided depth assertion.
+   const ocularPoint=(u,v)=>{
+    const angle=u*Math.PI/2,radial=Math.cos(angle),t=v*2-1;
+    const vv=Math.sign(t)*Math.abs(t)**2;
+    const yy=vv*radial,dome=radial*Math.sqrt(Math.max(0,1-vv*vv));
+    return new T.Vector3(cx+.015*Math.sin(angle),cy+.0125*yy,.1225+.012*dome);
+   };
    const eye=grid(48,12,ocularPoint,(_,v,p)=>{
     const r=Math.hypot(p.x-cx,p.y-cy),c=r<.00185?pupil.clone():r<.0051?iris.clone():sclera.clone();
     return c.multiplyScalar(1-.16*smooth((v-.56)/.44));
    },1,{x:cx,y:cy});eyeVertexRanges.push(eye);eyeVertices+=eye.count;
-   // Upper/lower lids meet the ocular cap, then blend into the real rim. They
-   // cover only the socket boundary: neither larger eyes nor a face decal.
-   for(const upper of[false,true])grid(48,6,(u,v)=>{
-    const q=rimAt(u),edge=ocularPoint(u,upper?1:0),outer=upper?q.upper:q.lower;
-    const p=edge.clone().lerp(outer,v);p.y=edge.y+(outer.y-edge.y)*v;p.z+=.00025*Math.sin(Math.PI*v)*q.arch+.00015;
-    return p;
-   },(u,v)=>warmSkin.clone().lerp(skin,smooth(v)).multiplyScalar(1-.11*(1-v)*Math.max(0,1-u*u)));
    // Individual tapered brow strokes instead of the old dark polygonal stripe.
    for(let i=0;i<54;i++){
     const t=(i+.5)/54,phase=i*2.399,arch=Math.sin(Math.PI*t)**.5;
@@ -145,9 +131,7 @@ export function createHumanFace(body){
   shader.vertexShader='uniform float faceSourceScale; uniform vec3 faceSourceOffset; varying vec3 vFaceSource;\n'+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvFaceSource=(position-faceSourceOffset)/faceSourceScale;');
   shader.fragmentShader='varying vec3 vFaceSource;\n'+shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
    if(vFaceSource.y > ${PORTRAIT_CUT_Y.toFixed(4)}) discard;
-   float faceMask=smoothstep(1.49,1.53,vFaceSource.y)*(1.0-smoothstep(1.64,1.67,vFaceSource.y))*smoothstep(0.045,0.085,vFaceSource.z);
-   float cheek=exp(-pow((abs(vFaceSource.x)-0.048)/0.022,2.0)-pow((vFaceSource.y-1.564)/0.024,2.0));
-   diffuseColor.rgb*=mix(vec3(1.0),vec3(1.022,0.986,0.983),faceMask*cheek);
+   // Facial shading lives only on the replacement display head.
   `);
  };
  body.material.onBeforeCompile=skinCompile;body.material.customProgramCacheKey=function(){return previousKey.call(this)+'-'+FACE_VERSION;};body.material.needsUpdate=true;
@@ -158,7 +142,7 @@ export function createHumanFace(body){
   localScale.value=scale;localOffset.value.copy(group.position);
  }
  update();return {group,update,snapshot:()=>({version:FACE_VERSION,eyes:true,eyebrows:true,lips:true,eyeSurface:'eyelid-rim-cap',eyeVertices,
-  gaze:'parallel-forward',irisRadiusMm:4.9,pupilRadiusMm:1.85,eyelids:true,orbitalRimVerified:true,browHairs,expression:'relaxed-neutral',continuousEyePigment:true,continuousRims:true,depthSearchSteps:0,constructionVertices:positions.length/3,drawBatches:2,
+  gaze:'parallel-forward',irisRadiusMm:4.9,pupilRadiusMm:1.85,eyelids:true,orbitalRimVerified:true,browHairs,expression:'relaxed-neutral',continuousEyePigment:true,continuousRims:true,ocularCap:'ellipsoid-behind-source-lids',lidOverlays:0,depthSearchSteps:0,constructionVertices:positions.length/3,drawBatches:2,
   extraTextureRequests:0,sampleQueries,displayHead:portraitGeometry.userData.portrait,totalDrawBatches:3,bodyGeometryChanged:false,bodyMeasurementsChanged:false,clothChanged:false}),destroy(){
   if(destroyed)return;destroyed=true;body.remove(group);geometry.dispose();material.dispose();ocular.dispose();portraitGeometry.dispose();portraitMaterial.dispose();
   if(body.material.onBeforeCompile===skinCompile){body.material.onBeforeCompile=previousCompile;body.material.customProgramCacheKey=previousKey;body.material.needsUpdate=true;}

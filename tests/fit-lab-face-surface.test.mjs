@@ -17,7 +17,17 @@ test('Eye colour and pupils share a front-facing ocular surface instead of the s
      if(c.getX(i)+c.getY(i)+c.getZ(i)<.10)dark++;
      if(c.getX(i)+c.getY(i)+c.getZ(i)>1)light++;
    }
-   assert.ok(dark>20,'Missing pupil/iris');assert.ok(light>50,'Missing sclera');
+   // The mesh now covers a full ellipsoidal cap, not only the exposed slit.
+   // Pupil validity is a geometric/pigment contract, not a tessellation count.
+   assert.ok(dark>0,'Missing pupil pigment');assert.ok(light>50,'Missing sclera');
+   const uv=g.attributes.eyeCoord;let nearest=-1,d=Infinity,minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+   for(let i=start;i<start+count;i++){
+     const x=uv.getX(i),y=uv.getY(i),r=Math.hypot(x,y);if(r<d){d=r;nearest=i;}
+     minX=Math.min(minX,x);maxX=Math.max(maxX,x);minY=Math.min(minY,y);maxY=Math.max(maxY,y);
+   }
+   assert.ok(d<.00001,'Pupil centre must be sampled');
+   assert.ok(c.getX(nearest)+c.getY(nearest)+c.getZ(nearest)<.1,'Pupil centre must be dark');
+   assert.ok(minX<-.0051&&maxX>.0051&&minY<-.0051&&maxY>.0051,'Both full iris radii must fit in the ocular cap');
  }
  face.destroy();body.geometry.dispose();body.material.dispose();
 });
