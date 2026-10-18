@@ -1,6 +1,6 @@
 import {mountBodyEditor} from './body-editor.mjs';
 import {mountViewerNavigation} from './viewer-navigation.mjs';
-import {BODY_SHAPE_KEYS,REGION_KEYS} from './body-regions.mjs';
+import {BODY_SHAPE_KEYS} from './body-regions.mjs';
 import {patternSpecification,SHORT_RISES} from './pattern-registry.mjs';
 import {createFixedShortFactory,shortSupport} from './fixed-shorts.mjs';
 import {SHORT_SIZES,assessJersey,normalizeShortCode} from './fixed-sizes.mjs';
@@ -15,23 +15,27 @@ import {loadHumanBody,updateHumanBody,humanSection,HUMAN_VERSION} from './human-
 import {createSurfaceNormalReconciler} from './surface-normals.mjs';
 import {createHumanAppearance} from './human-appearance.mjs';
 import {createHumanFace} from './human-face.mjs';
-import {createHumanOutfit,createHumanBustGuide} from './human-outfit.mjs';
+import {createHumanBustGuide} from './human-outfit.mjs';
 import {createRestGarment,CM_PER_UNIT} from './fit-mesh.mjs';
 import {syncSurfaceTrim} from './surface-bindings.mjs';
 import {createKitDesign} from './kit-design.mjs';
-import {GARMENT_CATALOG,garmentForState} from './garment-catalog.mjs';
+import {garmentForState} from './garment-catalog.mjs';
 /** Full human model, one visible geometry and the same indexed geometry in the worker collider. */
 export async function createHumanViewer(canvas,initial,onFrame=()=>{},actions={}){
  const assetURL=new URL('./assets/human-female.glb',import.meta.url);
- const [response,seedResponse]=await Promise.all([fetch(assetURL),fetch(new URL('./bootstrap.json',import.meta.url)).catch(()=>null)]);
- if(!response.ok)throw Error('No se pudo cargar la base humana');const bytes=await response.arrayBuffer();
+ const assetStart=performance.now();
+ const readAsset=async(url,kind)=>{const response=await fetch(url);if(!response.ok)throw Error('No se pudo cargar '+url.pathname);return response[kind]();};
+ const [bytes,seed,shortAsset]=await Promise.all([
+  readAsset(assetURL,'arrayBuffer'),
+  readAsset(new URL('./bootstrap.json',import.meta.url),'json').catch(()=>null),
+  readAsset(new URL('./fixed-shorts.json',import.meta.url),'json')
+ ]);
+ const assetLoadMs=performance.now()-assetStart;
  let bootstrap=null;
- try{const b=seedResponse?.ok?await seedResponse.json():null;
+ try{const b=seed;
   if(b?.version===SIMULATION_VERSION&&b.cache?.key===simulationKey(initial)&&b.frame?.maps&&b.frame.remaining===0&&b.frame.positions?.every(Number.isFinite))bootstrap=b;
  }catch{/* Development without a bootstrap still prepares normally. */}
- const shortResponse=await fetch(new URL('./fixed-shorts.json',import.meta.url));
- if(!shortResponse.ok)throw Error('No se pudo cargar el catálogo fijo');
- const shortAsset=await shortResponse.json(),shortFactory=createFixedShortFactory(shortAsset);
+ const shortFactory=createFixedShortFactory(shortAsset);
  const fullReference=await createFullReference(null,null,null,null,actions);
  fullReference.setBody(initial);
  const body=updateHumanBody(await loadHumanBody(bytes),initial,{collision:false}),scene=new T.Scene();scene.add(body);const appearance=createHumanAppearance(body),face=createHumanFace(body);
@@ -44,7 +48,7 @@ export async function createHumanViewer(canvas,initial,onFrame=()=>{},actions={}
  let shortProposal=null,automaticShorts=true,bodyEditor=null,navigation=null;
  let transitionError=null,watchdog=null,requestStarted=performance.now(),lastTransitionMs=0,lastSettleMs=0,liveFrames=0;
  const compareMetrics={floorPx:0,pxPerCm:0,referenceHeightCm:REFERENCE_HEIGHT_CM};
- let frameData=null,frames=0,raf=0,dirty=true,lastPhysicsState=null,bodyKey='',outfitKey='',svgCache=null,lastSVGStep=-1,lastSVG=0;const reduced=matchMedia('(prefers-reduced-motion: reduce)');
+ let frameData=null,frames=0,raf=0,dirty=true,bodyKey='',outfitKey='',svgCache=null,lastSVGStep=-1,lastSVG=0;const reduced=matchMedia('(prefers-reduced-motion: reduce)');
  let flags={body:true,garment:true,transparent:false,dimensions:true,motion:false};
  const counts={bodyBuilds:1,garmentBuilds:0,physicalUpdates:1,outfitBuilds:0,bodyProjections:0,garmentProjections:0,shortsProjections:0,bustGuideBuilds:0},times={body:[],update:[],render:[],sync:[]};
  const diagnostics={maxPenetrationUnits:0,maxTrianglePenetrationUnits:0,contactVertices:0,p95Strain:0,maxStrain:0,particles:0,seams:0,steps:0,maxVelocity:0,pins:0,supportMode:'body-contact',materialCalibrated:false,selfCollision:false};
@@ -105,7 +109,7 @@ export async function createHumanViewer(canvas,initial,onFrame=()=>{},actions={}
  function retry(){revision++;pendingSetup=null;pendingFrame=null;transitionError=null;requestStarted=performance.now();armWatchdog();worker.postMessage({type:'update',revision,state:workerState()});onFrame(snapshot());}
  function disposeGarment(group=garment){if(!group)return;group.userData.finish?.destroy();const materials=new Set();group.traverse(m=>{if(m.isMesh){m.geometry.dispose();(Array.isArray(m.material)?m.material:[m.material]).forEach(v=>materials.add(v));}});materials.forEach(m=>m.dispose());}
  function syncGarment(group,frame,bindings,edges,reconcile){
-  if(!frame.positions?.length||!Array.from(frame.positions).every(Number.isFinite))throw Error('La nueva camiseta contiene coordenadas no válidas');
+  if(!frame.positions?.length||!frame.positions.every(Number.isFinite))throw Error('La nueva camiseta contiene coordenadas no válidas');
   if(group.userData.finish){group.userData.finish.update(frame.positions);for(const edge of edges){const mesh=group.getObjectByName(edge.name);if(mesh){syncSurfaceTrim(mesh.geometry.attributes.position,edge.bindings,frame.positions);mesh.geometry.computeVertexNormals();mesh.geometry.computeBoundingSphere();}}return;}
   for(const mesh of group.children.filter(x=>x.isMesh&&!x.name.startsWith('trim-'))){
     const p=mesh.geometry.attributes.position,map=bindings[mesh.name];
@@ -164,11 +168,11 @@ export async function createHumanViewer(canvas,initial,onFrame=()=>{},actions={}
       presentPrepared(m);
     }else{shorts.applyFrame(m.shorts);syncGarment(garment,m,maps,trims,reconcileSurfaceNormals);}
     pendingFrame=null;liveFrames++;if(m.remaining===0&&frameData?.remaining!==0)lastSettleMs=performance.now()-requestStarted;
-    frameData=m;lastPhysicsState=m.state;transitionError=null;document.getElementById('scene-error').hidden=true;record('sync',start);visual();onFrame(snapshot());
+    frameData=m;transitionError=null;document.getElementById('scene-error').hidden=true;record('sync',start);visual();onFrame(snapshot());
   }catch(error){transitionError=error.message;const e=document.getElementById('scene-error');e.hidden=false;e.textContent=error.message+' Se conserva la última equipación válida.';onFrame(snapshot());}
  };
  worker.onerror=e=>{transitionError=e.message;const el=document.getElementById('scene-error');el.hidden=false;el.textContent='Error en la simulación: '+e.message+'. Se conserva la última equipación válida.';onFrame(snapshot());};
- function performanceSnapshot(){const result={};for(const[k,a]of Object.entries(times)){const b=[...a].sort((a,b)=>a-b);result[k]={samples:a.length,meanMs:a.reduce((s,x)=>s+x,0)/(a.length||1),p95Ms:b[Math.floor((b.length-1)*.95)]||0};}return {...result,counts:{...counts},geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures,physicsThread:'worker',workerTriangles:body.geometry.index.count/3};}
+ function performanceSnapshot(){const result={};for(const[k,a]of Object.entries(times)){const b=[...a].sort((a,b)=>a-b);result[k]={samples:a.length,meanMs:a.reduce((s,x)=>s+x,0)/(a.length||1),p95Ms:b[Math.floor((b.length-1)*.95)]||0};}return {...result,assetLoadMs,shortTemplates:shortFactory.stats(),counts:{...counts},geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures,physicsThread:'worker',workerTriangles:body.geometry.index.count/3};}
  function snapshot(){const d=frameData?.diagnostics??diagnostics,m=body.userData.measurements;let min=Infinity,max=-Infinity;if(frameData)for(let i=1;i<frameData.positions.length;i+=3){min=Math.min(min,frameData.positions[i]);max=Math.max(max,frameData.positions[i]);}
   return {bodyEditor:bodyEditor?.snapshot(),camera:navigation?.snapshot(),bodyRegions:body.userData.regions,kitProposal:{jersey:state.recommendation.proposal,shorts:shortProposal},patternSpecifications:{requestedJersey:patternSpecification(garmentForState(state)),visibleJersey:patternSpecification(garmentForState(visibleState)),visibleShorts:patternSpecification(shorts.pattern,shorts.lengthCm)},lowerContact:{method:'worker-simulated-short-triangles',visualOnly:false,restPatternsChanged:false},sizeRejection,sizeAssessment:assessJersey(state),referenceSource:fullReference.snapshot(),state:{...state},visibleState:{...visibleState},comparison:{...compareMetrics},layering:outerLayer.snapshot(),finish:garment?.userData.finish?.snapshot(),appearance:{...appearance.snapshot(),face:face.snapshot()},transition:{pending:presentedRevision!==revision&&!transitionError,presentedRevision,requestedRevision:revision,visibleGarments:garment?1:0,unclothedFrames,swaps,error:transitionError,lastTransitionMs,lastSettleMs,liveFrames,mode:'live-settling',cacheHit:frameData?.cacheHit??false,bootstrapVisible:Boolean(bootstrap)},cloth:{...d,maxPenetrationCm:Math.max(d.maxPenetrationUnits,d.maxTrianglePenetrationUnits)*CM_PER_UNIT,meanGapCm:(d.meanGapUnits||0)*CM_PER_UNIT,meanDropCm:(d.meanDropUnits||0)*CM_PER_UNIT},body:{surfaceVersion:HUMAN_VERSION,armLoweringDeg:body.userData.armLoweringDeg??0,chestCm:m.chestCm,hipCm:m.hipCm,heightCm:m.heightCm,vertices:body.geometry.attributes.position.count,source:'MakeHuman/MPFB CC0',adultReference:true,anthropometryValidated:false,shapeWithinPreset:body.userData.shapeWithinPreset},garment:{code:visibleState.activeConfiguration,restLengthCm:visibleState.garmentLengthCm,hangingHeightCm:frameData?(max-min)*CM_PER_UNIT:state.garmentLengthCm},cmPerUnit:CM_PER_UNIT,frames,paused,editing,sleeping:presentedRevision===revision&&(frameData?.sleeping??false),settling:{active:!transitionError&&(presentedRevision!==revision||!frameData||frameData.remaining>0),remaining:pendingFrame?.remaining??frameData?.remaining??360,total:pendingFrame?.total??frameData?.total??360},design:kit.snapshot(),color:kit.snapshot().base,fullView,outfit:{mode:'fixed-garment-proposal',fixed:shorts.snapshot(),shortsSize:shorts.pattern.code,shortsRiseCm:shorts.riseCm,heightCm:visibleState.bodyHeightCm,shortsLengthCm:shorts.lengthCm,shortsRequestedLengthCm:shorts.requestedLengthCm,shortsMaxLengthCm:shorts.maxLengthCm,shortsMinLengthCm:shorts.minLengthCm,shortsAboveKneeCm:(shorts.bottom-shorts.kneeTop)*CM_PER_UNIT,shortsFit:shorts.fit,shortsVersion:shorts.version,coverage:shorts.coverage,clothSimulated:shorts.clothSimulated,anthropometryValidated:false,floorY:body.userData.floorY,headTopY:body.userData.headTopY},bustGuide:{visible:showGuide,calibrated:false},contact:frameData?.bodyContact??{kind:'same-mesh-bvh'},performance:performanceSnapshot(),workerRevision:revision};
  }
@@ -213,7 +217,7 @@ export async function createHumanViewer(canvas,initial,onFrame=()=>{},actions={}
   isReady:()=>Boolean(garment)&&presentedRevision===revision&&!sizeRejection});
  const observer=new ResizeObserver(resize);observer.observe(canvas.parentElement);controls.addEventListener('change',invalidate);
  rebuildOutfit();rebuildLines();frame();
- if(bootstrap){const f={...bootstrap.frame,revision,positions:Float32Array.from(bootstrap.frame.positions),cacheHit:true};pendingSetup={maps:f.maps,trims:f.trims};presentPrepared(f);frameData=f;lastPhysicsState=f.state;}
+ if(bootstrap){const f={...bootstrap.frame,revision,positions:Float32Array.from(bootstrap.frame.positions),cacheHit:true};pendingSetup={maps:f.maps,trims:f.trims};presentPrepared(f);frameData=f;}
  visual();armWatchdog();worker.postMessage({type:'init',bytes,shortAsset,state:workerState(),revision,bootstrap:bootstrap?{cache:bootstrap.cache}:null},[bytes]);
  return {update,retry,snapshot,reference,setOutfit,setBustGuide(value){showGuide=value;if(value&&!guide){guide=createHumanBustGuide(body);scene.add(guide.mesh);counts.bustGuideBuilds++;}visual();onFrame(snapshot());},setEditing(value){editing=value;pauseWorker();invalidate();},setDesign(value){kit.update(value);shorts.colors(kit.snapshot().base,kit.snapshot().accent);invalidate();},setColor(base){kit.update({base});shorts.colors(base,kit.snapshot().accent);invalidate();},setVisual(next){Object.assign(flags,next);worker.postMessage({type:'wind',value:flags.motion&&!reduced.matches});visual();onFrame(snapshot());},view(name){fullReference.setView(name);const v={front:[0,0,8],side:[8,0,0],back:[0,0,-8],quarter:[4,0,8]}[name]||[4,0,8];camera.position.copy(controls.target).add(new T.Vector3(...v));controls.update();invalidate();},impulse(){worker.postMessage({type:'impulse'});},settle(){worker.postMessage({type:'settle'});},pause(value){paused=value;pauseWorker();onFrame(snapshot());},destroy(){disposed=true;clearTimeout(watchdog);bodyEditor?.destroy();navigation?.destroy();fullReference.destroy();shortFactory.destroy();outerLayer.destroy();worker.terminate();observer.disconnect();cancelAnimationFrame(raf);controls.dispose();document.removeEventListener('visibilitychange',visibility);reduced.removeEventListener('change',preference);canvas.removeEventListener('webglcontextlost',lost);canvas.removeEventListener('webglcontextrestored',restored);disposeGarment();kit.destroy();shorts.destroy();guide?.destroy();appearance.destroy();face.destroy();body.geometry.dispose();body.material.dispose();for(const l of lines.children)l.geometry.dispose();lineMaterial.dispose();renderer.dispose();}};
 }

@@ -1,9 +1,8 @@
 import {SHORT_RISES,shortRiseKey} from './pattern-registry.mjs';
 import * as T from 'three';
-import {clearFixedShortContact} from './fixed-short-contact.mjs';
 import {MeshBVH} from 'three-mesh-bvh';
 import {CM_PER_UNIT} from './body-surface.mjs';
-import {SHORT_SIZES,SHORT_LENGTHS,fixedShortKey,normalizeShortCode} from './fixed-sizes.mjs';
+import {SHORT_SIZES,SHORT_LENGTHS,normalizeShortCode} from './fixed-sizes.mjs';
 export const FIXED_SHORTS_VERSION='fixed-shorts-envelope/4.0';
 /** Perimeter of an indexed triangle section; source torso membership excludes arms. */
 export function horizontalPerimeter(geometry,y,base=null){
@@ -70,16 +69,20 @@ export function gatherWaist(geometry,body,pattern){
 export function createFixedShortFactory(asset){
  if(asset?.version!==FIXED_SHORTS_VERSION||!asset.patterns)throw Error('Faltan patrones fijos del pantalón');
  const templates=new Map();
- for(const[size]of Object.entries(SHORT_SIZES))for(const length of SHORT_LENGTHS)for(const riseCm of SHORT_RISES.filter(r=>r<=length-.5)){
-  const key=shortRiseKey(size,length,riseCm),v=(riseCm===33.5?asset.patterns:asset.riseVariants)?.[key];
+ let destroyed=false;
+ function ensureTemplate(size,length,riseCm){
+  if(destroyed)throw Error('Catálogo de pantalón liberado');
+  if(!SHORT_SIZES[size]||!SHORT_LENGTHS.includes(length)||!SHORT_RISES.includes(riseCm)||riseCm>length-.5)throw Error('Configuración de pantalón no válida');
+  const key=shortRiseKey(size,length,riseCm);if(templates.has(key))return templates.get(key);
+  const v=(riseCm===33.5?asset.patterns:asset.riseVariants)?.[key];
   if(!v||v.positions.length%3||v.indices.length%3||!v.positions.every(Number.isFinite)||!v.indices.every(i=>Number.isInteger(i)&&i>=0&&i<v.positions.length/3))throw Error('Patrón fijo no válido: '+key);
   const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(v.positions,3));g.setIndex(v.indices);if(v.uvs)g.setAttribute('uv',new T.Float32BufferAttribute(v.uvs,2));g.computeVertexNormals();g.computeBoundingBox();g.computeBoundingSphere();for(const q of v.groups)g.addGroup(q.start,q.count,q.materialIndex);
-  if(Math.abs((g.boundingBox.max.y-g.boundingBox.min.y)*CM_PER_UNIT-length)>.02)throw Error('Largo de patrón inconsistente');templates.set(key,{geometry:g,pattern:v.nominal});
+  if(Math.abs((g.boundingBox.max.y-g.boundingBox.min.y)*CM_PER_UNIT-length)>.02)throw Error('Largo de patrón inconsistente');templates.set(key,{geometry:g,pattern:v.nominal});return templates.get(key);
  }
  return{
-  template({size='N1-2',lengthCm=42,riseCm=33.5}={}){const key=shortRiseKey(normalizeShortCode(size),Number(lengthCm),Number(riseCm)),t=templates.get(key);if(!t)throw Error('Patrón de pantalón no disponible: '+key);return {...t,key};},
+  template({size='N1-2',lengthCm=42,riseCm=33.5}={}){const key=shortRiseKey(normalizeShortCode(size),Number(lengthCm),Number(riseCm)),t=ensureTemplate(normalizeShortCode(size),Number(lengthCm),Number(riseCm));if(!t)throw Error('Patrón de pantalón no disponible: '+key);return {...t,key};},
   create(body,{size='N1-2',lengthCm=42,riseCm=33.5,base='#173e64',accent='#f8c12e'}={}){
-   size=normalizeShortCode(size);const key=shortRiseKey(size,Number(lengthCm),Number(riseCm)),template=templates.get(key),pattern=template.pattern,support=shortSupport(body,pattern);
+   size=normalizeShortCode(size);const key=shortRiseKey(size,Number(lengthCm),Number(riseCm)),template=ensureTemplate(size,Number(lengthCm),Number(riseCm)),pattern=template.pattern,support=shortSupport(body,pattern);
    if(support.blocked)throw Error('Pantalón '+size+' demasiado pequeño. El amarre no amplía el patrón; selecciona otra configuración.');
    const requiredRiseCm=(body.userData.waistY-body.userData.sourceToY(.785))*CM_PER_UNIT;
    if(pattern.riseReferenceCm<requiredRiseCm-.25)throw Error('El patrón '+key+' requiere otro tiro para el contacto de cadera/tiro; se propone la alternativa fija más próxima.');
@@ -96,12 +99,12 @@ export function createFixedShortFactory(asset){
    const mesh=new T.Mesh(geometry,[primary,secondary]);mesh.name='Pantalón fijo '+key;mesh.position.y=support.startY;
    return{mesh,version:FIXED_SHORTS_VERSION,fit:'fixed-size',riseCm:pattern.riseReferenceCm,lengthCm:pattern.lengthCm,requestedLengthCm:pattern.lengthCm,minLengthCm:34,maxLengthCm:50,kneeTop:body.userData.sourceToY(.53),pattern,support,
     coverage:{bodyHidden:false,bodyGeometryChanged:false,garmentAdaptedToBody:true,restPatternChanged:false,adaptation:"gravity-stretch-bend-and-body-contact"},clothSimulated:true,
-    applyFrame(frame){if(!frame||frame.key!==key||frame.positions?.length!==geometry.attributes.position.array.length||!Array.from(frame.positions).every(Number.isFinite))throw Error('Estado físico del pantalón inválido');const p=geometry.attributes.position;for(let i=0;i<p.count;i++)p.setXYZ(i,frame.positions[i*3],frame.positions[i*3+1]-mesh.position.y,frame.positions[i*3+2]);p.needsUpdate=true;geometry.computeVertexNormals();geometry.computeBoundingBox();geometry.computeBoundingSphere();cloth=frame.diagnostics;support.clothSimulated=true;},
+    applyFrame(frame){if(!frame||frame.key!==key||frame.positions?.length!==geometry.attributes.position.array.length||!frame.positions.every(Number.isFinite))throw Error('Estado físico del pantalón inválido');const p=geometry.attributes.position;for(let i=0;i<p.count;i++)p.setXYZ(i,frame.positions[i*3],frame.positions[i*3+1]-mesh.position.y,frame.positions[i*3+2]);p.needsUpdate=true;geometry.computeVertexNormals();geometry.computeBoundingBox();geometry.computeBoundingSphere();cloth=frame.diagnostics;support.clothSimulated=true;},
     get top(){return mesh.position.y;},get bottom(){return mesh.position.y+(geometry.boundingBox?.min.y??-pattern.lengthCm/CM_PER_UNIT);},get moving(){return false;},
     advance(){mesh.position.y=support.startY;return false;},
     settle(){mesh.position.y=support.startY;},
     snapshot:()=>({key,nominal:{...pattern},support:{...support},translationY:mesh.position.y,moving:false,restGeometryIndependent:true,waistGather:{...waistGather},surfaceContact:{...surfaceContact},cloth,clothSimulated:Boolean(cloth)}),
     colors(base,accent){primary.color.set(base);secondary.color.set(accent);stripeColor.value.set(accent);},destroy(){geometry.dispose();primary.dispose();secondary.dispose();}};
-  },destroy(){for(const p of templates.values())p.geometry.dispose();templates.clear();}
+  },stats:()=>({allocatedTemplates:templates.size,lazy:true}),destroy(){if(destroyed)return;destroyed=true;for(const p of templates.values())p.geometry.dispose();templates.clear();}
  };
 }

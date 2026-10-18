@@ -71,9 +71,9 @@ export function createHumanFace(body) {
         grid(n,3,(u,v,i)=>endpoints[i].clone().lerp(outer[i],v).add(new T.Vector3(0,0,.00021)),(u,v)=>skin.clone().lerp(lash,(1-v)*(upper?.30:.10)),0);
       }
       // Tapered individual brow hairs instead of a flat, uniformly dark stripe.
-      for(let k=0;k<58;k++){
-        const t=(k+.5)/58,x=side*(.014+.037*t),y=1.603+.0042*Math.sin(Math.PI*t)-.001*t;
-        const width=.00014,length=.0011+.0012*Math.sin(Math.PI*t),slant=side*(.00065+.00045*t);
+      for(let k=0;k<82;k++){
+        const t=(k+.5)/82,x=side*(.014+.037*t),y=1.603+.0042*Math.sin(Math.PI*t)-.001*t;
+        const width=.00019,length=.0011+.0012*Math.sin(Math.PI*t),slant=side*(.00065+.00045*t);
         const lower=sample(x,y-length*.5),upper=sample(x+slant,y+length*.5);
         grid(1,2,(u,v)=>lower.clone().lerp(upper,v).add(new T.Vector3(u*width*Math.sin(Math.PI*(.08+.84*v)),0,.00024)),()=>brow.clone().multiplyScalar(.88+.15*Math.sin(k*2.39)**2));
       }
@@ -86,16 +86,17 @@ export function createHumanFace(body) {
       const topY=centre+.0090*arch**.72-.0018*Math.exp(-((u/.22)**2));
       const bottomY=centre-.0091*arch**.72;
       const top=sample(x,topY),bottom=sample(x,bottomY);
-      const seamZ=Math.max(top.z,bottom.z)-.0015*arch;
+      const seamZ=(top.z+bottom.z)*.5-.0027*arch;
       return {u,x,arch,centre,top,bottom,seamZ};
     });
     for(const upper of [true,false])grid(lipColumns,8,(u,v,i)=>{
       const d=lipData[i],outer=upper?d.top:d.bottom;
       const seam=new T.Vector3(d.x,d.centre+(upper?.00009:-.00009)*d.arch,d.seamZ);
-      const p=seam.lerp(outer,v);p.z+=.00035+.0010*Math.sin(Math.PI*v)*d.arch;return p;
+      const p=seam.lerp(outer,v);p.z+=.00024+.00040*Math.sin(Math.PI*v)*d.arch;return p;
     },(u,v)=>{
-      const c=new T.Color(upper?'#b68070':'#c38d7a');
-      return c.lerp(skin,smooth((v-.55)/.45)*.85).multiplyScalar(.96+.04*Math.sin(Math.PI*v));
+      const c=new T.Color(upper?'#b88574':'#c08c7a');
+      const feather=Math.max(smooth((v-.18)/.82),smooth((Math.abs(u)-.65)/.35));
+      return c.lerp(skin,feather*.96).multiplyScalar(.99+.01*Math.sin(Math.PI*v));
     });
   } finally {source.dispose();}
   const geometry=new T.BufferGeometry();geometry.setAttribute('position',new T.Float32BufferAttribute(positions,3));geometry.setAttribute('color',new T.Float32BufferAttribute(colors,3));geometry.setIndex(indices);

@@ -84,7 +84,7 @@ export function createGarmentFinish(group,maps,body){
  const reconcile=createSurfaceNormalReconciler(rawMeshes,maps),tangent=new T.Vector3(),axis=new T.Vector3(),normal=new T.Vector3(),point=new T.Vector3(),linear=new T.Vector3(),a=new T.Vector3(),b=new T.Vector3();
  const expectedLength=(Math.max(...Object.values(maps).flat())+1)*3;
  function update(positions){
-  if(!positions||positions.length!==expectedLength||!Array.from(positions).every(Number.isFinite))throw Error('Invalid garment frame');maxContactOffset=0;
+  if(!positions||positions.length!==expectedLength||!positions.every(Number.isFinite))throw Error('Invalid garment frame');maxContactOffset=0;
   for(const{raw,map}of surfaces){const out=raw.geometry.attributes.position;map.forEach((id,i)=>out.setXYZ(i,positions[id*3],positions[id*3+1],positions[id*3+2]));raw.geometry.computeVertexNormals();}reconcile();
   for(const{mesh,entries,raw,orientation}of surfaces){
    const out=mesh.geometry.attributes.position,normals=raw.geometry.attributes.normal;
