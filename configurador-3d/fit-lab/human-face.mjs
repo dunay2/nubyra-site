@@ -19,7 +19,7 @@ export function createHumanFace(body){
  const tree=new MeshBVH(source,{maxLeafTris:8}),ray=new T.Ray(new T.Vector3(),new T.Vector3(0,0,-1));
  const positions=[],colors=[],indices=[],eyeCoords=[],groups=[],eyeVertexRanges=[];
  const skin=new T.Color(SKIN_COLOR),warmSkin=skin.clone().lerp(new T.Color('#b87867'),.12);
- const brown=new T.Color('#4b3528'),sclera=new T.Color('#cbc3b7'),iris=new T.Color('#64432d'),pupil=new T.Color('#131510');
+ const brown=new T.Color('#3c2c23'),sclera=new T.Color('#cbc3b7'),iris=new T.Color('#64432d'),pupil=new T.Color('#131510');
  const pointCache=new Map();let sampleQueries=0;
  function sample(x,y){
   const key=x.toFixed(7)+':'+y.toFixed(7);if(pointCache.has(key))return pointCache.get(key).clone();
@@ -45,7 +45,14 @@ export function createHumanFace(body){
   for(const side of[-1,1]){
    const cx=.0315*side,cy=1.5895,halfWidth=.0125;
    const bounds=u=>{const arch=Math.max(0,1-u*u)**.65,tilt=side*u*.0008;return {bottom:cy-.0029*arch+tilt,top:cy+.0035*arch+tilt,arch};};
-   const rimAt=u=>{const x=cx+u*halfWidth,{bottom,top,arch}=bounds(u);return {x,bottom,top,arch,lower:sample(x,bottom-.0025),upper:sample(x,top+.0025)};};
+   // An offset can still hit the socket back wall. Walk outward until the
+   // sample reaches the actual front rim, using adjacent facial skin as depth.
+   function findRim(x,y,direction){
+    const reference=Math.min(sample(x,cy-.011).z,sample(x,cy+.011).z);
+    for(let k=0;k<=20;k++){const p=sample(x,y+direction*(.0004+k*.0005));if(p.z>=reference-.004)return p;}
+    throw Error('No se encuentra un borde ocular válido');
+   }
+   const rimAt=u=>{const x=cx+u*halfWidth,{bottom,top,arch}=bounds(u);return {x,bottom,top,arch,lower:findRim(x,bottom,-1),upper:findRim(x,top,1)};};
    function ocularPoint(u,v){const q=rimAt(u);return new T.Vector3(q.x,q.bottom+(q.top-q.bottom)*v,q.lower.z+(q.upper.z-q.lower.z)*v+.0011*q.arch*Math.sin(Math.PI*v)+.0006);}
    const eye=grid(64,16,ocularPoint,(_,v,p)=>{
     const r=Math.hypot(p.x-cx,p.y-cy),c=r<.00185?pupil.clone():r<.0051?iris.clone():sclera.clone();
@@ -62,9 +69,9 @@ export function createHumanFace(body){
    for(let i=0;i<54;i++){
     const t=(i+.5)/54,phase=i*2.399,arch=Math.sin(Math.PI*t)**.5;
     const x=side*(.014+.036*t),y=1.602+.0038*Math.sin(Math.PI*t)-.0014*t;
-    const length=(.0010+.0011*Math.sin(phase)**2)*arch;
-    grid(2,3,(u,v)=>sample(x+side*(.0006*v+u*.00018*arch*(1-v)),y+(v-.4)*length).add(new T.Vector3(0,0,.00055)),
-     (_,v)=>brown.clone().lerp(skin,smooth((v-.65)/.35)*.62+(1-arch)*.2));browHairs++;
+    const length=(.0020+.0012*Math.sin(phase)**2)*arch;
+    grid(2,3,(u,v)=>sample(x+side*(.0006*v+u*.00027*arch*(1-v)),y+(v-.4)*length).add(new T.Vector3(0,0,.00055)),
+     (_,v)=>brown.clone().lerp(skin,smooth((v-.70)/.30)*.45+(1-arch)*.16));browHairs++;
    }
   }
   // Relaxed mouth. The two lips converge on a narrow, curved neutral seam;
@@ -74,7 +81,7 @@ export function createHumanFace(body){
    const upperY=centre+.0105*arch**.7-.0025*Math.exp(-((u/.20)**2));
    const lowerY=centre-.0110*arch**.7;
    const top=sample(x,upperY),bottom=sample(x,lowerY);
-   const contactZ=Math.max(top.z,bottom.z, sample(x,centre+.0035*arch).z, sample(x,centre-.0035*arch).z)+.0006;
+   const contactZ=(sample(x,centre+.002*arch).z+sample(x,centre-.002*arch).z)/2+.0005;
    return {x,arch,centre,upperY,lowerY,top,bottom,contactZ};
   }
   for(const upper of[false,true])grid(64,10,(u,v)=>{
@@ -140,7 +147,7 @@ export function createHumanFace(body){
   localScale.value=scale;localOffset.value.copy(group.position);
  }
  update();return {group,update,snapshot:()=>({version:FACE_VERSION,eyes:true,eyebrows:true,lips:true,eyeSurface:'eyelid-rim-cap',eyeVertices,
-  gaze:'parallel-forward',irisRadiusMm:4.9,pupilRadiusMm:1.85,eyelids:true,browHairs,expression:'relaxed-neutral',continuousEyePigment:true,
+  gaze:'parallel-forward',irisRadiusMm:4.9,pupilRadiusMm:1.85,eyelids:true,orbitalRimVerified:true,browHairs,expression:'relaxed-neutral',continuousEyePigment:true,
   extraTextureRequests:0,sampleQueries,bodyGeometryChanged:false,bodyMeasurementsChanged:false,clothChanged:false}),destroy(){
   if(destroyed)return;destroyed=true;body.remove(group);geometry.dispose();material.dispose();ocular.dispose();
   if(body.material.onBeforeCompile===skinCompile){body.material.onBeforeCompile=previousCompile;body.material.customProgramCacheKey=previousKey;body.material.needsUpdate=true;}
