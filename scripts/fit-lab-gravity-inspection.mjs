@@ -8,11 +8,11 @@ try{
  await page.goto(process.env.FIT_LAB_URL||'http://127.0.0.1:8180/fit-lab/');
  await page.waitForFunction(()=>document.querySelector('#render-status').textContent.includes('Malla humana'),null,{timeout:60000});await page.evaluate(async()=>window.lab=await import('./app.mjs'));
  await page.waitForFunction(()=>{const f=window.lab.getLabSnapshot().lastFrame;return !f.transition.pending&&!f.transition.error&&f.sleeping&&f.outfit.fixed.clothSimulated;},null,{timeout:180000});
- await page.locator('#wind').uncheck();await page.locator('#show-dimensions').uncheck();
+ await page.locator('#show-motion').uncheck();await page.locator('#show-dimensions').uncheck();
  const before=await page.evaluate(()=>window.lab.getLabSnapshot().lastFrame);assert.equal(before.outfit.fixed.cloth.waistDriftCm,0);
  await page.locator('#show-garment').uncheck();await page.locator('[data-camera-action="focus"]').click();for(let i=0;i<3;i++)await page.locator('[data-camera-action="zoom-in"]').click();
  for(const view of ['front','side','back']){await page.locator(`[data-view="${view}"]`).click();await page.waitForTimeout(250);await page.locator('#scene-wrapper').screenshot({path:dir+'/short-inspection-'+view+'.png'});}
- await page.locator('#show-garment').check();await page.locator('[data-camera-action="fit"]').click();await page.locator('[data-view="quarter"]').click();await page.waitForTimeout(250);await page.locator('.viewer-card').screenshot({path:dir+'/outfit-final.png'});
+ await page.locator('#show-garment').check();await page.locator('[data-camera-action="fit"]').click();await page.locator('[data-view="quarter"]').click();await page.waitForTimeout(250);await page.locator('.view-panel').screenshot({path:dir+'/outfit-final.png'});
  const s=await page.evaluate(()=>window.lab.getLabSnapshot());assert.equal(s.lastFrame.workerRevision,before.workerRevision);assert.equal(s.lastFrame.outfit.fixed.cloth.steps,before.outfit.fixed.cloth.steps);
  assert.match(await page.locator('#fixed-shorts-status').innerText(),/Caída vertical visible/);
  await page.locator('[data-view="back"]').click();await page.waitForTimeout(300);assert.match(await page.locator('#reference-kind-label').innerText(),/trasera no disponible/);
