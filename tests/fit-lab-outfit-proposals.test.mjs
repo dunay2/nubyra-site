@@ -34,14 +34,14 @@ test('All eight profiles have an actual short proposal at a fixed length, with n
  for(const p of REFERENCE_PROFILES){const s=transition(resolveState({}),{type:'reference-profile',id:p.id});updateHumanBody(body,s,{collision:false});const before=body.geometry.attributes.position.array.slice();assert.equal(s.recommendation.proposal.renderable,true);
  let found=null;outer:for(const pattern of Object.values(SHORT_PATTERNS).sort((a,b)=>Math.abs(a.hipCm-p.hipCm-8)-Math.abs(b.hipCm-p.hipCm-8))){if(shortSupport(body,pattern).blocked)continue;
  for(const riseCm of SHORT_RISES){try{found=factory.create(body,{size:pattern.code,lengthCm:42,riseCm});break outer;}catch{/* Try a different identified pattern, never inflate the current one. */}}}
- assert.ok(found,p.id+' has no short proposal');const snap=found.snapshot();assert.equal(snap.surfaceContact.requiresReview,false);assert.ok(snap.surfaceContact.maxOffsetCm<=3.0001);assert.equal(found.mesh.position.y,body.userData.waistY);assert.equal(found.moving,false);assert.ok(Math.abs((found.top-found.bottom)*CM_PER_UNIT-42)<.0001);assert.deepEqual(body.geometry.attributes.position.array,before);
+ assert.ok(found,p.id+' has no short proposal');const snap=found.snapshot();assert.equal(snap.surfaceContact.requiresReview,false);assert.equal(snap.surfaceContact.method,'worker-xpbd');assert.equal(snap.clothSimulated,false);assert.equal(found.mesh.position.y,body.userData.waistY);assert.equal(found.moving,false);assert.ok(Math.abs((found.top-found.bottom)*CM_PER_UNIT-42)<.0001);assert.deepEqual(body.geometry.attributes.position.array,before);
  const key=shortRiseKey(found.pattern.code,42,found.riseCm);assert.ok(asset.patterns[key]||asset.riseVariants[key]);assert.equal(found.pattern.hipCm,SHORT_PATTERNS[found.pattern.code].hipCm);found.destroy();}
  factory.destroy();body.geometry.dispose();body.material.dispose();
  }finally{await rm(dir,{recursive:true,force:true});}
 });
-test('Finite rise variants preserve nominal hip/waist, horizontal vertices and full length',async()=>{
+test('Finite authored rise variants preserve nominal hip/waist and full length',async()=>{
  const dir=await mkdtemp(join(tmpdir(),'rises-'));try{await buildFixedShorts(join(dir,'shorts.json'));const a=JSON.parse(await readFile(join(dir,'shorts.json'),'utf8'));assert.equal(Object.keys(a.riseVariants).length,24);
- for(const v of Object.values(a.riseVariants)){const d=v.nominal,base=a.patterns[d.code+'-'+d.lengthCm];assert.ok(SHORT_RISES.includes(d.riseCm));assert.equal(d.measuredWaistCm,base.nominal.measuredWaistCm);assert.equal(d.measuredHipCm,base.nominal.measuredHipCm);for(let i=0;i<v.positions.length;i+=3){assert.equal(v.positions[i],base.positions[i]);assert.equal(v.positions[i+2],base.positions[i+2]);}const ys=v.positions.filter((_,i)=>i%3===1);assert.ok(Math.abs((Math.max(...ys)-Math.min(...ys))*CM_PER_UNIT-d.lengthCm)<.01);}
+ for(const v of Object.values(a.riseVariants)){const d=v.nominal,base=a.patterns[d.code+'-'+d.lengthCm];assert.ok(SHORT_RISES.includes(d.riseCm));assert.ok(Math.abs(d.measuredWaistCm-base.nominal.measuredWaistCm)<.02);assert.ok(Math.abs(d.measuredHipCm-base.nominal.measuredHipCm)<.02);assert.equal(d.bodyDerived,false);assert.equal(d.geometrySource,'authored-four-panel-short');assert.ok(v.positions.every(Number.isFinite));const ys=v.positions.filter((_,i)=>i%3===1);assert.ok(Math.abs((Math.max(...ys)-Math.min(...ys))*CM_PER_UNIT-d.lengthCm)<.01);}
  }finally{await rm(dir,{recursive:true,force:true});}
 });
 

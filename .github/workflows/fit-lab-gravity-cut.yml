@@ -1,0 +1,62 @@
+name: NUBYRA · Gravity shorts and supported outfit
+on:
+  push:
+    branches: [fix/fit-lab-gravity-shorts-low-hair]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: nubyra-gravity-cut-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: mkdir -p artifacts/gravity-cut && git rev-parse HEAD > artifacts/gravity-cut/source-commit.txt
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: All unit tests and physical pattern invariants
+        run: |
+          set -euo pipefail
+          THREE_TEST_DIR="$PWD" npm test | tee artifacts/gravity-cut/unit-tests.txt
+      - name: Build exact source and complete clothed bootstrap
+        env:
+          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+        run: npm run build:fit-lab
+      - run: npx playwright install --with-deps chromium
+      - name: Inspect actual head and short independently of the shirt
+        run: |
+          set -euo pipefail
+          EVIDENCE_DIR=artifacts/gravity-inspection/head node scripts/fit-lab-head-review.mjs
+          python3 -m http.server 8180 --bind 127.0.0.1 --directory fit-dist >/tmp/gravity-http.log 2>&1 &
+          sleep 2
+          FIT_LAB_URL=http://127.0.0.1:8180/fit-lab/ node scripts/fit-lab-gravity-inspection.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nubyra-gravity-inspection
+          path: artifacts/gravity-inspection/
+          retention-days: 7
+      - name: Real browser waist, drape, eight profiles, overlays and mobile
+        run: |
+          set -euo pipefail
+          FIT_LAB_URL=http://127.0.0.1:8180/fit-lab/ node scripts/fit-lab-gravity-cut-review.mjs | tee artifacts/gravity-cut/browser-tests.txt
+      - name: Reproducible source evidence
+        if: always()
+        run: git archive --format=tar HEAD | gzip > artifacts/gravity-cut/source.tar.gz
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nubyra-gravity-cut-review
+          path: |
+            artifacts/gravity-cut/
+            fit-dist/
+          retention-days: 7
+          if-no-files-found: error

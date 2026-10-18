@@ -1,7 +1,7 @@
 import * as T from 'three';
 import {MeshBVH, acceleratedRaycast} from 'three-mesh-bvh';
 
-export const APPEARANCE_VERSION = 'human-appearance/3.2';
+export const APPEARANCE_VERSION = 'human-appearance/3.3-low-temples';
 export const SKIN_COLOR = '#c99377';
 const HAIR_COLOR = '#38261d';
 
@@ -31,7 +31,8 @@ export function createHumanAppearance(body) {
     const c=r>1e-8?dz/r:1;
     return 1.610 + .046*Math.max(0,c) - .061*Math.max(0,-c) + .007*Math.sin(theta)**2
       - .004*Math.exp(-(((theta+.18)/.32)**2)) + .0016*Math.sin(2*theta) + .0005*Math.sin(17*theta+.4)
-      - .060*Math.exp(-(((Math.abs(theta)-1.03)/.20)**2));
+      - .038*Math.exp(-(((Math.abs(theta)-1.16)/.31)**2))
+      - .022*Math.exp(-(((Math.abs(theta)-1.62)/.48)**2));
   };
   // A shared continuous envelope supports the locks: no dark air gaps or
   // basket-like openings between raised ribbons when the head is viewed closely.
@@ -108,7 +109,7 @@ export function createHumanAppearance(body) {
   update();
   return {
     group, update,
-    snapshot: () => ({ version: APPEARANCE_VERSION, skinColor: SKIN_COLOR, hairColor: HAIR_COLOR, hairStyle: 'gathered-natural-ponytail', hairMeshes: 3, scalpLocks: 340, tailLocks: 24, scalpTriangles: positions.length / 9, hairTie:true, growthDirection:'regional-gather-to-occiput', renderOnly: true, collisionGeometryChanged: false }),
+    snapshot: () => ({ version: APPEARANCE_VERSION, skinColor: SKIN_COLOR, hairColor: HAIR_COLOR, hairStyle: 'low-gathered-ponytail', hairMeshes: 3, scalpLocks: 340, tailLocks: 24, scalpTriangles: positions.length / 9, hairTie:true, growthDirection:'regional-gather-to-occiput', renderOnly: true, collisionGeometryChanged: false }),
     destroy() {
       if (destroyed) return;
       destroyed = true; body.remove(group);
@@ -152,7 +153,7 @@ function createGatheredHair(base, sourceIndex, centerZ, backZ, hairline, hairVol
   }
   const scalp = {positions: [], normals: [], colors: [], indices: []};
   const ponytail = {positions: [], normals: [], colors: [], indices: []};
-  const tieSurface=onScalp(new T.Vector3(0,1.617,backZ-.020),0);
+  const tieSurface=onScalp(new T.Vector3(0,1.597,backZ-.020),0);
   const tie=tieSurface.clone().addScaledVector(tieSurface.clone().sub(center).normalize(),hairVolume(tieSurface)+.002);
   try {
     for (let i = 0; i < 320; i++) {
@@ -212,8 +213,8 @@ function createGatheredHair(base, sourceIndex, centerZ, backZ, hairline, hairVol
       const origin=new T.Vector3(tie.x+.006*dx,tie.y+.006*dy,tie.z+.003);
       const curve=new T.CubicBezierCurve3(origin,
         new T.Vector3(tie.x+.012*dx,tie.y-.026,tie.z-.035),
-        new T.Vector3(tie.x+.018+.027*dx,tie.y-.098,tie.z-.052+.012*dy),
-        new T.Vector3(tie.x+.013*dx+.010*Math.sin(phase),tie.y-.136+.020*Math.sin(phase)**2,tie.z-.028+.010*dy));
+        new T.Vector3(tie.x+.018+.027*dx,tie.y-.085,tie.z-.052+.012*dy),
+        new T.Vector3(tie.x+.013*dx+.010*Math.sin(phase),tie.y-.116+.018*Math.sin(phase)**2,tie.z-.028+.010*dy));
       const points=curve.getPoints(36).map((p,j)=>{const t=j/36;p.x+=.002*Math.sin(t*8+phase)*Math.sin(Math.PI*t);return p;});
       addLock(ponytail,points,.0052,.0032,.92+.12*Math.sin(phase)**2,center,false);
     }
