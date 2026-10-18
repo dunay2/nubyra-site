@@ -53,9 +53,11 @@ export class ClothSolver {
   if(!this.collider)return;const p=this.positions,w=this.weights;
   for(const tri of this.triangles){
    const [a,b,c]=tri,den=w[a]+w[b]+w[c];if(!den)continue;
-   const center=[0,1,2].map(axis=>(p[a*3+axis]+p[b*3+axis]+p[c*3+axis])/3),hit=this.collider.project(...center,this.clearance*.55);
-   if(!hit)continue;
-   for(const id of tri)for(let axis=0;axis<3;axis++)p[id*3+axis]+=(hit[axis]-center[axis])*3*w[id]/den;
+   const ia=a*3,ib=b*3,ic=c*3;
+   const x=(p[ia]+p[ib]+p[ic])/3,y=(p[ia+1]+p[ib+1]+p[ic+1])/3,z=(p[ia+2]+p[ib+2]+p[ic+2])/3;
+   const hit=this.collider.project(x,y,z,this.clearance*.55);if(!hit)continue;
+   const dx=hit[0]-x,dy=hit[1]-y,dz=hit[2]-z;
+   for(const id of tri){const k=id*3;p[k]+=dx*3*w[id]/den;p[k+1]+=dy*3*w[id]/den;p[k+2]+=dz*3*w[id]/den;}
   }
  }
  solveLinks(links){

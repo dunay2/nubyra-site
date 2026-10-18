@@ -41,9 +41,14 @@ export function mountReferenceGallery({stage,onSelectMode,onApplyProfile=()=>{}}
  }
  function place(){
   if(!active||!data||!metrics)return;const id=image.dataset.profile||selected,asset=viewAsset||data.assets[id];
-  const availableWidth=Math.max(20,stage.clientWidth-24),availableHeight=Math.max(20,stage.clientHeight-94);
-  const scale=Math.min(availableWidth/asset.width,availableHeight/asset.height),height=asset.height*scale,width=asset.width*scale;
-  image.style.height=height+'px';image.style.width=width+'px';image.style.top=(46+(availableHeight-height)/2)+'px';gauge.hidden=true;
+  const profile=getReferenceProfile(id),head=asset.head??0,feet=asset.feet??1;
+  if(!(metrics.pxPerCm>0&&feet>head))return;
+  const placement=referenceImagePlacement({profile,asset,metrics}),{height,width}=placement;
+  image.style.height=height+'px';image.style.width=width+'px';image.style.top=(metrics.floorPx-feet*height)+'px';
+  gauge.hidden=metrics.fullView===false;gauge.style.top=(metrics.floorPx-profile.heightCm*metrics.pxPerCm)+'px';gauge.style.height=profile.heightCm*metrics.pxPerCm+'px';gauge.querySelector('span').textContent=profile.heightCm+' cm*';
+  stage.dataset.sharedScale='true';
+  image.dataset.headPx=String(metrics.floorPx-profile.heightCm*metrics.pxPerCm);image.dataset.feetPx=String(metrics.floorPx);
+
  }
  async function show(){
   decorate();place();if(!active||!data)return;const request=++token,id=previewId||selected,start=performance.now();const requestedView=currentView==='quarter'?'front':currentView,asset=data.assets[id].views?.[requestedView]||data.assets[id],imageKey=id+':'+requestedView;viewAsset=asset;
@@ -62,7 +67,7 @@ export function mountReferenceGallery({stage,onSelectMode,onApplyProfile=()=>{}}
   data=value;buttons.forEach(b=>b.querySelector('img').src=new URL(data.assets[b.dataset.referenceProfile].thumbnail,import.meta.url).href);root.dataset.loaded='true';show();
  }).catch(()=>{if(!disposed){root.dataset.loaded='error';message.textContent='No se pudieron cargar los ocho perfiles.';}});
  return {ready,setBody,setView(value){if(!['front','side','back','quarter'].includes(value))return;currentView=value;show();},setActive(value){active=value;token++;image.hidden=!active;gauge.hidden=!active;meta.hidden=!active;if(!active)help.hide();decorate();if(active)show();},render(next){metrics=next;place();},
-  snapshot(){const a=assessReferenceProfile(getReferenceProfile(selected),body);return{version:REFERENCE_PROFILES_VERSION,requestedView:currentView,displayedView:image.dataset.displayedView||'front',directionalReferenceAvailable:image.dataset.requestedView===image.dataset.displayedView,previewId,previewCount,hoverWritesMeasures:false,photoScale:'contain-independent',mode:automatic?'auto':'manual',active,selectedId:selected,displayedId:image.dataset.profile||null,profile:{...a.profile},nearestId:nearest?.profile.id??null,withinCoverage:a.withinCoverage,score:a.score,coverage:a,appliedId,applyCount,rangeHelp:help.snapshot(),selectionWritesMeasures:false,explicitApplyWritesMeasures:true,lastSwapMs:lastMs,loaded:Boolean(data),patternsMutated:false,weightUsedForSelection:false,source:'generated-individual-portraits',assetResolution:data?{width:data.assets[selected].width,height:data.assets[selected].height}:null,anthropometryValidated:false};},
+  snapshot(){const a=assessReferenceProfile(getReferenceProfile(selected),body);return{version:REFERENCE_PROFILES_VERSION,requestedView:currentView,displayedView:image.dataset.displayedView||'front',directionalReferenceAvailable:image.dataset.requestedView===image.dataset.displayedView,previewId,previewCount,hoverWritesMeasures:false,photoScale:'linked-projected-height',feetPx:metrics?.floorPx??null,pxPerCm:metrics?.pxPerCm??null,mode:automatic?'auto':'manual',active,selectedId:selected,displayedId:image.dataset.profile||null,profile:{...a.profile},nearestId:nearest?.profile.id??null,withinCoverage:a.withinCoverage,score:a.score,coverage:a,appliedId,applyCount,rangeHelp:help.snapshot(),selectionWritesMeasures:false,explicitApplyWritesMeasures:true,lastSwapMs:lastMs,loaded:Boolean(data),patternsMutated:false,weightUsedForSelection:false,source:'generated-individual-portraits',assetResolution:data?{width:data.assets[selected].width,height:data.assets[selected].height}:null,anthropometryValidated:false};},
   destroy(){disposed=true;clearTimeout(restoreTimer);token++;listeners.forEach(fn=>fn());help.destroy();images.clear();buttons.forEach(b=>b.parentElement.remove());mainInfo.remove();}
  };
 }

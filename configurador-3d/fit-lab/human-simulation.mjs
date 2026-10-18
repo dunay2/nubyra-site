@@ -10,7 +10,7 @@ import {GARMENT_CATALOG,garmentForState} from './garment-catalog.mjs';
 import {DEMO_CLOTH} from './cloth-material.mjs';
 import {addHumanSurfaceContacts} from './human-contacts.mjs';
 
-export const SIMULATION_VERSION='human-simulation/2.0-two-garments';
+export const SIMULATION_VERSION='human-simulation/2.1-exact-query';
 export const HUMAN_CLOTH={...DEMO_CLOTH,id:'human-bvh-demo-v1',stepSeconds:1/240,iterations:4};
 export const SETTLE_STEPS=360;
 const FIELDS=['bodyChestCm','bodyHipCm','bodyHeightCm','frontVolume','sideVolume','backVolume','armLoweringDeg','activeConfiguration','garmentLengthCm',...BODY_SHAPE_KEYS,'shortsSize','shortsLengthCm','shortsRiseCm'];

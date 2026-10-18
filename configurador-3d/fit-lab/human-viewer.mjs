@@ -23,13 +23,12 @@ import {GARMENT_CATALOG,garmentForState} from './garment-catalog.mjs';
 /** Full human model, one visible geometry and the same indexed geometry in the worker collider. */
 export async function createHumanViewer(canvas,initial,onFrame=()=>{},actions={}){
  const assetURL=new URL('./assets/human-female.glb',import.meta.url);
- const [response,seedResponse]=await Promise.all([fetch(assetURL),fetch(new URL('./bootstrap.json',import.meta.url)).catch(()=>null)]);
+ const [response,seedResponse,shortResponse]=await Promise.all([fetch(assetURL),fetch(new URL('./bootstrap.json',import.meta.url)).catch(()=>null),fetch(new URL('./fixed-shorts.json',import.meta.url))]);
  if(!response.ok)throw Error('No se pudo cargar la base humana');const bytes=await response.arrayBuffer();
  let bootstrap=null;
  try{const b=seedResponse?.ok?await seedResponse.json():null;
   if(b?.version===SIMULATION_VERSION&&b.cache?.key===simulationKey(initial)&&b.frame?.maps&&b.frame.remaining===0&&b.frame.positions?.every(Number.isFinite))bootstrap=b;
  }catch{/* Development without a bootstrap still prepares normally. */}
- const shortResponse=await fetch(new URL('./fixed-shorts.json',import.meta.url));
  if(!shortResponse.ok)throw Error('No se pudo cargar el catálogo fijo');
  const shortAsset=await shortResponse.json(),shortFactory=createFixedShortFactory(shortAsset);
  const fullReference=await createFullReference(null,null,null,null,actions);
@@ -179,7 +178,8 @@ export async function createHumanViewer(canvas,initial,onFrame=()=>{},actions={}
  function labels(){const d=body.userData;for(const[id,x,y]of[['ruler-label',-1.12,(d.hipY+d.shoulderY)/2],['length-label',.8,d.shoulderY-visibleState.garmentLengthCm/CM_PER_UNIT]]){const el=document.getElementById(id);if(!el)continue;const p=new T.Vector3(x,y,0).project(camera);el.hidden=!flags.dimensions;el.style.left=Math.min(88,Math.max(12,(p.x+1)*50))+'%';el.style.top=((1-p.y)*50)+'%';}}
  function syncComparison(){
   const rect=canvas.getBoundingClientRect(),p=new T.Vector3(0,body.userData.floorY,0).project(camera);
-  compareMetrics.floorPx=(1-p.y)*rect.height/2;compareMetrics.pxPerCm=rect.height*camera.zoom/((camera.top-camera.bottom)*CM_PER_UNIT);
+  compareMetrics.floorPx=(1-p.y)*rect.height/2;const head=new T.Vector3(0,body.userData.headTopY,0).project(camera);
+  compareMetrics.pxPerCm=Math.max(.01,(head.y-p.y)*rect.height/(2*visibleState.bodyHeightCm));
   const stage=document.getElementById('reference-photo-stage');if(stage){stage.style.setProperty('--ground',compareMetrics.floorPx+'px');stage.style.setProperty('--reference-height',(REFERENCE_HEIGHT_CM*compareMetrics.pxPerCm)+'px');stage.dataset.metric=String(fullView);}
   const line=document.getElementById('comparison-ground');if(line){line.hidden=!fullView;line.style.top=compareMetrics.floorPx+'px';}fullReference.render({...compareMetrics,body:visibleState,fullView});
  }

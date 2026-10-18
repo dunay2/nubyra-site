@@ -48,3 +48,7 @@
 #apply-kit-proposal{background:#163e60;color:white;font-size:11px;margin:7px 0;padding:9px;width:100%;border-radius:5px}
 #jersey-length-effect{line-height:1.5;padding-bottom:6px}
 @media(max-width:580px){.reference-photo-stage>.eyebrow{font-size:8px}.reference-photo-stage[data-source=profiles] .reference-crop-label{font-size:8px}#profile-reference-meta{font-size:8px}}
+
+/* Linked metric comparison: crop only surrounding studio background, not body scale. */
+.reference-photo-stage[data-shared-scale=true]{overflow:hidden}
+#profile-height-gauge{z-index:2}
