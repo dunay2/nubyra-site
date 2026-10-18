@@ -2,7 +2,7 @@ import * as T from 'three';
 import {MeshBVH} from 'three-mesh-bvh';
 import {SKIN_COLOR} from './human-appearance.mjs';
 
-export const FACE_VERSION='human-face/2.0-neutral-portrait';
+export const FACE_VERSION='human-face/2.1-continuous-rims';
 const clamp=x=>Math.max(0,Math.min(1,x));
 const smooth=x=>{const t=clamp(x);return t*t*(3-2*t);};
 
@@ -44,25 +44,31 @@ export function createHumanFace(body){
  try{
   for(const side of[-1,1]){
    const cx=.0315*side,cy=1.5895,halfWidth=.0125;
-   const bounds=u=>{const arch=Math.max(0,1-u*u)**.65,tilt=side*u*.0008;return {bottom:cy-.0029*arch+tilt,top:cy+.0035*arch+tilt,arch};};
-   // An offset can still hit the socket back wall. Walk outward until the
-   // sample reaches the actual front rim, using adjacent facial skin as depth.
-   function findRim(x,y,direction){
-    const reference=Math.min(sample(x,cy-.011).z,sample(x,cy+.011).z);
-    for(let k=0;k<=20;k++){const p=sample(x,y+direction*(.0004+k*.0005));if(p.z>=reference-.004)return p;}
-    throw Error('No se encuentra un borde ocular válido');
+   // Fixed outer samples sit on the actual skin, outside the empty socket.
+   // Never use a stepped depth search per vertex: it produced vertical stripes.
+   const bounds=u=>{const arch=Math.max(0,1-u*u)**.66,tilt=side*u*.00065;return {bottom:cy-.0047*arch+tilt,top:cy+.0041*arch+tilt,arch};};
+   const rimCache=new Map();
+   function rimAt(u){
+    if(rimCache.has(u))return rimCache.get(u);
+    const x=cx+u*halfWidth,{bottom,top,arch}=bounds(u);
+    const lower=sample(x,cy-.0075),upper=sample(x,cy+.0075);
+    // Endpoints converge at the canthi; central lid depth remains continuous.
+    const end=u<0?-1:1;const corner=sample(cx+end*halfWidth,cy+side*end*.00065);
+    const endBlend=smooth((Math.abs(u)-.4)/.6);
+    const lowerZ=lower.z+(corner.z-lower.z)*endBlend;
+    const upperZ=upper.z+(corner.z-upper.z)*endBlend;
+    const value={x,bottom,top,arch,lower,upper,lowerZ,upperZ};rimCache.set(u,value);return value;
    }
-   const rimAt=u=>{const x=cx+u*halfWidth,{bottom,top,arch}=bounds(u);return {x,bottom,top,arch,lower:findRim(x,bottom,-1),upper:findRim(x,top,1)};};
-   function ocularPoint(u,v){const q=rimAt(u);return new T.Vector3(q.x,q.bottom+(q.top-q.bottom)*v,q.lower.z+(q.upper.z-q.lower.z)*v+.0011*q.arch*Math.sin(Math.PI*v)+.0006);}
-   const eye=grid(64,16,ocularPoint,(_,v,p)=>{
+   function ocularPoint(u,v){const q=rimAt(u);return new T.Vector3(q.x,q.bottom+(q.top-q.bottom)*v,q.lowerZ+(q.upperZ-q.lowerZ)*v+.00135*q.arch*Math.sin(Math.PI*v)+.00045);}
+   const eye=grid(48,12,ocularPoint,(_,v,p)=>{
     const r=Math.hypot(p.x-cx,p.y-cy),c=r<.00185?pupil.clone():r<.0051?iris.clone():sclera.clone();
     return c.multiplyScalar(1-.16*smooth((v-.56)/.44));
    },1,{x:cx,y:cy});eyeVertexRanges.push(eye);eyeVertices+=eye.count;
    // Upper/lower lids meet the ocular cap, then blend into the real rim. They
    // cover only the socket boundary: neither larger eyes nor a face decal.
-   for(const upper of[false,true])grid(64,4,(u,v)=>{
+   for(const upper of[false,true])grid(48,4,(u,v)=>{
     const q=rimAt(u),edge=ocularPoint(u,upper?1:0),outer=upper?q.upper:q.lower;
-    const p=edge.clone().lerp(outer,v);p.z+=.00035*Math.sin(Math.PI*v)*q.arch+.0002;
+    const p=edge.clone().lerp(outer,v);p.y=edge.y+(outer.y-edge.y)*v*q.arch;p.z+=.00025*Math.sin(Math.PI*v)*q.arch+.00015;
     return p;
    },(u,v)=>warmSkin.clone().lerp(skin,smooth(v)).multiplyScalar(1-.11*(1-v)*Math.max(0,1-u*u)));
    // Individual tapered brow strokes instead of the old dark polygonal stripe.
@@ -76,15 +82,17 @@ export function createHumanFace(body){
   }
   // Relaxed mouth. The two lips converge on a narrow, curved neutral seam;
   // no open black wedge, hard contour or artificial permanent smile.
+  const mouthCache=new Map();
   function mouth(u){
+   if(mouthCache.has(u))return mouthCache.get(u);
    const x=u*.022,arch=Math.max(0,1-u*u),centre=1.523-.0002*u*u;
    const upperY=centre+.0105*arch**.7-.0025*Math.exp(-((u/.20)**2));
    const lowerY=centre-.0110*arch**.7;
    const top=sample(x,upperY),bottom=sample(x,lowerY);
-   const contactZ=(sample(x,centre+.002*arch).z+sample(x,centre-.002*arch).z)/2+.0005;
-   return {x,arch,centre,upperY,lowerY,top,bottom,contactZ};
+   const contactZ=Math.max(sample(x,centre+.0045*arch+.0006).z,sample(x,centre-.0045*arch-.0006).z)+.00055;
+   const value={x,arch,centre,upperY,lowerY,top,bottom,contactZ};mouthCache.set(u,value);return value;
   }
-  for(const upper of[false,true])grid(64,10,(u,v)=>{
+  for(const upper of[false,true])grid(48,8,(u,v)=>{
    const q=mouth(u),outer=upper?q.top:q.bottom,edgeY=upper?q.upperY:q.lowerY;
    const innerY=q.centre+(upper?.00018:-.00018)*q.arch;
    const y=innerY+(edgeY-innerY)*v,p=sample(q.x,y);
@@ -94,7 +102,7 @@ export function createHumanFace(body){
    const pigment=new T.Color(upper?'#ae7e71':'#ba8b7c'),boundary=smooth((v-.68)/.32);
    return pigment.lerp(skin,boundary*.94).multiplyScalar(1-.055*(1-v)*Math.max(0,1-u*u));
   });
-  grid(64,2,(u,v)=>{const q=mouth(u);return new T.Vector3(q.x,q.centre+(v-.5)*.00040*q.arch,q.contactZ-.00008);},
+  grid(48,2,(u,v)=>{const q=mouth(u);return new T.Vector3(q.x,q.centre+(v-.5)*.00040*q.arch,q.contactZ-.00008);},
    u=>new T.Color('#78584b').lerp(skin,Math.abs(u)**7));
  }finally{source.dispose();pointCache.clear();}
  const geometry=new T.BufferGeometry();geometry.setAttribute('position',new T.Float32BufferAttribute(positions,3));
@@ -147,7 +155,7 @@ export function createHumanFace(body){
   localScale.value=scale;localOffset.value.copy(group.position);
  }
  update();return {group,update,snapshot:()=>({version:FACE_VERSION,eyes:true,eyebrows:true,lips:true,eyeSurface:'eyelid-rim-cap',eyeVertices,
-  gaze:'parallel-forward',irisRadiusMm:4.9,pupilRadiusMm:1.85,eyelids:true,orbitalRimVerified:true,browHairs,expression:'relaxed-neutral',continuousEyePigment:true,
+  gaze:'parallel-forward',irisRadiusMm:4.9,pupilRadiusMm:1.85,eyelids:true,orbitalRimVerified:true,browHairs,expression:'relaxed-neutral',continuousEyePigment:true,continuousRims:true,depthSearchSteps:0,constructionVertices:positions.length/3,drawBatches:2,
   extraTextureRequests:0,sampleQueries,bodyGeometryChanged:false,bodyMeasurementsChanged:false,clothChanged:false}),destroy(){
   if(destroyed)return;destroyed=true;body.remove(group);geometry.dispose();material.dispose();ocular.dispose();
   if(body.material.onBeforeCompile===skinCompile){body.material.onBeforeCompile=previousCompile;body.material.customProgramCacheKey=previousKey;body.material.needsUpdate=true;}

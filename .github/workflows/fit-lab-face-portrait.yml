@@ -6,6 +6,8 @@ on:
     paths:
       - 'configurador-3d/fit-lab/human-face.mjs'
       - 'tests/fit-lab-face-portrait.test.mjs'
+      - 'tests/fit-lab-face-continuity.test.mjs'
+      - 'configurador-3d/fit-lab/release-identity.mjs'
       - 'scripts/fit-lab-face-review.mjs'
       - '.github/workflows/fit-lab-face-portrait.yml'
 permissions:
@@ -28,8 +30,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: |
+          set -euo pipefail
           mkdir -p artifacts/face-portrait
-          node --test tests/fit-lab-face-portrait.test.mjs tests/fit-lab-face-surface.test.mjs tests/fit-lab-human-appearance.test.mjs tests/fit-lab-avatar-polish.test.mjs | tee artifacts/face-portrait/unit-tests.txt
+          node --test tests/fit-lab-face-continuity.test.mjs tests/fit-lab-face-portrait.test.mjs tests/fit-lab-face-surface.test.mjs tests/fit-lab-human-appearance.test.mjs tests/fit-lab-avatar-polish.test.mjs | tee artifacts/face-portrait/unit-tests.txt
       - run: npx playwright install --with-deps chromium
       - name: Before - published face with matched lights and camera
         run: |
@@ -45,7 +48,7 @@ jobs:
           name: nubyra-face-portrait-images
           path: artifacts/face-portrait
           retention-days: 7
-      - run: npm run build:fit-lab
+      - run: NUBYRA_SOURCE_COMMIT=$(git rev-parse HEAD) npm run build:fit-lab
       - name: Full Lab regression
         run: EVIDENCE_DIR=artifacts/face-portrait/lab node scripts/fit-lab-human-e2e.mjs
       - name: Source and build evidence
