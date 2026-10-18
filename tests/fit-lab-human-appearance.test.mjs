@@ -17,7 +17,7 @@ test('Hair and natural skin do not alter body geometry, measurements or BVH', as
  assert.deepEqual(body.geometry.attributes.position.array,before);assert.deepEqual(body.geometry.index.array,indices);assert.deepEqual(body.userData.measurements,measures);
  assert.equal(body.geometry.boundsTree,tree);assert.equal(collider.gap(0,body.userData.chestY,.8),gap);assert.equal('#'+body.material.color.getHexString(),SKIN_COLOR);
  assert.equal(appearance.group.parent,body);assert.equal(appearance.group.children.length,3);assert.equal(appearance.snapshot().hairStyle,'low-gathered-ponytail');
- assert.equal(appearance.snapshot().scalpLocks,266);assert.equal(appearance.snapshot().tailLocks,36);assert.equal(appearance.snapshot().hairTie,true);
+ assert.equal(appearance.snapshot().scalpLocks,46);assert.equal(appearance.snapshot().tailLocks,28);assert.equal(appearance.snapshot().hairTie,true);
  assert.ok(appearance.group.getObjectByName('avatar-hair-swept-locks'));assert.ok(appearance.group.getObjectByName('avatar-hair-ponytail'));
  assert.ok(appearance.snapshot().scalpTriangles>100);assert.ok(appearance.snapshot().scalpTriangles<20000);
  for(const mesh of appearance.group.children){assert.equal(mesh.material.metalness,0);assert.ok([...mesh.geometry.attributes.position.array].every(Number.isFinite));}

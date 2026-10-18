@@ -1,0 +1,72 @@
+name: NUBYRA - Face portrait real WebGL review
+on:
+  push:
+    branches: [fix/fit-lab-face-neutral-portrait]
+  pull_request:
+    paths:
+      - 'configurador-3d/fit-lab/human-face.mjs'
+      - 'configurador-3d/fit-lab/portrait-surface.mjs'
+      - 'configurador-3d/fit-lab/portrait-style.mjs'
+      - 'tests/fit-lab-portrait-style.test.mjs'
+      - 'configurador-3d/fit-lab/human-appearance.mjs'
+      - 'tests/fit-lab-portrait-surface.test.mjs'
+      - 'tests/fit-lab-face-portrait.test.mjs'
+      - 'tests/fit-lab-face-continuity.test.mjs'
+      - 'configurador-3d/fit-lab/release-identity.mjs'
+      - 'scripts/fit-lab-face-review.mjs'
+      - '.github/workflows/fit-lab-face-portrait.yml'
+permissions:
+  contents: read
+concurrency:
+  group: face-portrait-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: |
+          set -euo pipefail
+          mkdir -p artifacts/face-portrait
+          node --test tests/fit-lab-portrait-style.test.mjs tests/fit-lab-portrait-surface.test.mjs tests/fit-lab-face-continuity.test.mjs tests/fit-lab-face-portrait.test.mjs tests/fit-lab-face-surface.test.mjs tests/fit-lab-human-appearance.test.mjs tests/fit-lab-avatar-polish.test.mjs | tee artifacts/face-portrait/unit-tests.txt
+      - run: npx playwright install --with-deps chromium
+      - name: Before - published face with matched lights and camera
+        run: |
+          git show c6518716a2899ecc436a260fa927ea922d41b1e4:configurador-3d/fit-lab/human-face.mjs > configurador-3d/fit-lab/human-face-baseline.mjs
+          git show c6518716a2899ecc436a260fa927ea922d41b1e4:configurador-3d/fit-lab/human-appearance.mjs > configurador-3d/fit-lab/human-appearance-baseline.mjs
+          git show c6518716a2899ecc436a260fa927ea922d41b1e4:configurador-3d/fit-lab/portrait-surface.mjs > configurador-3d/fit-lab/portrait-surface-baseline.mjs
+          sed -i 's|./portrait-surface.mjs|./portrait-surface-baseline.mjs|' configurador-3d/fit-lab/human-face-baseline.mjs
+          APPEARANCE_MODULE=./configurador-3d/fit-lab/human-appearance-baseline.mjs FACE_MODULE=./configurador-3d/fit-lab/human-face-baseline.mjs EVIDENCE_DIR=artifacts/face-portrait/before node scripts/fit-lab-face-review.mjs
+          rm configurador-3d/fit-lab/human-face-baseline.mjs configurador-3d/fit-lab/human-appearance-baseline.mjs configurador-3d/fit-lab/portrait-surface-baseline.mjs
+      - name: After - four real WebGL views
+        run: EVIDENCE_DIR=artifacts/face-portrait/after node scripts/fit-lab-face-review.mjs
+      - name: Early visual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nubyra-face-portrait-images
+          path: artifacts/face-portrait
+          retention-days: 7
+      - run: NUBYRA_SOURCE_COMMIT=$(git rev-parse HEAD) npm run build:fit-lab
+      - name: Full Lab regression
+        run: EVIDENCE_DIR=artifacts/face-portrait/lab node scripts/fit-lab-human-e2e.mjs
+      - name: Source and build evidence
+        if: always()
+        run: git archive --format=tar.gz -o artifacts/face-portrait/source.tar.gz HEAD
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nubyra-face-portrait-review
+          path: |
+            artifacts/face-portrait
+            fit-dist
+          retention-days: 7
