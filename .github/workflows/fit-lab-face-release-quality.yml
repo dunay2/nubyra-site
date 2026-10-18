@@ -1,0 +1,52 @@
+name: NUBYRA · Face release quality
+on:
+  push:
+    branches: [fix/fit-lab-face-release-quality]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: fit-lab-face-release-quality
+  cancel-in-progress: true
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Traceable source
+        run: |
+          mkdir -p artifacts/face-release
+          git rev-parse HEAD > artifacts/face-release/source-commit.txt
+          git archive --format=tar.gz HEAD > artifacts/face-release/source.tar.gz
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Unit quality
+        run: |
+          set -o pipefail
+          node --test tests/fit-lab-face*.test.mjs tests/fit-lab-human-appearance.test.mjs tests/fit-lab-hair-quality.test.mjs tests/fit-lab-avatar-polish.test.mjs tests/fit-lab-reference-profiles.test.mjs | tee artifacts/face-release/unit-tests.txt
+      - name: Build the actual lab
+        run: npm run build:fit-lab
+      - name: Real head views
+        env:
+          EVIDENCE_DIR: artifacts/face-release/head
+        run: node scripts/fit-lab-hair-quality-review.mjs
+      - name: Lab release regression
+        env:
+          EVIDENCE_DIR: artifacts/face-release/browser
+        run: |
+          if test -f scripts/fit-lab-face-release-review.mjs; then
+            node scripts/fit-lab-face-release-review.mjs
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nubyra-face-release-quality
+          path: |
+            artifacts/face-release
+            fit-dist
+          retention-days: 7
