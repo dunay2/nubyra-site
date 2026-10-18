@@ -1,8 +1,9 @@
 import * as T from 'three';
 import {MeshBVH} from 'three-mesh-bvh';
 import {SKIN_COLOR} from './human-appearance.mjs';
+import {createPortraitSurface,configurePortraitMaterial,PORTRAIT_CUT_Y} from './portrait-surface.mjs';
 
-export const FACE_VERSION='human-face/2.2-relaxed-rims';
+export const FACE_VERSION='human-face/3.0-display-surface';
 const clamp=x=>Math.max(0,Math.min(1,x));
 const smooth=x=>{const t=clamp(x);return t*t*(3-2*t);};
 
@@ -10,12 +11,10 @@ const smooth=x=>{const t=clamp(x);return t*t*(3-2*t);};
 export function createHumanFace(body){
  const base=body.userData.base,index=body.geometry.index;
  if(!base||!index||!body.geometry.attributes.position)throw Error('La cara necesita la base humana indexada');
- const source=new T.BufferGeometry();source.setAttribute('position',new T.Float32BufferAttribute(base.slice(),3));
- const ids=[];let anchor=-1;
- for(let i=0;i<index.count;i+=3){const tri=[index.getX(i),index.getX(i+1),index.getX(i+2)];if(tri.every(j=>base[j*3+1]>1.49))ids.push(...tri);}
+ const portraitGeometry=createPortraitSurface(base,index);
+ const source=portraitGeometry.clone();let anchor=-1;
  for(let i=0;i<base.length;i+=3)if(base[i+1]>1.65){anchor=i/3;break;}
- if(anchor<0)throw Error('No se encuentra la referencia de la cabeza');
- source.setIndex(ids);source.computeVertexNormals();
+ if(anchor<0){source.dispose();portraitGeometry.dispose();throw Error('No se encuentra la referencia de la cabeza');}
  const tree=new MeshBVH(source,{maxLeafTris:8}),ray=new T.Ray(new T.Vector3(),new T.Vector3(0,0,-1));
  const positions=[],colors=[],indices=[],eyeCoords=[],groups=[],eyeVertexRanges=[];
  const skin=new T.Color(SKIN_COLOR),warmSkin=skin.clone().lerp(new T.Color('#b87867'),.12);
@@ -46,7 +45,7 @@ export function createHumanFace(body){
    const cx=.0315*side,cy=1.5895,halfWidth=.0125;
    // Fixed outer samples sit on the actual skin, outside the empty socket.
    // Never use a stepped depth search per vertex: it produced vertical stripes.
-   const bounds=u=>{const arch=Math.max(0,1-u*u)**.66,tilt=side*u*.00065;return {bottom:cy-.0032*arch+tilt,top:cy+.0031*arch+tilt,arch};};
+   const bounds=u=>{const arch=Math.max(0,1-u*u)**.66,tilt=side*u*.00065;return {bottom:cy-.0038*arch+tilt,top:cy+.0040*arch+tilt,arch};};
    const rimCache=new Map();
    function rimAt(u){
     if(rimCache.has(u))return rimCache.get(u);
@@ -68,7 +67,7 @@ export function createHumanFace(body){
    // cover only the socket boundary: neither larger eyes nor a face decal.
    for(const upper of[false,true])grid(48,6,(u,v)=>{
     const q=rimAt(u),edge=ocularPoint(u,upper?1:0),outer=upper?q.upper:q.lower;
-    const p=edge.clone().lerp(outer,v);p.y=edge.y+(outer.y-edge.y)*v*q.arch;p.z+=.00025*Math.sin(Math.PI*v)*q.arch+.00015;
+    const p=edge.clone().lerp(outer,v);p.y=edge.y+(outer.y-edge.y)*v;p.z+=.00025*Math.sin(Math.PI*v)*q.arch+.00015;
     return p;
    },(u,v)=>warmSkin.clone().lerp(skin,smooth(v)).multiplyScalar(1-.11*(1-v)*Math.max(0,1-u*u)));
    // Individual tapered brow strokes instead of the old dark polygonal stripe.
@@ -89,7 +88,7 @@ export function createHumanFace(body){
    const upperY=centre+.0105*arch**.7-.0025*Math.exp(-((u/.20)**2));
    const lowerY=centre-.0110*arch**.7;
    const top=sample(x,upperY),bottom=sample(x,lowerY);
-   const contactZ=(sample(x,centre+.0015).z+sample(x,centre-.0015).z)/2+.00065;
+   const contactZ=(sample(x,centre+.0050*arch+.0008).z+sample(x,centre-.0050*arch-.0008).z)/2+.00065;
    const value={x,arch,centre,upperY,lowerY,top,bottom,contactZ};mouthCache.set(u,value);return value;
   }
   for(const upper of[false,true])grid(48,8,(u,v)=>{
@@ -102,8 +101,8 @@ export function createHumanFace(body){
    const pigment=new T.Color(upper?'#ae7e71':'#ba8b7c'),boundary=smooth((v-.68)/.32);
    return pigment.lerp(skin,boundary*.94).multiplyScalar(1-.055*(1-v)*Math.max(0,1-u*u));
   });
-  grid(48,2,(u,v)=>{const q=mouth(u);return new T.Vector3(q.x,q.centre+(v-.5)*.00040*q.arch,q.contactZ-.00008);},
-   u=>new T.Color('#78584b').lerp(skin,Math.abs(u)**7));
+  grid(48,2,(u,v)=>{const q=mouth(u);return new T.Vector3(q.x,q.centre+(v-.5)*.00040*q.arch,q.contactZ+.00012);},
+   u=>new T.Color('#886255').lerp(skin,Math.abs(u)**7));
  }finally{source.dispose();pointCache.clear();}
  const geometry=new T.BufferGeometry();geometry.setAttribute('position',new T.Float32BufferAttribute(positions,3));
  geometry.setAttribute('color',new T.Float32BufferAttribute(colors,3));geometry.setAttribute('eyeCoord',new T.Float32BufferAttribute(eyeCoords,2));
@@ -132,7 +131,10 @@ export function createHumanFace(body){
  ocular.customProgramCacheKey=()=>FACE_VERSION+'-continuous-iris';
  for(const g of drawGroups)geometry.addGroup(g.start,g.count,g.materialIndex);
  const mesh=new T.Mesh(geometry,[material,ocular]);mesh.name='avatar-facial-details';
- const group=new T.Group();group.name='avatar-face';group.add(mesh);body.add(group);let destroyed=false;
+ const portraitMaterial=new T.MeshStandardMaterial({color:SKIN_COLOR,roughness:.78,metalness:0});
+ configurePortraitMaterial(portraitMaterial);
+ const portraitMesh=new T.Mesh(portraitGeometry,portraitMaterial);portraitMesh.name='avatar-display-head';
+ const group=new T.Group();group.name='avatar-face';group.add(mesh,portraitMesh);body.add(group);let destroyed=false;
  // Very restrained skin variation, only on the face; no texture download or
  // per-frame geometry work. The original material hooks are restored on dispose.
  const previousCompile=body.material.onBeforeCompile,previousKey=body.material.customProgramCacheKey;
@@ -142,6 +144,7 @@ export function createHumanFace(body){
   shader.uniforms.faceSourceScale=localScale;shader.uniforms.faceSourceOffset=localOffset;
   shader.vertexShader='uniform float faceSourceScale; uniform vec3 faceSourceOffset; varying vec3 vFaceSource;\n'+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvFaceSource=(position-faceSourceOffset)/faceSourceScale;');
   shader.fragmentShader='varying vec3 vFaceSource;\n'+shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
+   if(vFaceSource.y > ${PORTRAIT_CUT_Y.toFixed(4)}) discard;
    float faceMask=smoothstep(1.49,1.53,vFaceSource.y)*(1.0-smoothstep(1.64,1.67,vFaceSource.y))*smoothstep(0.045,0.085,vFaceSource.z);
    float cheek=exp(-pow((abs(vFaceSource.x)-0.048)/0.022,2.0)-pow((vFaceSource.y-1.564)/0.024,2.0));
    diffuseColor.rgb*=mix(vec3(1.0),vec3(1.022,0.986,0.983),faceMask*cheek);
@@ -156,8 +159,8 @@ export function createHumanFace(body){
  }
  update();return {group,update,snapshot:()=>({version:FACE_VERSION,eyes:true,eyebrows:true,lips:true,eyeSurface:'eyelid-rim-cap',eyeVertices,
   gaze:'parallel-forward',irisRadiusMm:4.9,pupilRadiusMm:1.85,eyelids:true,orbitalRimVerified:true,browHairs,expression:'relaxed-neutral',continuousEyePigment:true,continuousRims:true,depthSearchSteps:0,constructionVertices:positions.length/3,drawBatches:2,
-  extraTextureRequests:0,sampleQueries,bodyGeometryChanged:false,bodyMeasurementsChanged:false,clothChanged:false}),destroy(){
-  if(destroyed)return;destroyed=true;body.remove(group);geometry.dispose();material.dispose();ocular.dispose();
+  extraTextureRequests:0,sampleQueries,displayHead:portraitGeometry.userData.portrait,totalDrawBatches:3,bodyGeometryChanged:false,bodyMeasurementsChanged:false,clothChanged:false}),destroy(){
+  if(destroyed)return;destroyed=true;body.remove(group);geometry.dispose();material.dispose();ocular.dispose();portraitGeometry.dispose();portraitMaterial.dispose();
   if(body.material.onBeforeCompile===skinCompile){body.material.onBeforeCompile=previousCompile;body.material.customProgramCacheKey=previousKey;body.material.needsUpdate=true;}
  }};
 }
