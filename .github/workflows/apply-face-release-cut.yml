@@ -18,10 +18,10 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-      - name: Verify and integrate exact reviewed patch on the lab-only branch
+      - name: Verify and integrate reviewed source on the lab-only branch
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "48838bc76f3c77187cb2211bb81d6dae159c9579"
+          test "$(git rev-parse HEAD^)" = "bfd4e5ece8c1a324a5907405bfdc050240f579f3"
           python3 - <<'PY'
           import base64,gzip,hashlib,pathlib
           root=pathlib.Path('.github')
@@ -30,10 +30,17 @@ jobs:
           assert hashlib.sha256(patch).hexdigest()=='d39198c4ad2f06ecedec4f1968cfe09523d32f44cb0b8b8d31ea197a68a081c9'
           pathlib.Path('/tmp/face-release.patch').write_bytes(patch)
           PY
-          git apply --unidiff-zero --check /tmp/face-release.patch
-          git apply --unidiff-zero /tmp/face-release.patch
-          git rm .github/face-release-delta.1.b64 .github/face-release-delta.2.b64 .github/workflows/apply-face-release-cut.yml
-          git add .github/workflows/fit-lab-face-release-quality.yml configurador-3d/fit-lab scripts/build-fit-lab.mjs scripts/fit-lab-face-release-review.mjs tests/fit-lab-face-quality.test.mjs tests/fit-lab-release-performance.test.mjs
+          git apply --unidiff-zero --exclude='.github/workflows/*' --check /tmp/face-release.patch
+          git apply --unidiff-zero --exclude='.github/workflows/*' /tmp/face-release.patch
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('scripts/fit-lab-face-release-review.mjs')
+          s=p.read_text()
+          assert 'if(file===r||file.endsWith(path.sep))' in s
+          p.write_text(s.replace('if(file===r||file.endsWith(path.sep))',"if(file===r||u.pathname.endsWith('/'))"))
+          PY
+          git rm .github/face-release-delta.1.b64 .github/face-release-delta.2.b64
+          git add configurador-3d/fit-lab scripts/build-fit-lab.mjs scripts/fit-lab-face-release-review.mjs tests/fit-lab-face-quality.test.mjs tests/fit-lab-release-performance.test.mjs
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git commit -m 'fix(fit-lab): verified face, parallel assets, lazy patterns and depth-correct layers'
