@@ -44,6 +44,7 @@ export function createHumanAppearance(body) {
     q.addScaledVector(p.clone().sub(center).normalize(),volume);
     const dome=1.607+.105*Math.sqrt(Math.max(0,1-(q.x/.087)**2-((q.z-.045)/.120)**2));
     q.y=T.MathUtils.lerp(q.y,Math.max(p.y+.001,dome),smooth((p.y-1.653)/.035));
+    q.y+=.003*root*Math.exp(-(((p.x+.024)/.035)**2))*Math.exp(-(((p.z-.095)/.040)**2));
     return q.addScaledVector(q.clone().sub(center).normalize(),offset);
   }
   function rootAt(theta){
@@ -53,7 +54,7 @@ export function createHumanAppearance(body) {
   }
   const shell={positions:[],colors:[],indices:[]},locks={positions:[],colors:[],indices:[]},tail={positions:[],colors:[],indices:[]};
   let scalpGeometry,lockGeometry,tailGeometry;
-  const tie=envelope(onHead(new T.Vector3(0,1.610,-.08)),.006);
+  const tie=envelope(onHead(new T.Vector3(0,1.610,-.08)),-.001);
   try{
     const thetaSteps=128,rings=44,roots=Array.from({length:128},(_,i)=>rootAt((i+.37)*2*Math.PI/128));
     // Shared indexed polar rings give continuous normals at the crown and azimuth seam.
@@ -87,10 +88,10 @@ export function createHumanAppearance(body) {
     }
     // A filled, curved ponytail: the core prevents a disconnected bundle of thin sticks.
     const path=new T.CubicBezierCurve3(tie,
-      tie.clone().add(new T.Vector3(.003,-.024,-.034)),
-      tie.clone().add(new T.Vector3(-.008,-.095,-.067)),
-      tie.clone().add(new T.Vector3(.010,-.142,-.044)));
-    const frames=path.computeFrenetFrames(56,false),radius=t=>.010*(1-t)+.013*Math.sin(Math.PI*t)**.75+.0005;
+      tie.clone().add(new T.Vector3(.003,-.024,-.028)),
+      tie.clone().add(new T.Vector3(-.008,-.085,-.056)),
+      tie.clone().add(new T.Vector3(.010,-.112,-.035)));
+    const frames=path.computeFrenetFrames(56,false),radius=t=>(.010*(1-t)+.013*Math.max(0,Math.sin(Math.PI*t))**.75+.0001)*smooth((1-t)/.18);
     for(let j=0;j<=56;j++){
       const t=j/56,p=path.getPointAt(t),r=radius(t);
       for(let k=0;k<32;k++){
@@ -102,10 +103,11 @@ export function createHumanAppearance(body) {
     for(let i=0;i<TAIL_LOCKS;i++){
       const angle=i*2*Math.PI/TAIL_LOCKS,phase=i*2.399,points=[];
       for(let j=0;j<=48;j++){
-        const t=j/48,ft=t*(.93+.07*Math.sin(phase)**2),frame=Math.min(56,Math.round(ft*56)),p=path.getPointAt(ft),a=angle+.045*Math.sin(t*7+phase),r=radius(ft)+.00010;
+        const t=j/48,ft=t*(.91+.16*Math.sin(phase)**2),frame=Math.min(56,Math.round(ft*56)),p=path.getPointAt(Math.min(ft,1)),a=angle+.045*Math.sin(t*7+phase),r=radius(Math.min(ft,1))+.00010;
+        const loose=smooth((t-.68)/.32);p.x+=.009*Math.sin(phase)*loose;p.y-=(.003+.010*Math.sin(phase)**2)*loose;p.z+=.004*Math.cos(phase)*loose;
         p.addScaledVector(frames.normals[frame],Math.cos(a)*r).addScaledVector(frames.binormals[frame],Math.sin(a)*r*.77);points.push(p);
       }
-      addStrand(tail,points,.00048,.00018,.92+.12*Math.sin(phase)**2,center,false);
+      addStrand(tail,points,t=>.00042+.0016*smooth((t-.55)/.25),t=>.00015+.00075*smooth((t-.55)/.25),.92+.12*Math.sin(phase)**2,center,false);
     }
     // Elastic band lies perpendicular to the root tangent, not upright like a hairpin.
     const band=new T.TorusGeometry(.0103,.0013,6,32);
@@ -125,10 +127,12 @@ export function createHumanAppearance(body) {
     if(!Number.isFinite(s)||s<=0)throw Error('Escala de cabeza no válida');
     group.scale.setScalar(s);group.position.set(p.getX(anchor/3)-base[anchor]*s,p.getY(anchor/3)-base[anchor+1]*s,p.getZ(anchor/3)-base[anchor+2]*s);group.updateMatrix();
   }
-  update();return {group,update,snapshot:()=>({version:APPEARANCE_VERSION,skinColor:SKIN_COLOR,hairColor:HAIR_COLOR,hairStyle:'low-gathered-ponytail',hairMeshes:3,scalpLocks:SCALP_LOCKS+EDGE_LOCKS,tailLocks:TAIL_LOCKS,scalpTriangles:scalpGeometry.index.count/3,hairTie:true,crown:'rounded-shared-envelope',tail:'filled-curved-taper',growthDirection:'regional-gather-to-occiput',renderOnly:true,collisionGeometryChanged:false}),destroy(){if(destroyed)return;destroyed=true;body.remove(group);for(const m of meshes){m.geometry.dispose();m.material.dispose();}body.material.color.copy(originalColor);body.material.roughness=originalRoughness;}};
+  update();return {group,update,snapshot:()=>({version:APPEARANCE_VERSION,skinColor:SKIN_COLOR,hairColor:HAIR_COLOR,hairStyle:'low-gathered-ponytail',hairMeshes:3,scalpLocks:SCALP_LOCKS+EDGE_LOCKS,tailLocks:TAIL_LOCKS,scalpTriangles:scalpGeometry.index.count/3,hairTie:true,crown:'rounded-shared-envelope',tail:'filled-root-separated-ends',growthDirection:'regional-gather-to-occiput',renderOnly:true,collisionGeometryChanged:false}),destroy(){if(destroyed)return;destroyed=true;body.remove(group);for(const m of meshes){m.geometry.dispose();m.material.dispose();}body.material.color.copy(originalColor);body.material.roughness=originalRoughness;}};
 }
 function geometry(data){
-  const raw=new T.BufferGeometry();raw.setAttribute('position',new T.Float32BufferAttribute(data.positions,3));raw.setAttribute('color',new T.Float32BufferAttribute(data.colors,3));raw.setIndex(data.indices);
+  const raw=new T.BufferGeometry();raw.setAttribute('position',new T.Float32BufferAttribute(data.positions,3));raw.setAttribute('color',new T.Float32BufferAttribute(data.colors,3));const valid=[],a=new T.Vector3(),b=new T.Vector3(),c=new T.Vector3();
+  for(let i=0;i<data.indices.length;i+=3){const ids=data.indices.slice(i,i+3);a.fromArray(data.positions,ids[0]*3);b.fromArray(data.positions,ids[1]*3);c.fromArray(data.positions,ids[2]*3);if(b.sub(a).cross(c.sub(a)).lengthSq()>1e-28)valid.push(...ids);}
+  raw.setIndex(valid);
   const g=mergeVertices(raw,1e-7);raw.dispose();g.computeVertexNormals();g.computeBoundingBox();g.computeBoundingSphere();return g;
 }
 function appendGeometry(out,g,shade){const start=out.positions.length/3,p=g.attributes.position;for(let i=0;i<p.count;i++){out.positions.push(p.getX(i),p.getY(i),p.getZ(i));out.colors.push(shade,shade,shade);}for(const i of g.index.array)out.indices.push(start+i);}
@@ -138,7 +142,7 @@ function addStrand(out,points,width,depth,shade,center,scalp){
     const t=j/(points.length-1),p=points[j],tangent=points[Math.min(j+1,points.length-1)].clone().sub(points[Math.max(0,j-1)]).normalize();
     const normal=scalp?p.clone().sub(center):new T.Vector3(0,0,-1);normal.addScaledVector(tangent,-normal.dot(tangent)).normalize();
     if(normal.lengthSq()<.1)normal.set(1,0,0).addScaledVector(tangent,-tangent.x).normalize();const side=tangent.clone().cross(normal).normalize(),taper=.015+.985*Math.sin(Math.PI*t)**.55;
-    for(let k=0;k<sides;k++){const a=k*2*Math.PI/sides,q=p.clone().addScaledVector(side,Math.cos(a)*width*taper).addScaledVector(normal,Math.sin(a)*depth*taper);out.positions.push(q.x,q.y,q.z);out.colors.push(shade,shade,shade);}
+    for(let k=0;k<sides;k++){const a=k*2*Math.PI/sides,w=typeof width==='function'?width(t):width,d=typeof depth==='function'?depth(t):depth,q=p.clone().addScaledVector(side,Math.cos(a)*w*taper).addScaledVector(normal,Math.sin(a)*d*taper);out.positions.push(q.x,q.y,q.z);out.colors.push(shade,shade,shade);}
   }
   for(let j=0;j<points.length-1;j++)for(let k=0;k<sides;k++){const a=start+j*sides+k,b=start+j*sides+(k+1)%sides;out.indices.push(a,a+sides,b,b,a+sides,b+sides);}
 }
