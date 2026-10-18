@@ -1,0 +1,81 @@
+name: NUBYRA · Gravity shorts and supported outfit
+on:
+  push:
+    branches: [fix/fit-lab-gravity-shorts-low-hair]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: nubyra-gravity-cut-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Apply exact reviewed source once with integrity verification
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/gravity-cut
+          if ! test -f docs/fit-lab/GRAVITY_SHORTS_CUT.md; then
+            node --input-type=module <<'JS'
+          import {writeFile} from 'node:fs/promises';
+          import {createHash} from 'node:crypto';
+          import {gunzipSync} from 'node:zlib';
+          import {execFileSync} from 'node:child_process';
+          const url='https://sdmntprdenmarkeast.oaiusercontent.com/files/00000000-3558-8210-bc3c-0b9b112448de/raw?se=2026-10-18T06%3A53%3A56Z&sp=r&sv=2026-02-06&sr=b&scid=b2f64024-602e-5054-825d-fa254bbdb873&skoid=6658dbdd-f305-4d30-8f6b-d62218202cb9&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-18T06%3A11%3A52Z&ske=2026-10-19T06%3A11%3A52Z&sks=b&skv=2026-02-06&sig=4HlmfmPlmIqpqRBe4TZ7gjseCawA0lFxcGaiB%2BfsUQI%3D';
+          const response=await fetch(url,{signal:AbortSignal.timeout(30000)});if(!response.ok)throw Error('Source transfer failed: '+response.status);
+          const bytes=Buffer.from(await response.arrayBuffer()),hash=createHash('sha256').update(bytes).digest('hex');
+          if(bytes.length!==32223||hash!=='ca94bd10a852dc28f512998d63c1ace51c3d377cd069355fdbe25a726efd80df')throw Error('Patch integrity mismatch');
+          const patch=gunzipSync(bytes);if(patch.length!==116508)throw Error('Patch length mismatch');await writeFile('/tmp/gravity-cut.patch',patch);
+          const changes=execFileSync('git',['apply','--numstat','/tmp/gravity-cut.patch'],{encoding:'utf8'});
+          for(const line of changes.trim().split('\n')){const p=line.split('\t')[2];if(!/^(configurador-3d\/fit-lab\/|scripts\/|tests\/|docs\/fit-lab\/)/.test(p)||p.includes('..'))throw Error('Unexpected application path');}
+          execFileSync('git',['apply','--check','/tmp/gravity-cut.patch'],{stdio:'inherit'});execFileSync('git',['apply','/tmp/gravity-cut.patch'],{stdio:'inherit'});
+          await writeFile('artifacts/gravity-cut/source-integrity.json',JSON.stringify({base:'1f846a49f1702729f813439c2746f484f4c22e29',sha256:hash,changes},null,2));
+          JS
+            test "$GITHUB_REF_NAME" = fix/fit-lab-gravity-shorts-low-hair
+            git config user.name 'NUBYRA source review'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add configurador-3d/fit-lab scripts tests docs/fit-lab/GRAVITY_SHORTS_CUT.md
+            git commit -m 'feat(fit-lab): authored fixed shorts with waist-supported gravity and shirt contact'
+            git push origin HEAD:fix/fit-lab-gravity-shorts-low-hair
+          fi
+          git rev-parse HEAD | tee artifacts/gravity-cut/source-commit.txt
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: All unit tests and physical pattern invariants
+        run: |
+          set -euo pipefail
+          THREE_TEST_DIR="$PWD" npm test | tee artifacts/gravity-cut/unit-tests.txt
+      - name: Build exact source and complete clothed bootstrap
+        run: VERCEL_GIT_COMMIT_SHA=$(git rev-parse HEAD) npm run build:fit-lab
+      - run: npx playwright install --with-deps chromium
+      - name: Same head mesh, materials and lighting
+        run: EVIDENCE_DIR=artifacts/gravity-head node scripts/fit-lab-head-review.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nubyra-gravity-head
+          path: artifacts/gravity-head/
+          retention-days: 7
+      - name: Real browser waist, drape, eight profiles, overlays and mobile
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8180 --bind 127.0.0.1 --directory fit-dist >/tmp/gravity-http.log 2>&1 &
+          sleep 2
+          FIT_LAB_URL=http://127.0.0.1:8180/fit-lab/ node scripts/fit-lab-gravity-cut-review.mjs | tee artifacts/gravity-cut/browser-tests.txt
+      - name: Reproducible source evidence
+        if: always()
+        run: git archive --format=tar HEAD | gzip > artifacts/gravity-cut/source.tar.gz
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nubyra-gravity-cut-review
+          path: |
+            artifacts/gravity-cut/
+            fit-dist/
+          retention-days: 7
+          if-no-files-found: error
