@@ -33,6 +33,8 @@ export function updateSizingUI(state,frame){
  }
  document.querySelectorAll('[data-nominal]').forEach(e=>e.classList.toggle('selected',e.dataset.nominal===state.activeConfiguration));
  document.querySelectorAll('[data-garment]').forEach(b=>{const item=state.recommendation.candidates.find(x=>x.code===b.dataset.garment);if(item){b.title=item.assessment.reason;b.dataset.recommended=String(item.code===state.recommendation.recommendedCode);}});
- const s=frame?.outfit?.fixed;if(s){const p=s.nominal,r=s.support;document.getElementById('fixed-shorts-status').textContent=`${p.code} · cintura en reposo ${p.waistCm}, cadera ${p.hipCm}, largo ${p.lengthCm} cm. `+'Amarre sujeto en cintura; sin deslizamiento. '+(r.excessWaistCm>8?'Holgura recogida por el cordón: revisar ajuste. ':'')+' Sujeción geométrica de ensayo; elástico sin calibrar.';}
+ const s=frame?.outfit?.fixed;if(s){const p=s.nominal,r=s.support,d=s.cloth,fmt=n=>Number(n).toLocaleString('es-ES',{maximumFractionDigits:1});
+  document.getElementById('fixed-shorts-status').textContent=`${p.code} · cintura en reposo ${fmt(p.waistCm)} / cuerpo ${fmt(r.waistCm)} cm · cadera ${fmt(p.hipCm)} cm · tiro ${fmt(p.riseReferenceCm)} cm · largo de corte ${fmt(p.lengthCm)} cm. `+(d?`Cinturilla sujeta: descenso ${fmt(d.waistDriftCm)} cm. Caída vertical visible ${fmt(d.visibleVerticalLengthCm)} cm. Gravedad y contacto activos. `:'Preparando caída física. ')+(r.excessWaistCm>8?'Exceso de cintura recogido por el amarre; revisar talla. ':'')+' Material de ensayo, sin calibración del tejido o elástico.';
+ }
  if(frame?.sizeRejection)document.getElementById('fixed-shorts-status').textContent=frame.sizeRejection;
 }
