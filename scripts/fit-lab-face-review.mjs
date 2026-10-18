@@ -3,12 +3,13 @@ import {chromium} from 'playwright';
 import {readFile,mkdir,writeFile} from 'node:fs/promises';
 import assert from 'node:assert/strict';
 const dir=process.env.EVIDENCE_DIR||'artifacts/face-portrait';await mkdir(dir,{recursive:true});
+const appearanceModule=process.env.APPEARANCE_MODULE||'./configurador-3d/fit-lab/human-appearance.mjs';
 const faceModule=process.env.FACE_MODULE||'./configurador-3d/fit-lab/human-face.mjs';
 const glb=(await readFile('configurador-3d/fit-lab/assets/human-female.glb')).toString('base64');
 const code=`
 import * as T from 'three';
 import {loadHumanBody,updateHumanBody} from './configurador-3d/fit-lab/human-body.mjs';
-import {createHumanAppearance} from './configurador-3d/fit-lab/human-appearance.mjs';
+import {createHumanAppearance} from '${appearanceModule}';
 import {createHumanFace} from '${faceModule}';
 import {resolveState} from './configurador-3d/fit-lab/lab-model.mjs';
 const b=Uint8Array.from(atob(window.HEAD_GLB),c=>c.charCodeAt(0));
@@ -23,9 +24,9 @@ window.inspectHead={setView(angle){camera.position.set(Math.sin(angle)*8,y,Math.
 `;
 const result=await build({stdin:{contents:code,resolveDir:process.cwd()},bundle:true,format:'esm',write:false,minify:true});
 const html='<html><head><style>html,body{margin:0}canvas{display:block}</style></head><body><script>window.HEAD_GLB='+JSON.stringify(glb)+';</script><script type="module">'+result.outputFiles[0].text.replaceAll('</script','<\\/script')+'</script></body></html>';
-const browser=await chromium.launch({headless:true,...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{}),args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+const browser=await chromium.launch({headless:process.env.REVIEW_HEADED!=='1',...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{}),args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
 const page=await browser.newPage({viewport:{width:900,height:900}}),errors=[];
-page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+page.on('pageerror',e=>{errors.push(e.message);console.error(e.message);});page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
 try{
  await page.setContent(html);await page.waitForFunction(()=>window.inspectHead,null,{timeout:30000});
  for(const [name,angle]of[['front',0],['quarter',.52],['left',-.52],['side',Math.PI/2]]){await page.evaluate(a=>window.inspectHead.setView(a),angle);await page.screenshot({path:dir+'/face-'+name+'.png'});}

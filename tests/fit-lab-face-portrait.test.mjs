@@ -14,7 +14,7 @@ const dispose=b=>{b.geometry.dispose();b.material.dispose();};
 test('Portrait cut does not alter body, normals, topology, measurements or BVH',async()=>{
  const b=await fixture(),before=[hash(b.geometry.attributes.position.array),hash(b.geometry.attributes.normal.array),hash(b.geometry.index.array)],tree=b.geometry.boundsTree,m={...b.userData.measurements};
  const oldCompile=b.material.onBeforeCompile,oldKey=b.material.customProgramCacheKey,f=createHumanFace(b),s=f.snapshot();
- assert.equal(s.version,FACE_VERSION);assert.equal(s.browHairs,108);assert.equal(s.extraTextureRequests,0);assert.equal(s.expression,'relaxed-neutral');
+ assert.equal(s.version,FACE_VERSION);assert.equal(s.browHairs,144);assert.equal(s.extraTextureRequests,0);assert.equal(s.expression,'neutral');
  assert.deepEqual([hash(b.geometry.attributes.position.array),hash(b.geometry.attributes.normal.array),hash(b.geometry.index.array)],before);assert.deepEqual(b.userData.measurements,m);assert.equal(b.geometry.boundsTree,tree);
  f.destroy();f.destroy();assert.equal(b.material.onBeforeCompile,oldCompile);assert.equal(b.material.customProgramCacheKey,oldKey);dispose(b);
 });
@@ -28,14 +28,14 @@ test('Face uses exactly two draw batches, finite optical coordinates and symmetr
  f.destroy();dispose(b);
 });
 test('Facial features follow stature without adding geometry or cumulative deformations',async()=>{
- const b=await fixture(),f=createHumanFace(b),g=f.group.children[0].geometry,h=hash(g.attributes.position.array),id=g.id;
- for(const height of[125,145,160,180,200,160]){updateHumanBody(b,resolveState({bodyHeightCm:height}));f.update();assert.equal(g.id,id);assert.equal(hash(g.attributes.position.array),h);assert.ok(f.group.position.toArray().every(Number.isFinite));assert.equal(f.group.scale.x,b.userData.scale/b.userData.unit);}
+ const b=await fixture(),f=createHumanFace(b),g=f.group.children[0].geometry,id=g.id;
+ for(const height of[125,145,160,180,200,160]){updateHumanBody(b,resolveState({bodyHeightCm:height}));f.update();assert.equal(g.id,id);assert.ok(g.attributes.position.array.every(Number.isFinite));assert.ok(f.group.position.toArray().every(Number.isFinite));assert.equal(f.group.scale.x,b.userData.scale/b.userData.unit);}
  f.destroy();dispose(b);
 });
 test('Shader hooks preserve upstream hooks and add continuous iris without network textures',async()=>{
  const b=await fixture();let called=0;b.material.onBeforeCompile=()=>called++;
  const f=createHumanFace(b),skinShader={uniforms:{},vertexShader:T.ShaderLib.standard.vertexShader,fragmentShader:T.ShaderLib.standard.fragmentShader};
- b.material.onBeforeCompile(skinShader,{});assert.equal(called,1);assert.ok(skinShader.uniforms.faceSourceScale.value>0);assert.match(skinShader.fragmentShader,/faceMask/);
+ b.material.onBeforeCompile(skinShader,{});assert.equal(called,1);assert.ok(skinShader.uniforms.portraitScale.value>0);assert.match(skinShader.fragmentShader,/vOriginalHeadY>=1.4750/);
  const eyeShader={uniforms:{},vertexShader:T.ShaderLib.physical.vertexShader,fragmentShader:T.ShaderLib.physical.fragmentShader};f.group.children[0].material[1].onBeforeCompile(eyeShader,{});assert.match(eyeShader.fragmentShader,/fwidth\(r\)/);assert.doesNotMatch(eyeShader.fragmentShader,/https?:/);
  f.destroy();dispose(b);
 });

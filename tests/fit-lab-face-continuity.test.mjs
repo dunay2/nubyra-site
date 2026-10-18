@@ -5,19 +5,14 @@ import {resolveState} from '../configurador-3d/fit-lab/lab-model.mjs';
 import {createHumanFace} from '../configurador-3d/fit-lab/human-face.mjs';
 import {mountReleaseIdentity} from '../configurador-3d/fit-lab/release-identity.mjs';
 const bytes=await readFile(new URL('../configurador-3d/fit-lab/assets/human-female.glb',import.meta.url));
-test('Ocular cap has continuous depths, covers both pupils, and never floats centimetres ahead',async()=>{
- const body=updateHumanBody(await loadHumanBody(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength)),resolveState({}));const face=createHumanFace(body);
+test('Integrated head has one skin batch, finite optical coordinates and a bounded rendering budget',async()=>{
+ const body=updateHumanBody(await loadHumanBody(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength)),resolveState({})),face=createHumanFace(body);
  try{
-  const g=face.group.children[0].geometry,p=g.attributes.position;
-  for(const range of g.userData.eyeVertexRanges){
-   assert.equal(range.count,49*13);
-   for(let row=0;row<13;row++)for(let col=0;col<49;col++){
-    const i=range.start+row*49+col,z=p.getZ(i);assert.ok(z>.12&&z<.14,'Depth must lie near actual orbital rim');
-    if(col>0)assert.ok(Math.abs(z-p.getZ(i-1))<.001,'Discontinuous column depth');
-   }
-   const middle=range.start+6*49+24;assert.ok(p.getZ(middle)>.131&&p.getZ(middle)<.138);
-  }
-  const s=face.snapshot();assert.equal(s.depthSearchSteps,0);assert.equal(s.drawBatches,2);assert.ok(s.constructionVertices<6000);assert.ok(s.sampleQueries<2400);
+  const g=face.group.children[0].geometry,s=face.snapshot();
+  assert.equal(s.displayHeadRefined,true);assert.equal(s.drawBatches,2);assert.equal(s.extraTextureRequests,0);
+  assert.ok(s.skinVertices>15000&&s.skinVertices<18000);assert.ok(s.constructionVertices<25000);assert.ok(s.sampleQueries<=1500);
+  assert.equal(g.groups[0].materialIndex,0);assert.equal(g.groups[1].materialIndex,1);
+  for(const key of ['position','normal','color','eyeCoord'])assert.ok(g.attributes[key].array.every(Number.isFinite));
  }finally{face.destroy();body.geometry.dispose();body.material.dispose();}
 });
 test('Only verified commit IDs may be presented as a published build',async()=>{

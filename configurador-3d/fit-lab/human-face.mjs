@@ -1,163 +1,142 @@
 import * as T from 'three';
 import {MeshBVH} from 'three-mesh-bvh';
 import {SKIN_COLOR} from './human-appearance.mjs';
+import {buildPortraitSurface,PORTRAIT_JOIN_Y,PORTRAIT_SURFACE_VERSION} from './portrait-surface.mjs';
 
-export const FACE_VERSION='human-face/2.2-relaxed-rims';
-const clamp=x=>Math.max(0,Math.min(1,x));
-const smooth=x=>{const t=clamp(x);return t*t*(3-2*t);};
+export const FACE_VERSION='human-face/3.0-integrated-portrait';
+const IRIS_RADIUS=.0052,PUPIL_RADIUS=.00195;
+const smooth=t=>{t=Math.max(0,Math.min(1,t));return t*t*(3-2*t);};
 
-/** Appearance-only details on the approved head. No body/collider vertex is edited. */
+/** A single refined skin surface and recessed optical eyes replace the old
+ * overlapping lid/lip patches. Canonical measurement/collision data are untouched. */
 export function createHumanFace(body){
  const base=body.userData.base,index=body.geometry.index;
- if(!base||!index||!body.geometry.attributes.position)throw Error('La cara necesita la base humana indexada');
- const source=new T.BufferGeometry();source.setAttribute('position',new T.Float32BufferAttribute(base.slice(),3));
- const ids=[];let anchor=-1;
- for(let i=0;i<index.count;i+=3){const tri=[index.getX(i),index.getX(i+1),index.getX(i+2)];if(tri.every(j=>base[j*3+1]>1.49))ids.push(...tri);}
- for(let i=0;i<base.length;i+=3)if(base[i+1]>1.65){anchor=i/3;break;}
+ if(!base||!index)throw Error('La cara necesita la base humana indexada');
+ let anchor=-1;for(let i=0;i<base.length;i+=3)if(base[i+1]>1.65){anchor=i/3;break;}
  if(anchor<0)throw Error('No se encuentra la referencia de la cabeza');
- source.setIndex(ids);source.computeVertexNormals();
- const tree=new MeshBVH(source,{maxLeafTris:8}),ray=new T.Ray(new T.Vector3(),new T.Vector3(0,0,-1));
- const positions=[],colors=[],indices=[],eyeCoords=[],groups=[],eyeVertexRanges=[];
- const skin=new T.Color(SKIN_COLOR),warmSkin=skin.clone().lerp(new T.Color('#b87867'),.12);
- const brown=new T.Color('#3c2c23'),sclera=new T.Color('#cbc3b7'),iris=new T.Color('#64432d'),pupil=new T.Color('#131510');
- const pointCache=new Map();let sampleQueries=0;
- function sample(x,y){
-  const key=x.toFixed(7)+':'+y.toFixed(7);if(pointCache.has(key))return pointCache.get(key).clone();
-  ray.origin.set(x,y,.5);const hit=tree.raycastFirst(ray,T.DoubleSide);sampleQueries++;
-  if(!hit)throw Error('Detalle facial fuera de la cabeza');
-  pointCache.set(key,hit.point.clone());return hit.point.clone();
+ const started=performance.now();
+ const head=buildPortraitSurface(base,index),tree=new MeshBVH(head.clone(),{maxLeafTris:8});
+ const ray=new T.Ray(new T.Vector3(),new T.Vector3(0,0,-1));let queries=0;
+ const skin=new T.Color(SKIN_COLOR),brow=new T.Color('#473128');
+ const positions=Array.from(head.attributes.position.array),normals=Array.from(head.attributes.normal.array),indices=Array.from(head.index.array),colors=[],coords=[],ranges=[];
+ for(let i=0;i<head.attributes.position.count;i++){colors.push(skin.r,skin.g,skin.b);coords.push(0,0);}
+ const headVertexCount=head.attributes.position.count;let headIndexCount=indices.length;
+ const attachments=head.userData.attachments,restSkin=head.attributes.position.array.slice(),restNormals=head.attributes.normal.array.slice();
+ const sample=(x,y)=>{ray.origin.set(x,y,.5);queries++;const h=tree.raycastFirst(ray,T.DoubleSide);if(!h)throw Error('Detalle fuera de la superficie de la cara');return h.point;};
+ const append=(p,n,c,uv=[0,0])=>{positions.push(p.x,p.y,p.z);normals.push(n.x,n.y,n.z);colors.push(c.r,c.g,c.b);coords.push(...uv);};
+ // Low-contrast irregular brow strokes. No straight comb of identical hairs.
+ const browHairs=144;
+ for(const side of[-1,1])for(let i=0;i<browHairs/2;i++){
+  const phase=i*2.3999632,t=(i+.35+.20*Math.sin(phase))/72,arch=Math.pow(Math.sin(Math.PI*t),.55);
+  const x=side*(.014+.036*t),y=1.602+.0034*Math.sin(Math.PI*t)-.0012*t+Math.sin(phase*2.1)*.00055;
+  const length=(.0011+.0013*Math.sin(phase)**2)*arch,width=(.00008+.00009*Math.sin(phase*.8)**2)*arch;
+  const start=positions.length/3;
+  for(let j=0;j<=4;j++)for(let k=0;k<2;k++){
+   const v=j/4,xx=x+side*(v*.00095+(k-.5)*width*2*Math.sin(Math.PI*v)),yy=y+(v-.4)*length;
+   const p=sample(xx,yy);p.z+=.00040;
+   append(p,new T.Vector3(0,0,1),brow.clone().lerp(skin,.18+.62*(1-Math.sin(Math.PI*v))));
+  }
+  for(let j=0;j<4;j++){const a=start+2*j;indices.push(a,a+1,a+2,a+1,a+3,a+2);}
  }
- // One draw group for skin details, one for the optical eye surface. Positions
- // in eyeCoord are millimetric source offsets, independent of grid resolution.
- function grid(nx,ny,point,color,kind=0,center=null){
-  const start=positions.length/3,indexStart=indices.length;
-  for(let j=0;j<=ny;j++)for(let i=0;i<=nx;i++){
-   const u=-1+2*i/nx,v=j/ny,p=point(u,v),c=color(u,v,p);
-   positions.push(p.x,p.y,p.z);colors.push(c.r,c.g,c.b);
-   eyeCoords.push(center?p.x-center.x:0,center?p.y-center.y:0);
+ let skinIndexCount=indices.length;
+ // Complete ellipsoidal optical surfaces sit behind the skin aperture. The
+ // refined skin occludes them naturally, with no additional eyelid strips.
+ for(const side of[-1,1]){
+  const cx=side*.0315,cy=1.5890,cz=.1248,g=new T.SphereGeometry(1,64,40),p=g.attributes.position,n=g.attributes.normal;
+  const start=positions.length/3;
+  for(let i=0;i<p.count;i++){
+   const xx=p.getX(i)*.0148,yy=p.getY(i)*.0102,zz=p.getZ(i)*.0087;
+   const q=new T.Vector3(cx+xx,cy+yy,cz+zz-side*xx*.13);
+   const norm=new T.Vector3(n.getX(i)/.0148,n.getY(i)/.0102,n.getZ(i)/.0087).normalize();
+   const r=Math.hypot(xx,yy),c=new T.Color(r<PUPIL_RADIUS?'#111310':r<IRIS_RADIUS?'#63442f':'#cdc8bf');
+   append(q,norm,c,[xx,yy]);
   }
-  for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){const a=start+j*(nx+1)+i,b=a+nx+1;indices.push(a,a+1,b,a+1,b+1,b);}
-  groups.push({start:indexStart,count:indices.length-indexStart,materialIndex:kind});
-  return {start,count:positions.length/3-start};
+  for(const i of g.index.array)indices.push(start+i);ranges.push({start,count:p.count,center:[cx,cy,cz]});g.dispose();
  }
- let eyeVertices=0,browHairs=0;
- try{
-  for(const side of[-1,1]){
-   const cx=.0315*side,cy=1.5895,halfWidth=.0125;
-   // Fixed outer samples sit on the actual skin, outside the empty socket.
-   // Never use a stepped depth search per vertex: it produced vertical stripes.
-   const bounds=u=>{const arch=Math.max(0,1-u*u)**.66,tilt=side*u*.00065;return {bottom:cy-.0032*arch+tilt,top:cy+.0031*arch+tilt,arch};};
-   const rimCache=new Map();
-   function rimAt(u){
-    if(rimCache.has(u))return rimCache.get(u);
-    const x=cx+u*halfWidth,{bottom,top,arch}=bounds(u);
-    const lower=sample(x,cy-.0075),upper=sample(x,cy+.0075);
-    // Endpoints converge at the canthi; central lid depth remains continuous.
-    const end=u<0?-1:1;const corner=sample(cx+end*halfWidth,cy+side*end*.00065);
-    const endBlend=smooth((Math.abs(u)-.4)/.6);
-    const lowerZ=lower.z+(corner.z-lower.z)*endBlend;
-    const upperZ=upper.z+(corner.z-upper.z)*endBlend;
-    const value={x,bottom,top,arch,lower,upper,lowerZ,upperZ};rimCache.set(u,value);return value;
-   }
-   function ocularPoint(u,v){const q=rimAt(u);return new T.Vector3(q.x,q.bottom+(q.top-q.bottom)*v,q.lowerZ+(q.upperZ-q.lowerZ)*v+.00085*q.arch*Math.sin(Math.PI*v)+.00040);}
-   const eye=grid(48,12,ocularPoint,(_,v,p)=>{
-    const r=Math.hypot(p.x-cx,p.y-cy),c=r<.00185?pupil.clone():r<.0051?iris.clone():sclera.clone();
-    return c.multiplyScalar(1-.16*smooth((v-.56)/.44));
-   },1,{x:cx,y:cy});eyeVertexRanges.push(eye);eyeVertices+=eye.count;
-   // Upper/lower lids meet the ocular cap, then blend into the real rim. They
-   // cover only the socket boundary: neither larger eyes nor a face decal.
-   for(const upper of[false,true])grid(48,6,(u,v)=>{
-    const q=rimAt(u),edge=ocularPoint(u,upper?1:0),outer=upper?q.upper:q.lower;
-    const p=edge.clone().lerp(outer,v);p.y=edge.y+(outer.y-edge.y)*v*q.arch;p.z+=.00025*Math.sin(Math.PI*v)*q.arch+.00015;
-    return p;
-   },(u,v)=>warmSkin.clone().lerp(skin,smooth(v)).multiplyScalar(1-.11*(1-v)*Math.max(0,1-u*u)));
-   // Individual tapered brow strokes instead of the old dark polygonal stripe.
-   for(let i=0;i<54;i++){
-    const t=(i+.5)/54,phase=i*2.399,arch=Math.sin(Math.PI*t)**.5;
-    const x=side*(.014+.036*t),y=1.602+.0038*Math.sin(Math.PI*t)-.0014*t;
-    const length=(.0020+.0012*Math.sin(phase)**2)*arch;
-    grid(2,3,(u,v)=>sample(x+side*(.0006*v+u*.00027*arch*(1-v)),y+(v-.4)*length).add(new T.Vector3(0,0,.00055)),
-     (_,v)=>brown.clone().lerp(skin,smooth((v-.70)/.30)*.45+(1-arch)*.16));browHairs++;
-   }
-  }
-  // Relaxed mouth. The two lips converge on a narrow, curved neutral seam;
-  // no open black wedge, hard contour or artificial permanent smile.
-  const mouthCache=new Map();
-  function mouth(u){
-   if(mouthCache.has(u))return mouthCache.get(u);
-   const x=u*.022,arch=Math.max(0,1-u*u),centre=1.523+.0012*u*u;
-   const upperY=centre+.0105*arch**.7-.0025*Math.exp(-((u/.20)**2));
-   const lowerY=centre-.0110*arch**.7;
-   const top=sample(x,upperY),bottom=sample(x,lowerY);
-   const contactZ=(sample(x,centre+.0015).z+sample(x,centre-.0015).z)/2+.00065;
-   const value={x,arch,centre,upperY,lowerY,top,bottom,contactZ};mouthCache.set(u,value);return value;
-  }
-  for(const upper of[false,true])grid(48,8,(u,v)=>{
-   const q=mouth(u),outer=upper?q.top:q.bottom,edgeY=upper?q.upperY:q.lowerY;
-   const innerY=q.centre+(upper?.00018:-.00018)*q.arch;
-   const y=innerY+(edgeY-innerY)*v,p=sample(q.x,y);
-   const bridge=q.contactZ+(outer.z-q.contactZ)*smooth(v)+.0006*Math.sin(Math.PI*v)*q.arch;
-   p.z=Math.max(p.z+.00045,bridge);return p;
-  },(u,v)=>{
-   const pigment=new T.Color(upper?'#ae7e71':'#ba8b7c'),boundary=smooth((v-.68)/.32);
-   return pigment.lerp(skin,boundary*.94).multiplyScalar(1-.055*(1-v)*Math.max(0,1-u*u));
-  });
-  grid(48,2,(u,v)=>{const q=mouth(u);return new T.Vector3(q.x,q.centre+(v-.5)*.00040*q.arch,q.contactZ-.00008);},
-   u=>new T.Color('#78584b').lerp(skin,Math.abs(u)**7));
- }finally{source.dispose();pointCache.clear();}
- const geometry=new T.BufferGeometry();geometry.setAttribute('position',new T.Float32BufferAttribute(positions,3));
- geometry.setAttribute('color',new T.Float32BufferAttribute(colors,3));geometry.setAttribute('eyeCoord',new T.Float32BufferAttribute(eyeCoords,2));
- const batched=[],drawGroups=[];for(const kind of[0,1]){const start=batched.length;for(const g of groups)if(g.materialIndex===kind)for(let i=g.start;i<g.start+g.count;i++)batched.push(indices[i]);drawGroups.push({start,count:batched.length-start,materialIndex:kind});}
- geometry.setIndex(batched);geometry.userData.eyeVertexRanges=eyeVertexRanges;geometry.computeVertexNormals();geometry.computeBoundingSphere();
- const material=new T.MeshStandardMaterial({vertexColors:true,roughness:.80,metalness:0,side:T.DoubleSide});
- const ocular=new T.MeshPhysicalMaterial({vertexColors:true,roughness:.27,metalness:0,clearcoat:.28,clearcoatRoughness:.22,side:T.DoubleSide});
- // Continuous fragment pigment avoids faceted/pixelated pupils when zooming.
+ const a=new T.Vector3(),b=new T.Vector3(),c=new T.Vector3();
+ const clean=part=>{const valid=[];for(let i=0;i<part.length;i+=3){a.fromArray(positions,part[i]*3);b.fromArray(positions,part[i+1]*3);c.fromArray(positions,part[i+2]*3);if(b.sub(a).cross(c.sub(a)).lengthSq()>1e-26)valid.push(part[i],part[i+1],part[i+2]);}return valid;};
+ const headFaces=clean(indices.slice(0,headIndexCount)),browFaces=clean(indices.slice(headIndexCount,skinIndexCount)),eyeFaces=clean(indices.slice(skinIndexCount));
+ indices.length=0;for(const face of [headFaces,browFaces,eyeFaces])for(const v of face)indices.push(v);headIndexCount=headFaces.length;skinIndexCount=headFaces.length+browFaces.length;
+ const geometry=new T.BufferGeometry();geometry.setAttribute('position',new T.Float32BufferAttribute(positions,3));geometry.setAttribute('normal',new T.Float32BufferAttribute(normals,3));geometry.setAttribute('color',new T.Float32BufferAttribute(colors,3));geometry.setAttribute('eyeCoord',new T.Float32BufferAttribute(coords,2));geometry.setIndex(indices);
+ geometry.addGroup(0,skinIndexCount,0);geometry.addGroup(skinIndexCount,indices.length-skinIndexCount,1);
+ geometry.userData.eyeVertexRanges=ranges;geometry.userData.headVertexCount=headVertexCount;geometry.userData.headIndexCount=headIndexCount;geometry.userData.neckAttachments=attachments;geometry.userData.restSkin=restSkin;geometry.computeBoundingBox();geometry.computeBoundingSphere();
+ const material=new T.MeshStandardMaterial({vertexColors:true,roughness:.74,metalness:0,side:T.FrontSide});
+ material.onBeforeCompile=shader=>{
+  shader.vertexShader='varying vec3 vPortraitPosition;\n'+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvPortraitPosition=position;');
+  shader.fragmentShader='varying vec3 vPortraitPosition;\n'+shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
+   if(vPortraitPosition.y < ${PORTRAIT_JOIN_Y.toFixed(4)}) discard;
+   float front=smoothstep(0.10,0.125,vPortraitPosition.z);
+   float browT=(abs(vPortraitPosition.x)-0.014)/0.036;
+   float browY=1.602+0.0034*sin(clamp(browT,0.0,1.0)*3.14159)-0.0012*browT;
+   float browArch=pow(max(0.0,sin(clamp(browT,0.0,1.0)*3.14159)),0.65);
+   float browWidth=0.0010*browArch;
+   float browNoise=sin(vPortraitPosition.x*7200.0+vPortraitPosition.y*3300.0)*0.00012;
+   float browMask=(1.0-smoothstep(browWidth*0.15,browWidth+0.0005,abs(vPortraitPosition.y-browY)+browNoise))*browArch*front;
+   diffuseColor.rgb=mix(diffuseColor.rgb,vec3(0.093,0.051,0.034),browMask*0.78);
+   float u=vPortraitPosition.x/0.0235;
+   float arch=pow(max(0.0,1.0-u*u),0.72);
+   float centre=1.5235-0.0003*u*u;
+   float top=centre+0.0102*arch-0.0020*exp(-pow(u/0.21,2.0));
+   float bottom=centre-0.0093*arch;
+   float lipMask=smoothstep(bottom-0.0011,bottom+0.0010,vPortraitPosition.y)*(1.0-smoothstep(top-0.001,top+0.0012,vPortraitPosition.y))*(1.0-smoothstep(0.90,1.03,abs(u)))*front;
+   vec3 lip=mix(vec3(0.515,0.276,0.224),vec3(0.436,0.224,0.182),smoothstep(centre-0.001,centre+0.001,vPortraitPosition.y));
+   diffuseColor.rgb=mix(diffuseColor.rgb,lip,lipMask*0.68);
+   float cheek=exp(-pow((abs(vPortraitPosition.x)-0.048)/0.024,2.0)-pow((vPortraitPosition.y-1.564)/0.024,2.0))*front;
+   diffuseColor.rgb*=mix(vec3(1.0),vec3(1.025,0.97,0.965),cheek*0.65);
+  `);
+ };
+ material.customProgramCacheKey=()=>FACE_VERSION+'-integrated-skin';
+ const ocular=new T.MeshPhysicalMaterial({vertexColors:true,roughness:.24,metalness:0,clearcoat:.3,clearcoatRoughness:.20});
  ocular.onBeforeCompile=shader=>{
   shader.vertexShader='attribute vec2 eyeCoord; varying vec2 vEyeCoord;\n'+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvEyeCoord=eyeCoord;');
   shader.fragmentShader='varying vec2 vEyeCoord;\n'+shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
    float r=length(vEyeCoord),a=atan(vEyeCoord.y,vEyeCoord.x),aa=max(fwidth(r),0.000025);
-   float irisMask=1.0-smoothstep(0.0049-aa,0.0049+aa,r);
-   float pupilMask=1.0-smoothstep(0.00185-aa,0.00185+aa,r);
-   float limbus=1.0-smoothstep(0.00515-aa,0.00515+aa,r);
-   float fibres=0.91+0.065*sin(a*43.0+r*4800.0)+0.025*sin(a*79.0-r*6500.0);
-   vec3 eyeWhite=vec3(0.597,0.546,0.474);
-   vec3 irisPigment=mix(vec3(0.16,0.087,0.040),vec3(0.088,0.044,0.019),smoothstep(0.002,0.0049,r))*fibres;
-   vec3 pigment=mix(eyeWhite,vec3(0.034,0.023,0.016),limbus);
-   pigment=mix(pigment,irisPigment,irisMask);
-   pigment=mix(pigment,vec3(0.006,0.007,0.005),pupilMask);
-   pigment*=1.0-0.16*smoothstep(0.0008,0.0037,vEyeCoord.y);
-   diffuseColor.rgb=diffuse* pigment;
+   float irisMask=1.0-smoothstep(${IRIS_RADIUS}-aa,${IRIS_RADIUS}+aa,r);
+   float pupilMask=1.0-smoothstep(${PUPIL_RADIUS}-aa,${PUPIL_RADIUS}+aa,r);
+   float limbus=1.0-smoothstep(0.0054-aa,0.0054+aa,r);
+   float fibres=0.94+0.035*sin(a*47.0+r*4400.0)+0.025*sin(a*83.0-r*7300.0);
+   vec3 pigment=mix(vec3(0.475,0.443,0.400),vec3(0.037,0.026,0.018),limbus);
+   vec3 iris=mix(vec3(0.18,0.092,0.046),vec3(0.084,0.039,0.018),smoothstep(0.002,0.005,r))*fibres;
+   pigment=mix(pigment,iris,irisMask);pigment=mix(pigment,vec3(0.006,0.007,0.005),pupilMask);
+   pigment*=1.0-0.11*smoothstep(0.0008,0.004,vEyeCoord.y);
+   float reflection=1.0-smoothstep(0.00012,0.00033,length(vEyeCoord-vec2(-0.0011,0.0013)));
+   pigment=mix(pigment,vec3(0.88,0.86,0.80),reflection*0.6);
+   diffuseColor.rgb=diffuse*pigment;
   `);
  };
- ocular.customProgramCacheKey=()=>FACE_VERSION+'-continuous-iris';
- for(const g of drawGroups)geometry.addGroup(g.start,g.count,g.materialIndex);
+ ocular.customProgramCacheKey=()=>FACE_VERSION+'-recessed-iris';
  const mesh=new T.Mesh(geometry,[material,ocular]);mesh.name='avatar-facial-details';
- const group=new T.Group();group.name='avatar-face';group.add(mesh);body.add(group);let destroyed=false;
- // Very restrained skin variation, only on the face; no texture download or
- // per-frame geometry work. The original material hooks are restored on dispose.
+ const group=new T.Group();group.name='avatar-face';group.add(mesh);
  const previousCompile=body.material.onBeforeCompile,previousKey=body.material.customProgramCacheKey;
- const localScale={value:1},localOffset={value:new T.Vector3()};
+ const scaleUniform={value:1},offsetUniform={value:new T.Vector3()};
  const skinCompile=function(shader,renderer){
-  previousCompile.call(this,shader,renderer);
-  shader.uniforms.faceSourceScale=localScale;shader.uniforms.faceSourceOffset=localOffset;
-  shader.vertexShader='uniform float faceSourceScale; uniform vec3 faceSourceOffset; varying vec3 vFaceSource;\n'+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvFaceSource=(position-faceSourceOffset)/faceSourceScale;');
-  shader.fragmentShader='varying vec3 vFaceSource;\n'+shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
-   float faceMask=smoothstep(1.49,1.53,vFaceSource.y)*(1.0-smoothstep(1.64,1.67,vFaceSource.y))*smoothstep(0.045,0.085,vFaceSource.z);
-   float cheek=exp(-pow((abs(vFaceSource.x)-0.048)/0.022,2.0)-pow((vFaceSource.y-1.564)/0.024,2.0));
-   diffuseColor.rgb*=mix(vec3(1.0),vec3(1.022,0.986,0.983),faceMask*cheek);
-  `);
+  previousCompile.call(this,shader,renderer);shader.uniforms.portraitScale=scaleUniform;shader.uniforms.portraitOffset=offsetUniform;
+  shader.vertexShader='uniform float portraitScale;uniform vec3 portraitOffset;varying float vOriginalHeadY;\n'+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvOriginalHeadY=(position.y-portraitOffset.y)/portraitScale;');
+  shader.fragmentShader='varying float vOriginalHeadY;\n'+shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>\nif(vOriginalHeadY>=${PORTRAIT_JOIN_Y.toFixed(4)})discard;`);
  };
- body.material.onBeforeCompile=skinCompile;body.material.customProgramCacheKey=function(){return previousKey.call(this)+'-'+FACE_VERSION;};body.material.needsUpdate=true;
+ body.material.onBeforeCompile=skinCompile;body.material.customProgramCacheKey=function(){return previousKey.call(this)+'-'+FACE_VERSION;};body.material.needsUpdate=true;body.add(group);
+ let destroyed=false,updates=0;const normalScratch=new T.Vector3(),bodyNormalScratch=new T.Vector3();
  function update(){
-  if(destroyed)return;const scale=body.userData.scale/body.userData.unit,p=body.geometry.attributes.position,i=anchor*3;
+  if(destroyed)return;updates++;
+  const scale=body.userData.scale/body.userData.unit,p=body.geometry.attributes.position,n=body.geometry.attributes.normal,i=anchor*3;
   if(!Number.isFinite(scale)||scale<=0)throw Error('Escala facial inválida');
   group.scale.setScalar(scale);group.position.set(p.getX(anchor)-base[i]*scale,p.getY(anchor)-base[i+1]*scale,p.getZ(anchor)-base[i+2]*scale);group.updateMatrix();
-  localScale.value=scale;localOffset.value.copy(group.position);
+  scaleUniform.value=scale;offsetUniform.value.copy(group.position);
+  // Exact source-edge attachments preserve the neck join on every body setting.
+  // Only this small band updates: eyes, skin topology and shaders are not rebuilt.
+  const gp=geometry.attributes.position,gn=geometry.attributes.normal;
+  for(const {vertex,a,b,basePoint} of attachments){
+   const k=vertex*3;
+   for(let axis=0;axis<3;axis++){
+    const world=(p.array[a*3+axis]+p.array[b*3+axis])/2;
+    gp.array[k+axis]=restSkin[k+axis]+(world-group.position.getComponent(axis))/scale-basePoint[axis];
+   }
+   const blend=1-smooth((restSkin[k+1]-PORTRAIT_JOIN_Y)/.020);
+   const normal=normalScratch.fromArray(restNormals,k),bodyNormal=bodyNormalScratch.set(n.getX(a)+n.getX(b),n.getY(a)+n.getY(b),n.getZ(a)+n.getZ(b)).normalize();
+   normal.lerp(bodyNormal,blend).normalize();gn.setXYZ(vertex,normal.x,normal.y,normal.z);
+  }
+  gp.needsUpdate=true;gn.needsUpdate=true;geometry.computeBoundingBox();geometry.computeBoundingSphere();
  }
- update();return {group,update,snapshot:()=>({version:FACE_VERSION,eyes:true,eyebrows:true,lips:true,eyeSurface:'eyelid-rim-cap',eyeVertices,
-  gaze:'parallel-forward',irisRadiusMm:4.9,pupilRadiusMm:1.85,eyelids:true,orbitalRimVerified:true,browHairs,expression:'relaxed-neutral',continuousEyePigment:true,continuousRims:true,depthSearchSteps:0,constructionVertices:positions.length/3,drawBatches:2,
-  extraTextureRequests:0,sampleQueries,bodyGeometryChanged:false,bodyMeasurementsChanged:false,clothChanged:false}),destroy(){
-  if(destroyed)return;destroyed=true;body.remove(group);geometry.dispose();material.dispose();ocular.dispose();
-  if(body.material.onBeforeCompile===skinCompile){body.material.onBeforeCompile=previousCompile;body.material.customProgramCacheKey=previousKey;body.material.needsUpdate=true;}
- }};
+ update();head.dispose();tree.geometry.dispose();const buildMs=performance.now()-started;
+ return {group,update,snapshot:()=>({version:FACE_VERSION,buildMs,updates,eyes:true,eyebrows:true,lips:true,eyeSurface:'recessed-ellipsoid',eyeVertices:ranges.reduce((n,r)=>n+r.count,0),gaze:'parallel-forward',irisRadiusMm:IRIS_RADIUS*1000,pupilRadiusMm:PUPIL_RADIUS*1000,eyelids:'integrated-head-surface',browHairs,expression:'neutral',continuousEyePigment:true,constructionVertices:positions.length/3,skinVertices:headVertexCount,skinSurfaceVersion:PORTRAIT_SURFACE_VERSION,drawBatches:2,extraTextureRequests:0,sampleQueries:queries,bodyGeometryChanged:false,bodyMeasurementsChanged:false,clothChanged:false,displayHeadRefined:true,neckAttachmentVertices:attachments.length,headJoinY:PORTRAIT_JOIN_Y}),destroy(){if(destroyed)return;destroyed=true;body.remove(group);geometry.dispose();material.dispose();ocular.dispose();if(body.material.onBeforeCompile===skinCompile){body.material.onBeforeCompile=previousCompile;body.material.customProgramCacheKey=previousKey;body.material.needsUpdate=true;}}};
 }

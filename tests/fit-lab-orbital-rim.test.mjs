@@ -1,12 +1,19 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
-import {loadHumanBody,updateHumanBody} from '../configurador-3d/fit-lab/human-body.mjs';
-import {createHumanFace} from '../configurador-3d/fit-lab/human-face.mjs';
-import {resolveState} from '../configurador-3d/fit-lab/lab-model.mjs';
-test('All ocular vertices remain at the front rim, never on the back wall of the eye socket',async()=>{
- const b=await readFile(new URL('../configurador-3d/fit-lab/assets/human-female.glb',import.meta.url));
- const body=updateHumanBody(await loadHumanBody(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength)),resolveState({})),f=createHumanFace(body),g=f.group.children[0].geometry,p=g.attributes.position;
- for(const r of g.userData.eyeVertexRanges)for(let i=r.start;i<r.start+r.count;i++)assert.ok(p.getZ(i)>.120,`eye vertex ${i} recessed to ${p.getZ(i)}`);
- assert.equal(f.snapshot().orbitalRimVerified,true);f.destroy();body.geometry.dispose();body.material.dispose();
+import test from 'node:test';import assert from 'node:assert/strict';
+import {readFile}from'node:fs/promises';import * as T from 'three';import {MeshBVH}from'three-mesh-bvh';
+import {loadHumanBody,updateHumanBody}from'../configurador-3d/fit-lab/human-body.mjs';
+import {resolveState}from'../configurador-3d/fit-lab/lab-model.mjs';import {createHumanFace}from'../configurador-3d/fit-lab/human-face.mjs';
+const d=await readFile(new URL('../configurador-3d/fit-lab/assets/human-female.glb',import.meta.url));
+test('Visible pupils sit in the real aperture; complete optical backs stay hidden behind the skull',async()=>{
+ const b=updateHumanBody(await loadHumanBody(d.buffer.slice(d.byteOffset,d.byteOffset+d.byteLength)),resolveState({})),f=createHumanFace(b),g=f.group.children[0].geometry;
+ const skin=g.clone(),eyes=g.clone();skin.clearGroups();eyes.clearGroups();skin.setIndex(Array.from(g.index.array.slice(0,g.userData.headIndexCount)));eyes.setIndex(Array.from(g.index.array.slice(g.groups[1].start)));
+ const st=new MeshBVH(skin),et=new MeshBVH(eyes),ray=new T.Ray(new T.Vector3(),new T.Vector3(0,0,-1));
+ try{
+  for(const {center:[cx,cy]}of g.userData.eyeVertexRanges){
+   for(const dx of[-.0015,0,.0015]){
+    ray.origin.set(cx+dx,cy,.5);ray.direction.set(0,0,-1);const eye=et.raycastFirst(ray,T.DoubleSide),head=st.raycastFirst(ray,T.DoubleSide);
+    assert.ok(eye&&head);assert.ok(eye.point.z>.131&&eye.point.z<.136,'Iris pole outside actual eye bounds');assert.ok(eye.distance<head.distance,'Pupil buried inside the face');
+    ray.origin.set(cx+dx,cy,-.5);ray.direction.set(0,0,1);assert.ok(st.raycastFirst(ray,T.DoubleSide).distance<et.raycastFirst(ray,T.DoubleSide).distance,'Eye back visible through the skull');
+   }
+  }
+ }finally{skin.dispose();eyes.dispose();f.destroy();b.geometry.dispose();b.material.dispose();}
 });
