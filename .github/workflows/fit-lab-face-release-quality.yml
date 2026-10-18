@@ -14,6 +14,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -28,9 +30,16 @@ jobs:
       - name: Unit quality
         run: |
           set -o pipefail
-          node --test tests/fit-lab-face*.test.mjs tests/fit-lab-human-appearance.test.mjs tests/fit-lab-hair-quality.test.mjs tests/fit-lab-avatar-polish.test.mjs tests/fit-lab-reference-profiles.test.mjs | tee artifacts/face-release/unit-tests.txt
+          node --test tests/fit-lab-face*.test.mjs tests/fit-lab-human-appearance.test.mjs tests/fit-lab-hair-quality.test.mjs tests/fit-lab-avatar-polish.test.mjs tests/fit-lab-reference-profiles.test.mjs tests/fit-lab-release-performance.test.mjs tests/fit-lab-outfit-proposals.test.mjs tests/fit-lab-gravity-shorts.test.mjs tests/fit-lab-responsive.test.mjs | tee artifacts/face-release/unit-tests.txt
       - name: Build the actual lab
         run: npm run build:fit-lab
+      - name: Comparable live baseline
+        run: |
+          mkdir -p /tmp/nubyra-baseline
+          git archive a9efd99ccf8155e5ec2f03b62c1fca021f3533aa | tar -x -C /tmp/nubyra-baseline
+          ln -s "$PWD/node_modules" /tmp/nubyra-baseline/node_modules
+          cd /tmp/nubyra-baseline
+          npm run build:fit-lab
       - name: Real head views
         env:
           EVIDENCE_DIR: artifacts/face-release/head
@@ -38,10 +47,8 @@ jobs:
       - name: Lab release regression
         env:
           EVIDENCE_DIR: artifacts/face-release/browser
-        run: |
-          if test -f scripts/fit-lab-face-release-review.mjs; then
-            node scripts/fit-lab-face-release-review.mjs
-          fi
+          BASELINE_DIST: /tmp/nubyra-baseline/fit-dist
+        run: node scripts/fit-lab-face-release-review.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
