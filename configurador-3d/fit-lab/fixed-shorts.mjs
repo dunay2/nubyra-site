@@ -4,7 +4,7 @@ import {clearFixedShortContact} from './fixed-short-contact.mjs';
 import {MeshBVH} from 'three-mesh-bvh';
 import {CM_PER_UNIT} from './body-surface.mjs';
 import {SHORT_SIZES,SHORT_LENGTHS,fixedShortKey,normalizeShortCode} from './fixed-sizes.mjs';
-export const FIXED_SHORTS_VERSION='fixed-shorts-envelope/3.0';
+export const FIXED_SHORTS_VERSION='fixed-shorts-envelope/4.0';
 /** Perimeter of an indexed triangle section; source torso membership excludes arms. */
 export function horizontalPerimeter(geometry,y,base=null){
  const p=geometry.attributes.position,idx=geometry.index;let length=0;
@@ -77,29 +77,30 @@ export function createFixedShortFactory(asset){
   if(Math.abs((g.boundingBox.max.y-g.boundingBox.min.y)*CM_PER_UNIT-length)>.02)throw Error('Largo de patrón inconsistente');templates.set(key,{geometry:g,pattern:v.nominal});
  }
  return{
+  template({size='N1-2',lengthCm=42,riseCm=33.5}={}){const key=shortRiseKey(normalizeShortCode(size),Number(lengthCm),Number(riseCm)),t=templates.get(key);if(!t)throw Error('Patrón de pantalón no disponible: '+key);return {...t,key};},
   create(body,{size='N1-2',lengthCm=42,riseCm=33.5,base='#173e64',accent='#f8c12e'}={}){
    size=normalizeShortCode(size);const key=shortRiseKey(size,Number(lengthCm),Number(riseCm)),template=templates.get(key),pattern=template.pattern,support=shortSupport(body,pattern);
    if(support.blocked)throw Error('Pantalón '+size+' demasiado pequeño. El amarre no amplía el patrón; selecciona otra configuración.');
-   const geometry=template.geometry.clone();let waistGather,surfaceContact;
-   try{waistGather=gatherWaist(geometry,body,pattern);surfaceContact=clearFixedShortContact(geometry,body);
-    if(surfaceContact.requiresReview)throw Error('El patrón de pantalón '+key+' no resuelve el contacto de cadera/tiro en este cuerpo sin exceder el ajuste local permitido. Se conserva la equipación anterior; no se alarga el tiro ni se deforma el cuerpo.');
-   }catch(error){geometry.dispose();throw error;}
+   const requiredRiseCm=(body.userData.waistY-body.userData.sourceToY(.785))*CM_PER_UNIT;
+   if(pattern.riseReferenceCm<requiredRiseCm-.25)throw Error('El patrón '+key+' requiere otro tiro para el contacto de cadera/tiro; se propone la alternativa fija más próxima.');
+   const geometry=template.geometry.clone();geometry.setAttribute('shortRestPosition',geometry.attributes.position.clone());let cloth=null;const waistGather={method:'waist-boundary-only',restPatternChanged:false},surfaceContact={method:'worker-xpbd',requiresReview:false};
    const primary=new T.MeshStandardMaterial({color:base,roughness:.87,side:T.DoubleSide}),secondary=primary.clone();secondary.color.set(accent);
    // Smooth colour boundaries are independent of triangle resolution.
    const stripeColor={value:new T.Color(accent)};
    primary.onBeforeCompile=shader=>{
     shader.uniforms.shortStripeColor=stripeColor;
-    shader.vertexShader='varying vec3 shortLocalPosition;\n'+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nshortLocalPosition=position;');
+    shader.vertexShader='attribute vec3 shortRestPosition;\nvarying vec3 shortLocalPosition;\n'+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nshortLocalPosition=shortRestPosition;');
     shader.fragmentShader='varying vec3 shortLocalPosition;\nuniform vec3 shortStripeColor;\n'+shader.fragmentShader.replace('#include <color_fragment>','#include <color_fragment>\nfloat shortStripe=(1.0-smoothstep(0.045,0.052,abs(shortLocalPosition.z)))*smoothstep(0.25,0.35,abs(shortLocalPosition.x));\ndiffuseColor.rgb=mix(diffuseColor.rgb,shortStripeColor,shortStripe);');
    };
    primary.customProgramCacheKey=()=>FIXED_SHORTS_VERSION+'-stripe';
    const mesh=new T.Mesh(geometry,[primary,secondary]);mesh.name='Pantalón fijo '+key;mesh.position.y=support.startY;
    return{mesh,version:FIXED_SHORTS_VERSION,fit:'fixed-size',riseCm:pattern.riseReferenceCm,lengthCm:pattern.lengthCm,requestedLengthCm:pattern.lengthCm,minLengthCm:34,maxLengthCm:50,kneeTop:body.userData.sourceToY(.53),pattern,support,
-    coverage:{bodyHidden:false,bodyGeometryChanged:false,garmentAdaptedToBody:true,restPatternChanged:false,adaptation:"waistband-and-bounded-surface-contact"},clothSimulated:false,
-    get top(){return mesh.position.y;},get bottom(){return mesh.position.y-pattern.lengthCm/CM_PER_UNIT;},get moving(){return false;},
+    coverage:{bodyHidden:false,bodyGeometryChanged:false,garmentAdaptedToBody:true,restPatternChanged:false,adaptation:"gravity-stretch-bend-and-body-contact"},clothSimulated:true,
+    applyFrame(frame){if(!frame||frame.key!==key||frame.positions?.length!==geometry.attributes.position.array.length||!Array.from(frame.positions).every(Number.isFinite))throw Error('Estado físico del pantalón inválido');const p=geometry.attributes.position;for(let i=0;i<p.count;i++)p.setXYZ(i,frame.positions[i*3],frame.positions[i*3+1]-mesh.position.y,frame.positions[i*3+2]);p.needsUpdate=true;geometry.computeVertexNormals();geometry.computeBoundingBox();geometry.computeBoundingSphere();cloth=frame.diagnostics;support.clothSimulated=true;},
+    get top(){return mesh.position.y;},get bottom(){return mesh.position.y+(geometry.boundingBox?.min.y??-pattern.lengthCm/CM_PER_UNIT);},get moving(){return false;},
     advance(){mesh.position.y=support.startY;return false;},
     settle(){mesh.position.y=support.startY;},
-    snapshot:()=>({key,nominal:{...pattern},support:{...support},translationY:mesh.position.y,moving:false,restGeometryIndependent:true,waistGather:{...waistGather},surfaceContact:{...surfaceContact},clothSimulated:false}),
+    snapshot:()=>({key,nominal:{...pattern},support:{...support},translationY:mesh.position.y,moving:false,restGeometryIndependent:true,waistGather:{...waistGather},surfaceContact:{...surfaceContact},cloth,clothSimulated:Boolean(cloth)}),
     colors(base,accent){primary.color.set(base);secondary.color.set(accent);stripeColor.value.set(accent);},destroy(){geometry.dispose();primary.dispose();secondary.dispose();}};
   },destroy(){for(const p of templates.values())p.geometry.dispose();templates.clear();}
  };

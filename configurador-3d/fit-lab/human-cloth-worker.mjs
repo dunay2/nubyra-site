@@ -2,7 +2,7 @@ import {createHumanSimulation,simulationKey,SettledCache,HUMAN_CLOTH} from './hu
 export {HUMAN_CLOTH};
 let simulation=null,timer=null,requestTimer=null,queued=null,revision=0,paused=false,wind=false,preparing=false,lastSend=0;
 const cache=new SettledCache(8);
-function sendFrame(setup=false){const m=simulation.frame(setup,wind);self.postMessage(m,[m.positions.buffer]);lastSend=performance.now();}
+function sendFrame(setup=false){const m=simulation.frame(setup,wind);self.postMessage(m,[m.positions.buffer,...(m.shorts?[m.shorts.positions.buffer]:[])]);lastSend=performance.now();}
 function complete(){if(preparing){cache.set(simulationKey(simulation.state),simulation.cacheEntry());preparing=false;}sendFrame(true);}
 function schedule(){if(!timer&&simulation&&(!paused||preparing)&&(simulation.remaining>0||wind))timer=setTimeout(tick,0);}
 function tick(){
@@ -31,7 +31,7 @@ self.onmessage=async({data:m})=>{
  try{
   if(m.type==='init'){
    if(m.bootstrap?.cache)cache.set(m.bootstrap.cache.key,m.bootstrap.cache);
-   simulation=await createHumanSimulation(m.bytes);
+   simulation=await createHumanSimulation(m.bytes,{shortAsset:m.shortAsset});
    queued=queued?.revision>m.revision?queued:m;applyQueued();
   }else if(m.type==='update'){
    if(m.revision<revision||m.revision<(queued?.revision??0))return;

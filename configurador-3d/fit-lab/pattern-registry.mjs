@@ -1,7 +1,7 @@
 import {BASE_SHIRTS} from './size-classifier.mjs';
 
 /** Engineering proposals, not approved sizes. No body measurements enter this registry. */
-export const PATTERN_REGISTRY_VERSION = 'nubyra.pattern-proposals/2.2';
+export const PATTERN_REGISTRY_VERSION = 'nubyra.pattern-proposals/2.3';
 export const FIT_POLICY_VERSION = 'nubyra.fit-rules/2.0';
 const freeze = value => { if(value && typeof value==='object'){Object.values(value).forEach(freeze);Object.freeze(value);} return value; };
 export const MATERIAL_REFERENCE = freeze({id:'recycled-polyester-demo',version:'1',calibrated:false,maxExtension:null});
