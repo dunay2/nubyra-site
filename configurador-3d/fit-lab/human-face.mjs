@@ -2,7 +2,7 @@ import * as T from 'three';
 import {MeshBVH} from 'three-mesh-bvh';
 import {SKIN_COLOR} from './human-appearance.mjs';
 
-export const FACE_VERSION='human-face/2.1-continuous-rims';
+export const FACE_VERSION='human-face/2.2-relaxed-rims';
 const clamp=x=>Math.max(0,Math.min(1,x));
 const smooth=x=>{const t=clamp(x);return t*t*(3-2*t);};
 
@@ -46,7 +46,7 @@ export function createHumanFace(body){
    const cx=.0315*side,cy=1.5895,halfWidth=.0125;
    // Fixed outer samples sit on the actual skin, outside the empty socket.
    // Never use a stepped depth search per vertex: it produced vertical stripes.
-   const bounds=u=>{const arch=Math.max(0,1-u*u)**.66,tilt=side*u*.00065;return {bottom:cy-.0047*arch+tilt,top:cy+.0041*arch+tilt,arch};};
+   const bounds=u=>{const arch=Math.max(0,1-u*u)**.66,tilt=side*u*.00065;return {bottom:cy-.0032*arch+tilt,top:cy+.0031*arch+tilt,arch};};
    const rimCache=new Map();
    function rimAt(u){
     if(rimCache.has(u))return rimCache.get(u);
@@ -59,14 +59,14 @@ export function createHumanFace(body){
     const upperZ=upper.z+(corner.z-upper.z)*endBlend;
     const value={x,bottom,top,arch,lower,upper,lowerZ,upperZ};rimCache.set(u,value);return value;
    }
-   function ocularPoint(u,v){const q=rimAt(u);return new T.Vector3(q.x,q.bottom+(q.top-q.bottom)*v,q.lowerZ+(q.upperZ-q.lowerZ)*v+.00135*q.arch*Math.sin(Math.PI*v)+.00045);}
+   function ocularPoint(u,v){const q=rimAt(u);return new T.Vector3(q.x,q.bottom+(q.top-q.bottom)*v,q.lowerZ+(q.upperZ-q.lowerZ)*v+.00085*q.arch*Math.sin(Math.PI*v)+.00040);}
    const eye=grid(48,12,ocularPoint,(_,v,p)=>{
     const r=Math.hypot(p.x-cx,p.y-cy),c=r<.00185?pupil.clone():r<.0051?iris.clone():sclera.clone();
     return c.multiplyScalar(1-.16*smooth((v-.56)/.44));
    },1,{x:cx,y:cy});eyeVertexRanges.push(eye);eyeVertices+=eye.count;
    // Upper/lower lids meet the ocular cap, then blend into the real rim. They
    // cover only the socket boundary: neither larger eyes nor a face decal.
-   for(const upper of[false,true])grid(48,4,(u,v)=>{
+   for(const upper of[false,true])grid(48,6,(u,v)=>{
     const q=rimAt(u),edge=ocularPoint(u,upper?1:0),outer=upper?q.upper:q.lower;
     const p=edge.clone().lerp(outer,v);p.y=edge.y+(outer.y-edge.y)*v*q.arch;p.z+=.00025*Math.sin(Math.PI*v)*q.arch+.00015;
     return p;
@@ -85,11 +85,11 @@ export function createHumanFace(body){
   const mouthCache=new Map();
   function mouth(u){
    if(mouthCache.has(u))return mouthCache.get(u);
-   const x=u*.022,arch=Math.max(0,1-u*u),centre=1.523-.0002*u*u;
+   const x=u*.022,arch=Math.max(0,1-u*u),centre=1.523+.0012*u*u;
    const upperY=centre+.0105*arch**.7-.0025*Math.exp(-((u/.20)**2));
    const lowerY=centre-.0110*arch**.7;
    const top=sample(x,upperY),bottom=sample(x,lowerY);
-   const contactZ=Math.max(sample(x,centre+.0045*arch+.0006).z,sample(x,centre-.0045*arch-.0006).z)+.00055;
+   const contactZ=(sample(x,centre+.0015).z+sample(x,centre-.0015).z)/2+.00065;
    const value={x,arch,centre,upperY,lowerY,top,bottom,contactZ};mouthCache.set(u,value);return value;
   }
   for(const upper of[false,true])grid(48,8,(u,v)=>{
