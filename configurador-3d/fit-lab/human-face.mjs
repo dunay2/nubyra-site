@@ -2,7 +2,7 @@ import * as T from 'three';
 import {MeshBVH} from 'three-mesh-bvh';
 import {SKIN_COLOR} from './human-appearance.mjs';
 
-export const FACE_VERSION='human-face/1.1';
+export const FACE_VERSION='human-face/1.2-soft-gaze';
 
 /** Appearance only: fit eye surfaces to eyelid rims, not the empty socket behind them. */
 export function createHumanFace(body) {
@@ -15,7 +15,7 @@ export function createHumanFace(body) {
   source.setIndex(ids);const tree=new MeshBVH(source,{maxLeafTris:8});
   const ray=new T.Ray(new T.Vector3(),new T.Vector3(0,0,-1));
   const positions=[],colors=[],indices=[];
-  const skin=new T.Color(SKIN_COLOR),sclera=new T.Color('#ded6c9'),iris=new T.Color('#68472e'),rim=new T.Color('#30251c'),pupil=new T.Color('#141714'),glint=new T.Color('#f4e8d2');
+  const skin=new T.Color(SKIN_COLOR),sclera=new T.Color('#d4c7b8'),iris=new T.Color('#543a26'),rim=new T.Color('#30251c'),pupil=new T.Color('#101513'),glint=new T.Color('#e5dbc9');
   const sample=(x,y)=>{ray.origin.set(x,y,.5);const hit=tree.raycastFirst(ray,T.DoubleSide);if(!hit)throw Error('Detalle facial fuera de la cabeza');return hit.point;};
   // Fine, surface-conforming grids prevent a large triangle from bridging a curved
   // lip or an eye socket and then hiding the smaller details behind that triangle.
@@ -30,7 +30,7 @@ export function createHumanFace(body) {
       indices.push(a,a+1,b,a+1,b+1,b);
     }
   }
-  let eyeVertices=0;const eyeVertexRanges=[];
+  let eyeVertices=0;const eyeVertexRanges=[],eyeIndexRanges=[];
   try{
     for(const side of[-1,1]){
       const cx=.0315*side,cy=1.5895,halfWidth=.0125;
@@ -38,8 +38,8 @@ export function createHumanFace(body) {
       // The approved mesh has empty eye sockets. Shooting the iris directly into
       // that hole places it ~3 cm behind the eyelids, underneath the white patch.
       // Sample the two actual eyelid rims instead, then span a shallow ocular cap.
-      const before=positions.length/3;
-      grid(64,16,(u,v)=>{
+      const before=positions.length/3,indexStart=indices.length;
+      grid(80,20,(u,v)=>{
         const x=cx+u*halfWidth,{bottom,top,arch}=bounds(u);
         const lower=sample(x,bottom-.0025),upper=sample(x,top+.0025);
         const z=lower.z+(upper.z-lower.z)*v+.0012*arch*Math.sin(Math.PI*v);
@@ -47,12 +47,16 @@ export function createHumanFace(body) {
       },(u,v,p)=>{
         const r=Math.hypot(p.x-cx,p.y-cy),a=Math.atan2(p.y-cy,p.x-cx);
         let c=sclera.clone();
-        if(r<.0043){c.copy(rim);if(r<.0039)c.copy(iris).multiplyScalar(.88+.16*Math.sin(a*31+r*6400)**2);if(r<.0018)c.copy(pupil);}
-        if(Math.hypot(p.x-cx+.0009,p.y-cy-.0010)<.00042)c.copy(glint);
+        if(r<.0053){c.copy(rim);if(r<.0049)c.copy(iris).multiplyScalar(.92+.10*Math.sin(a*31+r*4200)**2);if(r<.0022)c.copy(pupil);}
+        if(Math.hypot(p.x-cx+.0010,p.y-cy-.0012)<.00030)c.lerp(glint,.72);
+        // A shared forward gaze; eyelids occlude the upper iris rather than a
+        // separate flat white patch hiding the pupils.
+        c.multiplyScalar(1-.22*Math.max(0,(v-.55)/.45));
         const edge=Math.min(v,1-v)*16;
         if(edge<.7)c.lerp(new T.Color('#745548'),(.7-edge)*.65);
         return c;
       });
+      eyeIndexRanges.push({start:indexStart,count:indices.length-indexStart});
       eyeVertexRanges.push({start:before,count:positions.length/3-before});eyeVertices+=positions.length/3-before;
       grid(40,3,(u,v)=>{
         const t=(u+1)/2,x=side*(.014+.036*t),y=1.602+.0045*Math.sin(t*Math.PI)-.001*t-(1-v)*.0020*Math.sin(Math.PI*t)**.5;
@@ -77,8 +81,10 @@ export function createHumanFace(body) {
   }finally{source.dispose();}
   const geometry=new T.BufferGeometry();geometry.setAttribute('position',new T.Float32BufferAttribute(positions,3));geometry.setAttribute('color',new T.Float32BufferAttribute(colors,3));geometry.setIndex(indices);geometry.computeVertexNormals();geometry.computeBoundingSphere();
   geometry.userData.eyeVertexRanges=eyeVertexRanges;
-  const material=new T.MeshStandardMaterial({vertexColors:true,roughness:.76,metalness:0,side:T.DoubleSide});
-  const mesh=new T.Mesh(geometry,material);mesh.name='avatar-facial-details';const group=new T.Group();group.name='avatar-face';group.add(mesh);body.add(group);let destroyed=false;
+  const material=new T.MeshStandardMaterial({vertexColors:true,roughness:.80,metalness:0,side:T.DoubleSide});
+  const ocular=new T.MeshPhysicalMaterial({vertexColors:true,roughness:.36,metalness:0,clearcoat:1,clearcoatRoughness:.18,side:T.DoubleSide});
+  let cursor=0;for(const eye of eyeIndexRanges){if(eye.start>cursor)geometry.addGroup(cursor,eye.start-cursor,0);geometry.addGroup(eye.start,eye.count,1);cursor=eye.start+eye.count;}if(cursor<indices.length)geometry.addGroup(cursor,indices.length-cursor,0);
+  const mesh=new T.Mesh(geometry,[material,ocular]);mesh.name='avatar-facial-details';const group=new T.Group();group.name='avatar-face';group.add(mesh);body.add(group);let destroyed=false;
   function update(){if(destroyed)return;const scale=body.userData.scale/body.userData.unit,p=body.geometry.attributes.position,i=anchor*3;group.scale.setScalar(scale);group.position.set(p.getX(anchor)-base[i]*scale,p.getY(anchor)-base[i+1]*scale,p.getZ(anchor)-base[i+2]*scale);group.updateMatrix();}
-  update();return {group,update,snapshot:()=>({version:FACE_VERSION,eyes:true,eyebrows:true,lips:true,eyeSurface:'eyelid-rim-cap',eyeVertices,bodyGeometryChanged:false}),destroy(){if(destroyed)return;destroyed=true;body.remove(group);geometry.dispose();material.dispose();}};
+  update();return {group,update,snapshot:()=>({version:FACE_VERSION,eyes:true,eyebrows:true,lips:true,eyeSurface:'eyelid-rim-cap',eyeVertices,gaze:'parallel-forward',irisRadiusMm:5.3,ocularMaterial:'clearcoat',bodyGeometryChanged:false}),destroy(){if(destroyed)return;destroyed=true;body.remove(group);geometry.dispose();material.dispose();ocular.dispose();}};
 }

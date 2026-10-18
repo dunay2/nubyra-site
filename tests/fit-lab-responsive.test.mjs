@@ -25,13 +25,14 @@ test('Cache keys separate poses, bodies and garments; requested lengths do not d
  assert.notEqual(simulationKey(a),simulationKey({...a,activeConfiguration:'N1-2'}));
  const c=new SettledCache(2);c.set('a',1);c.set('b',2);assert.equal(c.get('a'),1);c.set('c',3);assert.equal(c.get('b'),undefined);assert.equal(c.entries.size,2);
 });
-test('Outer garment mask shares live shirt buffers, never deforms the shirt/short/body',()=>{
+test('Opaque garments use real depth without a silhouette cutting holes in the short',()=>{
  const layer=createOuterGarmentLayer(),shirt=new T.Group(),g=new T.PlaneGeometry(1,1),mesh=new T.Mesh(g,new T.MeshStandardMaterial());shirt.add(mesh);
  const shortGeometry=new T.SphereGeometry(),m1=new T.MeshStandardMaterial(),m2=m1.clone(),shorts={mesh:new T.Mesh(shortGeometry,[m1,m2])};
  const before=g.attributes.position.array.slice(),shortBefore=shortGeometry.attributes.position.array.slice();
  layer.bind(shirt);layer.setShorts(shorts,true);let observed;
  layer.render({render(scene){observed=scene;}},new T.Camera());
- assert.equal(observed.children[0].geometry,g);assert.equal(m1.stencilFunc,T.NotEqualStencilFunc);assert.equal(m1.stencilWrite,true);assert.equal(m1.stencilWriteMask,0);
+ assert.equal(observed,undefined,'No synthetic silhouette render pass is allowed');
+ assert.equal(m1.stencilWrite,false);assert.equal(m2.stencilWrite,false);assert.equal(m1.depthTest,true);assert.equal(m1.depthWrite,true);assert.equal(layer.snapshot().bodyMasked,false);assert.equal(layer.snapshot().method,'physical-surfaces-depth-test');
  assert.deepEqual(g.attributes.position.array,before);assert.deepEqual(shortGeometry.attributes.position.array,shortBefore);
  layer.setShorts(shorts,false);assert.equal(m1.stencilWrite,false);assert.equal(layer.snapshot().enabled,false);
  let disposed=0;g.addEventListener('dispose',()=>disposed++);layer.destroy();assert.equal(disposed,0);

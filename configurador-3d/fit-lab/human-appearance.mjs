@@ -2,7 +2,7 @@ import * as T from 'three';
 import {MeshBVH, acceleratedRaycast} from 'three-mesh-bvh';
 import {mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
 
-export const APPEARANCE_VERSION = 'human-appearance/3.4-rounded-gather';
+export const APPEARANCE_VERSION = 'human-appearance/3.5-soft-ponytail';
 export const SKIN_COLOR = '#c99377';
 const HAIR_COLOR = '#38261d';
 const smooth = t => {t=Math.max(0,Math.min(1,t));return t*t*(3-2*t);};
@@ -22,9 +22,9 @@ export function createHumanAppearance(body) {
   // Swept forehead, small asymmetric widow's peak, and continuous temple/ear transitions.
   function hairline(p){
     const theta=Math.atan2(p.x,p.z-center.z),c=Math.cos(theta),a=Math.abs(theta);
-    return 1.610+.047*Math.max(0,c)-.065*Math.max(0,-c)+.007*Math.sin(theta)**2
+    return 1.610+.044*Math.max(0,c)-.065*Math.max(0,-c)+.007*Math.sin(theta)**2
       -.004*Math.exp(-(((theta+.22)/.26)**2))+.0024*Math.sin(2*theta)+.00065*Math.sin(13*theta+.4)
-      -.033*Math.exp(-(((a-1.13)/.30)**2))-.022*Math.exp(-(((a-1.62)/.46)**2));
+      -.036*Math.exp(-(((a-1.13)/.30)**2))-.022*Math.exp(-(((a-1.62)/.46)**2));
   }
   function onHead(p){
     const direction=p.clone().sub(center).normalize();if(Math.abs(direction.x)<1e-10)direction.x=1e-9;
@@ -45,7 +45,8 @@ export function createHumanAppearance(body) {
     const dome=1.607+.105*Math.sqrt(Math.max(0,1-(q.x/.087)**2-((q.z-.045)/.120)**2));
     q.y=T.MathUtils.lerp(q.y,Math.max(p.y+.001,dome),smooth((p.y-1.653)/.035));
     q.y+=.003*root*Math.exp(-(((p.x+.024)/.035)**2))*Math.exp(-(((p.z-.095)/.040)**2));
-    return q.addScaledVector(q.clone().sub(center).normalize(),offset);
+    const flow=.0013*root*Math.sin(5*theta+12*p.y)*Math.sin(19*p.z+theta);
+    return q.addScaledVector(q.clone().sub(center).normalize(),offset+flow);
   }
   function rootAt(theta){
     const p=new T.Vector3(.075*Math.sin(theta),1.64,center.z+.1*Math.cos(theta));p.y=hairline(p);
@@ -88,10 +89,10 @@ export function createHumanAppearance(body) {
     }
     // A filled, curved ponytail: the core prevents a disconnected bundle of thin sticks.
     const path=new T.CubicBezierCurve3(tie,
-      tie.clone().add(new T.Vector3(.003,-.024,-.028)),
-      tie.clone().add(new T.Vector3(-.008,-.085,-.056)),
-      tie.clone().add(new T.Vector3(.010,-.112,-.035)));
-    const frames=path.computeFrenetFrames(56,false),radius=t=>(.010*(1-t)+.013*Math.max(0,Math.sin(Math.PI*t))**.75+.0001)*smooth((1-t)/.18);
+      tie.clone().add(new T.Vector3(.003,-.019,-.026)),
+      tie.clone().add(new T.Vector3(-.008,-.093,-.069)),
+      tie.clone().add(new T.Vector3(.006,-.120,-.058)));
+    const frames=path.computeFrenetFrames(56,false),radius=t=>(.010*(1-t)+.010*Math.max(0,Math.sin(Math.PI*t))**.90+.0001)*smooth((1-t)/.18);
     for(let j=0;j<=56;j++){
       const t=j/56,p=path.getPointAt(t),r=radius(t);
       for(let k=0;k<32;k++){
@@ -104,10 +105,10 @@ export function createHumanAppearance(body) {
       const angle=i*2*Math.PI/TAIL_LOCKS,phase=i*2.399,points=[];
       for(let j=0;j<=48;j++){
         const t=j/48,ft=t*(.91+.16*Math.sin(phase)**2),frame=Math.min(56,Math.round(ft*56)),p=path.getPointAt(Math.min(ft,1)),a=angle+.045*Math.sin(t*7+phase),r=radius(Math.min(ft,1))+.00010;
-        const loose=smooth((t-.68)/.32);p.x+=.009*Math.sin(phase)*loose;p.y-=(.003+.010*Math.sin(phase)**2)*loose;p.z+=.004*Math.cos(phase)*loose;
+        const loose=smooth((t-.68)/.32);p.x+=.007*Math.sin(phase)*loose;p.y-=(.003+.010*Math.sin(phase)**2)*loose;p.z+=.004*Math.cos(phase)*loose;
         p.addScaledVector(frames.normals[frame],Math.cos(a)*r).addScaledVector(frames.binormals[frame],Math.sin(a)*r*.77);points.push(p);
       }
-      addStrand(tail,points,t=>.00042+.0016*smooth((t-.55)/.25),t=>.00015+.00075*smooth((t-.55)/.25),.92+.12*Math.sin(phase)**2,center,false);
+      addStrand(tail,points,t=>.00040+.0008*smooth((t-.55)/.25),t=>.00015+.00035*smooth((t-.55)/.25),.92+.12*Math.sin(phase)**2,center,false);
     }
     // Elastic band lies perpendicular to the root tangent, not upright like a hairpin.
     const band=new T.TorusGeometry(.0103,.0013,6,32);
@@ -116,7 +117,7 @@ export function createHumanAppearance(body) {
     scalpGeometry=geometry(shell);lockGeometry=geometry(locks);tailGeometry=geometry(tail);
   }finally{source.boundsTree=null;source.dispose();tempMaterial.dispose();}
   const meshes=[scalpGeometry,lockGeometry,tailGeometry].map((g,i)=>{
-    const m=new T.Mesh(g,new T.MeshStandardMaterial({color:HAIR_COLOR,roughness:.82,metalness:0,vertexColors:true,side:T.DoubleSide}));
+    const m=new T.Mesh(g,new T.MeshStandardMaterial({color:HAIR_COLOR,roughness:.71,metalness:0,vertexColors:true,side:T.DoubleSide}));
     m.name=['avatar-hair-scalp','avatar-hair-swept-locks','avatar-hair-ponytail'][i];return m;
   });
   const group=new T.Group();group.name='avatar-hair';group.add(...meshes);body.add(group);
@@ -127,7 +128,7 @@ export function createHumanAppearance(body) {
     if(!Number.isFinite(s)||s<=0)throw Error('Escala de cabeza no válida');
     group.scale.setScalar(s);group.position.set(p.getX(anchor/3)-base[anchor]*s,p.getY(anchor/3)-base[anchor+1]*s,p.getZ(anchor/3)-base[anchor+2]*s);group.updateMatrix();
   }
-  update();return {group,update,snapshot:()=>({version:APPEARANCE_VERSION,skinColor:SKIN_COLOR,hairColor:HAIR_COLOR,hairStyle:'low-gathered-ponytail',hairMeshes:3,scalpLocks:SCALP_LOCKS+EDGE_LOCKS,tailLocks:TAIL_LOCKS,scalpTriangles:scalpGeometry.index.count/3,hairTie:true,crown:'rounded-shared-envelope',tail:'filled-root-separated-ends',growthDirection:'regional-gather-to-occiput',renderOnly:true,collisionGeometryChanged:false}),destroy(){if(destroyed)return;destroyed=true;body.remove(group);for(const m of meshes){m.geometry.dispose();m.material.dispose();}body.material.color.copy(originalColor);body.material.roughness=originalRoughness;}};
+  update();return {group,update,snapshot:()=>({version:APPEARANCE_VERSION,skinColor:SKIN_COLOR,hairColor:HAIR_COLOR,hairStyle:'low-gathered-ponytail',hairMeshes:3,scalpLocks:SCALP_LOCKS+EDGE_LOCKS,tailLocks:TAIL_LOCKS,scalpTriangles:scalpGeometry.index.count/3,hairTie:true,crown:'rounded-shared-envelope',tail:'low-draped-separated-taper',growthDirection:'regional-gather-to-occiput',renderOnly:true,collisionGeometryChanged:false}),destroy(){if(destroyed)return;destroyed=true;body.remove(group);for(const m of meshes){m.geometry.dispose();m.material.dispose();}body.material.color.copy(originalColor);body.material.roughness=originalRoughness;}};
 }
 function geometry(data){
   const raw=new T.BufferGeometry();raw.setAttribute('position',new T.Float32BufferAttribute(data.positions,3));raw.setAttribute('color',new T.Float32BufferAttribute(data.colors,3));const valid=[],a=new T.Vector3(),b=new T.Vector3(),c=new T.Vector3();
