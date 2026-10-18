@@ -36,11 +36,14 @@ export async function createHumanSimulation(bytes,{colliderFactory=createOptimiz
   garment=createRestGarment(T,garmentForState(state));
   adapter=createClothAdapter(garment,body,{colliderFactory:()=>shortContact??bodyCollider,material:HUMAN_CLOTH,clearance:.016});
   contacts=addHumanSurfaceContacts(adapter,body);remaining=total=SETTLE_STEPS;cacheHit=false;
-  const s=adapter.solver;
+  useCache(cached);
+ }
+ function useCache(cached){
+  if(!adapter)return false;const s=adapter.solver;
   if(cached?.key===simulationKey(state)&&cached.positions?.length===s.positions.length&&cached.steps===SETTLE_STEPS&&cached.positions.every(Number.isFinite)&&(!shortCloth||(cached.shortPositions?.length===shortCloth.solver.positions.length&&cached.shortPositions.every(Number.isFinite)))){
    if(shortCloth){shortCloth.solver.positions.set(cached.shortPositions);shortCloth.solver.previous.set(cached.shortPositions);shortCloth.solver.velocity.fill(0);shortCloth.solver.steps=SETTLE_STEPS;shortCloth.solver.time=SETTLE_STEPS*shortCloth.solver.h;shortContact.sync();}
-   s.positions.set(cached.positions);s.previous.set(cached.positions);s.velocity.fill(0);s.steps=SETTLE_STEPS;s.time=SETTLE_STEPS*s.h;s.maxVelocity=0;remaining=0;cacheHit=true;
-  }
+   s.positions.set(cached.positions);s.previous.set(cached.positions);s.velocity.fill(0);s.steps=SETTLE_STEPS;s.time=SETTLE_STEPS*s.h;s.maxVelocity=0;remaining=0;cacheHit=true;return true;
+  }return false;
  }
  function step(wind=false){if(!adapter)return;const s=adapter.solver;if(shortCloth){shortCloth.step();shortContact.sync();}s.wind=wind&&remaining===0;s.substep();if(remaining>0){remaining--;if(remaining===0){s.velocity.fill(0);s.maxVelocity=0;}}}
  function frame(setup=false,wind=false){
@@ -51,7 +54,7 @@ export async function createHumanSimulation(bytes,{colliderFactory=createOptimiz
   return m;
  }
  return {
-  prepare,step,frame,get remaining(){return remaining;},get total(){return total;},get state(){return state;},
+  prepare,useCache,step,frame,get remaining(){return remaining;},get total(){return total;},get state(){return state;},
   progress:()=>({type:'progress',revision,remaining,total}),
   cacheEntry:()=>({key:simulationKey(state),steps:SETTLE_STEPS,positions:Array.from(adapter.solver.positions),shortPositions:shortCloth?Array.from(shortCloth.solver.positions):null}),
   impulse(){adapter?.solver.impulse();remaining=total=160;},

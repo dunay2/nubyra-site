@@ -23,25 +23,24 @@ import {GARMENT_CATALOG,garmentForState} from './garment-catalog.mjs';
 /** Full human model, one visible geometry and the same indexed geometry in the worker collider. */
 export async function createHumanViewer(canvas,initial,onFrame=()=>{},actions={}){
  const assetURL=new URL('./assets/human-female.glb',import.meta.url);
- const [response,seedResponse]=await Promise.all([fetch(assetURL),fetch(new URL('./bootstrap.json',import.meta.url)).catch(()=>null)]);
+ const [response,seedResponse,shortResponse]=await Promise.all([fetch(assetURL),fetch(new URL('./bootstrap.json',import.meta.url)).catch(()=>null),fetch(new URL('./fixed-shorts.json',import.meta.url))]);
  if(!response.ok)throw Error('No se pudo cargar la base humana');const bytes=await response.arrayBuffer();
  let bootstrap=null;
  try{const b=seedResponse?.ok?await seedResponse.json():null;
   if(b?.version===SIMULATION_VERSION&&b.cache?.key===simulationKey(initial)&&b.frame?.maps&&b.frame.remaining===0&&b.frame.positions?.every(Number.isFinite))bootstrap=b;
  }catch{/* Development without a bootstrap still prepares normally. */}
- const shortResponse=await fetch(new URL('./fixed-shorts.json',import.meta.url));
  if(!shortResponse.ok)throw Error('No se pudo cargar el catálogo fijo');
  const shortAsset=await shortResponse.json(),shortFactory=createFixedShortFactory(shortAsset);
  const fullReference=await createFullReference(null,null,null,null,actions);
  fullReference.setBody(initial);
  const body=updateHumanBody(await loadHumanBody(bytes),initial,{collision:false}),scene=new T.Scene();scene.add(body);const appearance=createHumanAppearance(body),face=createHumanFace(body);
- const renderer=new T.WebGLRenderer({canvas,alpha:true,antialias:true,stencil:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.25;
+ const renderer=new T.WebGLRenderer({canvas,alpha:true,antialias:true,stencil:false});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.25;
  const outerLayer=createOuterGarmentLayer();renderer.autoClear=false;
  scene.add(new T.HemisphereLight(0xf5fcff,0x365267,2.1));for(const [x,y,z,p]of[[-3,5,5,2.7],[4,1,-3,1.4]]){const l=new T.DirectionalLight(0xffffff,p);l.position.set(x,y,z);scene.add(l);}
  const camera=new T.OrthographicCamera(-2,2,3,-3,.1,50),controls=new OrbitControls(camera,canvas);controls.enablePan=true;controls.enableDamping=true;controls.minZoom=.35;controls.maxZoom=5;controls.minPolarAngle=.035;controls.maxPolarAngle=Math.PI-.035;camera.position.set(3,-1,8);controls.target.set(0,-1,0);
  const kit=createKitDesign(T),worker=new Worker(new URL('./human-cloth-worker.mjs',import.meta.url),{type:'module'});let state=initial,revision=1,garment=null,maps=null,trims=null,shorts=null,guide=null,fullView=true,showShorts=true,shortsLengthCm=42,shortsSize='N1-2',shortsRiseCm=33.5,sizeRejection=null,lastRenderAt=performance.now(),showGuide=false,editing=false,paused=false,disposed=false,contextLost=false;
  let reconcileSurfaceNormals=()=>{},presentedRevision=0,pendingSetup=null,pendingFrame=null,visibleState=initial,unclothedFrames=0,swaps=0;
- let shortProposal=null,automaticShorts=true,bodyEditor=null,navigation=null;
+ let shortProposal=null,automaticShorts=true,bodyEditor=null,navigation=null,reframeRevision=0;
  let transitionError=null,watchdog=null,requestStarted=performance.now(),lastTransitionMs=0,lastSettleMs=0,liveFrames=0;
  const compareMetrics={floorPx:0,pxPerCm:0,referenceHeightCm:REFERENCE_HEIGHT_CM};
  let frameData=null,frames=0,raf=0,dirty=true,lastPhysicsState=null,bodyKey='',outfitKey='',svgCache=null,lastSVGStep=-1,lastSVG=0;const reduced=matchMedia('(prefers-reduced-motion: reduce)');
@@ -74,6 +73,7 @@ export async function createHumanViewer(canvas,initial,onFrame=()=>{},actions={}
   if(options.proposeShorts!==undefined)automaticShorts=options.proposeShorts;
   let changed=keyOf(next)!==keyOf(state)||state.activeConfiguration!==next.activeConfiguration||state.garmentLengthCm!==next.garmentLengthCm||Boolean(sizeRejection)||shorts?.pattern.code!==shortsSize||shorts?.lengthCm!==shortsLengthCm||shorts?.riseCm!==shortsRiseCm;
   state=next;
+  if(options.resetView)reframeRevision=revision+1;
   let reason=assessJersey(next).blocked?'La propuesta necesita ampliar el contorno en patronaje. Se mantiene la equipación anterior para no mostrar un ajuste imposible.':'';
   if(!reason&&(changed||automaticShorts)){
    const probe=new T.Mesh(body.geometry.clone(),body.material);probe.userData={...body.userData};let outfit=null;
@@ -98,6 +98,7 @@ export async function createHumanViewer(canvas,initial,onFrame=()=>{},actions={}
   }
   if(reason){sizeRejection=reason;transitionError=reason;revision++;pendingFrame=null;pendingSetup=null;clearTimeout(watchdog);const e=document.getElementById('scene-error');e.hidden=false;e.textContent=reason;onFrame(snapshot());return;}
   sizeRejection=null;
+  if(options.resetView&&!changed){navigation?.reset();reframeRevision=0;}
   if(changed){requestStarted=performance.now();revision++;pendingSetup=null;pendingFrame=null;transitionError=null;armWatchdog();worker.postMessage({type:'update',revision,state:workerState()});}
   visual();record('update',start);onFrame(snapshot());
  }
@@ -147,7 +148,7 @@ export async function createHumanViewer(canvas,initial,onFrame=()=>{},actions={}
     const previous=garment;garment=next;maps=nextMaps;trims=nextTrims;reconcileSurfaceNormals=reconcile;
     kit.activate(next);scene.add(next);outerLayer.bind(next);if(previous){scene.remove(previous);disposeGarment(previous);swaps++;}
     committed=true;clearTimeout(watchdog);lastTransitionMs=performance.now()-requestStarted;counts.garmentBuilds++;presentedRevision=revision;pendingSetup=null;pendingFrame=null;svgCache=null;
-    if(height)frameCamera();
+    if(reframeRevision===revision){navigation?.reset();reframeRevision=0;}else if(height)frameCamera();
   }catch(error){if(!committed){disposeGarment(next);if(nextShorts!==shorts)nextShorts?.destroy();if(nextGuide!==guide)nextGuide?.destroy();}throw error;}
   finally{stagedBody?.geometry.dispose();}
  }
@@ -179,7 +180,9 @@ export async function createHumanViewer(canvas,initial,onFrame=()=>{},actions={}
  function labels(){const d=body.userData;for(const[id,x,y]of[['ruler-label',-1.12,(d.hipY+d.shoulderY)/2],['length-label',.8,d.shoulderY-visibleState.garmentLengthCm/CM_PER_UNIT]]){const el=document.getElementById(id);if(!el)continue;const p=new T.Vector3(x,y,0).project(camera);el.hidden=!flags.dimensions;el.style.left=Math.min(88,Math.max(12,(p.x+1)*50))+'%';el.style.top=((1-p.y)*50)+'%';}}
  function syncComparison(){
   const rect=canvas.getBoundingClientRect(),p=new T.Vector3(0,body.userData.floorY,0).project(camera);
-  compareMetrics.floorPx=(1-p.y)*rect.height/2;compareMetrics.pxPerCm=rect.height*camera.zoom/((camera.top-camera.bottom)*CM_PER_UNIT);
+  compareMetrics.floorPx=(1-p.y)*rect.height/2;const head=new T.Vector3(0,body.userData.headTopY,0).project(camera);
+  compareMetrics.headPx=(1-head.y)*rect.height/2;
+  compareMetrics.pxPerCm=Math.max(.001,Math.abs(compareMetrics.floorPx-compareMetrics.headPx)/visibleState.bodyHeightCm);
   const stage=document.getElementById('reference-photo-stage');if(stage){stage.style.setProperty('--ground',compareMetrics.floorPx+'px');stage.style.setProperty('--reference-height',(REFERENCE_HEIGHT_CM*compareMetrics.pxPerCm)+'px');stage.dataset.metric=String(fullView);}
   const line=document.getElementById('comparison-ground');if(line){line.hidden=!fullView;line.style.top=compareMetrics.floorPx+'px';}fullReference.render({...compareMetrics,body:visibleState,fullView});
  }
