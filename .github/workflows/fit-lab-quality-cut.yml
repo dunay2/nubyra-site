@@ -1,0 +1,104 @@
+name: NUBYRA · Depth coverage, shared scale and load performance
+on:
+  push:
+    branches: [fix/fit-lab-coverage-scale-performance]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: quality-cut-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Apply verified source once and remove transfer files
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/quality-cut
+          if test -d .quality-bootstrap; then
+            node --input-type=module <<'JS'
+          import {readFile,writeFile,mkdir,rm} from 'node:fs/promises';
+          import {gunzipSync} from 'node:zlib';
+          import {createHash} from 'node:crypto';
+          import path from 'node:path';
+          const bytes=Buffer.concat(await Promise.all(Array.from({length:9},(_,i)=>readFile('.quality-bootstrap/part'+i))));
+          const hash=b=>createHash('sha256').update(b).digest('hex');
+          if(bytes.length!==12698||hash(bytes)!=='467bd34bbcf26ed2b99ad6e689cee2d7311819046202a04b0715da667974e0ab')throw Error('Source transfer integrity mismatch');
+          const delta=JSON.parse(gunzipSync(bytes));if(delta.base!=='a9efd99ccf8155e5ec2f03b62c1fca021f3533aa'||delta.files.length!==21)throw Error('Unexpected source delta');
+          const prepared=[];
+          for(const f of delta.files){
+            if(!/^(configurador-3d\/fit-lab\/|scripts\/|tests\/|docs\/fit-lab\/)/.test(f.path)||f.path.includes('..')||path.isAbsolute(f.path))throw Error('Unsafe path');
+            let old=null;try{old=await readFile(f.path);}catch(e){if(e.code!=='ENOENT')throw e;}
+            if((old?hash(old):null)!==f.old)throw Error('Source base mismatch '+f.path);
+            const text=Array.from(old?old.toString('utf8'):'');let cursor=0,out='';
+            for(const [a,b,insert]of f.splices){if(a<cursor||b<a||b>text.length)throw Error('Invalid splice');out+=text.slice(cursor,a).join('')+insert;cursor=b;}out+=text.slice(cursor).join('');
+            if(hash(out)!==f.sha256)throw Error('Output integrity mismatch '+f.path);prepared.push({path:f.path,out});
+          }
+          for(const f of prepared){await mkdir(path.dirname(f.path),{recursive:true});await writeFile(f.path,f.out);}
+          await rm('.quality-bootstrap',{recursive:true});
+          JS
+            git config user.name 'NUBYRA source review'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add -A .quality-bootstrap configurador-3d/fit-lab scripts tests docs/fit-lab
+            git commit -m 'fix(fit-lab): restore real short depth, shared reference scale and exact profile acceleration'
+            git push origin HEAD:fix/fit-lab-coverage-scale-performance
+          fi
+          git rev-parse HEAD > artifacts/quality-cut/source-commit.txt
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Full unit regressions and exact application build
+        run: |
+          set -euo pipefail
+          THREE_TEST_DIR="$PWD" npm test | tee artifacts/quality-cut/unit-tests.txt
+          VERCEL_GIT_COMMIT_SHA=$(git rev-parse HEAD) npm run build:fit-lab
+      - run: npx playwright install --with-deps chromium
+      - name: Before and after on the same host
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/nubyra-baseline"
+          git archive a9efd99ccf8155e5ec2f03b62c1fca021f3533aa | tar -x -C "$RUNNER_TEMP/nubyra-baseline"
+          ln -s "$PWD/node_modules" "$RUNNER_TEMP/nubyra-baseline/node_modules"
+          (cd "$RUNNER_TEMP/nubyra-baseline" && VERCEL_GIT_COMMIT_SHA=a9efd99ccf8155e5ec2f03b62c1fca021f3533aa npm run build:fit-lab)
+          BENCH_ROOT="$RUNNER_TEMP/nubyra-baseline" BENCH_NAME=baseline node scripts/fit-lab-physics-benchmark.mjs
+          BENCH_NAME=updated node scripts/fit-lab-physics-benchmark.mjs
+          node --input-type=module <<'JS'
+          import {readFile} from 'node:fs/promises';import assert from 'node:assert/strict';
+          const a=JSON.parse(await readFile('artifacts/physics-benchmark/baseline.json')),b=JSON.parse(await readFile('artifacts/physics-benchmark/updated.json'));
+          for(let i=0;i<a.length;i++){assert.equal(a[i].shirtHash,b[i].shirtHash);assert.equal(a[i].shortHash,b[i].shortHash);}
+          JS
+          python3 -m http.server 8189 --bind 127.0.0.1 --directory "$RUNNER_TEMP/nubyra-baseline/fit-dist" >/tmp/quality-baseline.log 2>&1 &
+          python3 -m http.server 8190 --bind 127.0.0.1 --directory fit-dist >/tmp/quality-updated.log 2>&1 &
+          sleep 2
+          BASELINE_URL=http://127.0.0.1:8189/fit-lab/ FIT_LAB_URL=http://127.0.0.1:8190/fit-lab/ node scripts/fit-lab-quality-review.mjs
+      - name: Close visual inspection and bounded-editor regression
+        run: |
+          set -euo pipefail
+          EVIDENCE_DIR=artifacts/quality-head node scripts/fit-lab-head-review.mjs
+          FIT_LAB_URL=http://127.0.0.1:8190/fit-lab/ EVIDENCE_DIR=artifacts/quality-editor node scripts/fit-lab-body-editor-review.mjs
+      - name: Exact source evidence
+        if: always()
+        run: |
+          git archive --format=tar HEAD | gzip > artifacts/quality-cut/source.tar.gz
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nubyra-depth-scale-performance-review
+          path: |
+            artifacts/quality-cut/
+            artifacts/quality-head/
+            artifacts/quality-editor/
+            artifacts/physics-benchmark/
+            fit-dist/
+          retention-days: 7
+          if-no-files-found: error
