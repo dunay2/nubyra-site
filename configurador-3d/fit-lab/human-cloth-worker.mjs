@@ -2,11 +2,12 @@ import {createProfileSimulationCache} from './profile-simulation-cache.mjs';
 import {createHumanSimulation,simulationKey,SettledCache,HUMAN_CLOTH} from './human-simulation.mjs';
 export {HUMAN_CLOTH};
 let simulation=null,timer=null,requestTimer=null,queued=null,revision=0,paused=false,wind=false,preparing=false,lastSend=0;
-const cache=new SettledCache(8),profileCache=createProfileSimulationCache();
+const cache=new SettledCache(8);
+let profileCache=null;
 let seedGeneration=0;
 async function loadProfileSeed(state,rev){
  const generation=++seedGeneration,key=simulationKey(state);
- const seed=await profileCache.get(state);
+ const seed=await profileCache?.get(state);
  if(!seed||generation!==seedGeneration||rev!==revision||queued||!simulation||simulationKey(simulation.state)!==key||!preparing)return;
  if(simulation.useCache(seed)){cache.set(key,seed);complete();schedule();}
 }
@@ -38,6 +39,12 @@ function applyQueued(){
 self.onmessage=async({data:m})=>{
  try{
   if(m.type==='init'){
+   // Validate precomputed results against the actual GLB received by this Worker,
+   // not a historical asset identifier. Missing crypto only disables acceleration.
+   try{const digest=await crypto.subtle.digest('SHA-256',m.bytes);
+    const sourceMeshSha256=Array.from(new Uint8Array(digest),v=>v.toString(16).padStart(2,'0')).join('');
+    profileCache=createProfileSimulationCache({sourceMeshSha256});
+   }catch{profileCache=null;}
    if(m.bootstrap?.cache)cache.set(m.bootstrap.cache.key,m.bootstrap.cache);
    simulation=await createHumanSimulation(m.bytes,{shortAsset:m.shortAsset});
    queued=queued?.revision>m.revision?queued:m;applyQueued();

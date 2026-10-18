@@ -1,9 +1,10 @@
 import {SIMULATION_VERSION,simulationKey} from './human-simulation.mjs';
 /** Optional exact-state seeds. A failed or stale request never blocks live physics. */
-export function createProfileSimulationCache({fetcher=fetch,digest=async b=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',b)),x=>x.toString(16).padStart(2,'0')).join('')}={}){
+export function createProfileSimulationCache({sourceMeshSha256,fetcher=fetch,digest=async b=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',b)),x=>x.toString(16).padStart(2,'0')).join('')}={}){
  let manifest=null;const requests=new Map();
- const index=fetcher(new URL('./profile-cache/index.json',import.meta.url)).then(r=>r.ok?r.json():null).then(m=>{
-  if(m?.version===SIMULATION_VERSION&&m?.sourceMeshSha256==='0b3666ee3f05a8d51c0fafc15c464799da305eefc3a60fa97e1bcd499983c758')manifest=m;
+ const validSource=typeof sourceMeshSha256==='string'&&/^[a-f0-9]{64}$/.test(sourceMeshSha256);
+ const index=(validSource?fetcher(new URL('./profile-cache/index.json',import.meta.url)):Promise.resolve(null)).then(r=>r?.ok?r.json():null).then(m=>{
+  if(m?.version===SIMULATION_VERSION&&m?.sourceMeshSha256===sourceMeshSha256)manifest=m;
  }).catch(()=>{});
  return {async get(state){
   try{
