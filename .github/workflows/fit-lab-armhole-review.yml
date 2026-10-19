@@ -13,25 +13,41 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - name: Reproducible offline test dependencies
+      - name: Regression suite
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/armhole
+          npm run test:fit-lab | tee artifacts/armhole/unit-tests.txt
+      - run: npx playwright install --with-deps chromium
+      - run: NUBYRA_SOURCE_COMMIT=$(git rev-parse HEAD) npm run build:fit-lab
+      - name: Before - published solver, matched body and camera
+        run: |
+          git show 2f49ad98867f85070f863ade8a694f1116aea018:configurador-3d/fit-lab/human-simulation.mjs > configurador-3d/fit-lab/human-simulation-baseline.mjs
+          SIMULATION_MODULE=../configurador-3d/fit-lab/human-simulation-baseline.mjs EVIDENCE_DIR=artifacts/armhole/before node scripts/fit-lab-armhole-review.mjs
+          rm configurador-3d/fit-lab/human-simulation-baseline.mjs
+      - name: After - actual solver and rendered garments
+        run: node scripts/fit-lab-armhole-review.mjs
+      - name: Full application, worker publication and cache regression
+        run: node scripts/fit-lab-armhole-e2e.mjs
+      - name: General Lab regression
+        run: EVIDENCE_DIR=artifacts/armhole/general node scripts/fit-lab-human-e2e.mjs
+      - name: Source snapshot
+        if: always()
         run: |
           mkdir -p artifacts/armhole
-          tar czf artifacts/armhole/test-dependencies.tar.gz node_modules/three node_modules/three-mesh-bvh node_modules/esbuild node_modules/@esbuild node_modules/playwright node_modules/playwright-core
-          sha256sum package-lock.json artifacts/armhole/test-dependencies.tar.gz > artifacts/armhole/dependencies.sha256
+          git archive --format=tar.gz -o artifacts/armhole/source.tar.gz HEAD
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: nubyra-armhole-test-runtime
-          path: artifacts/armhole
-          retention-days: 2
-      - run: npm run test:fit-lab
-      - run: NUBYRA_SOURCE_COMMIT=$(git rev-parse HEAD) npm run build:fit-lab
-      - uses: actions/upload-artifact@v4
-        with:
-          name: nubyra-armhole-build
-          path: fit-dist
+          name: nubyra-armhole-review
+          path: |
+            artifacts/armhole
+            fit-dist
           retention-days: 7
