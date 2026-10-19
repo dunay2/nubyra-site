@@ -1,0 +1,37 @@
+name: NUBYRA - Armhole contact regression
+on:
+  push:
+    branches: [fix/fit-lab-armhole-contact-20261019]
+permissions:
+  contents: read
+concurrency:
+  group: armhole-review-${{ github.ref_name }}
+  cancel-in-progress: true
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Reproducible offline test dependencies
+        run: |
+          mkdir -p artifacts/armhole
+          tar czf artifacts/armhole/test-dependencies.tar.gz node_modules/three node_modules/three-mesh-bvh node_modules/esbuild node_modules/@esbuild node_modules/playwright node_modules/playwright-core
+          sha256sum package-lock.json artifacts/armhole/test-dependencies.tar.gz > artifacts/armhole/dependencies.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nubyra-armhole-test-runtime
+          path: artifacts/armhole
+          retention-days: 2
+      - run: npm run test:fit-lab
+      - run: NUBYRA_SOURCE_COMMIT=$(git rev-parse HEAD) npm run build:fit-lab
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nubyra-armhole-build
+          path: fit-dist
+          retention-days: 7
