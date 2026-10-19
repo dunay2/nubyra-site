@@ -3,7 +3,7 @@ import {createHumanSimulation,simulationKey,SettledCache,HUMAN_CLOTH} from './hu
 export {HUMAN_CLOTH};
 let simulation=null,timer=null,requestTimer=null,queued=null,revision=0,paused=false,wind=false,preparing=false,lastSend=0;
 const cache=new SettledCache(8);
-let profileCache=null;
+let profileCache=null,setupPending=false;
 let seedGeneration=0;
 async function loadProfileSeed(state,rev){
  const generation=++seedGeneration,key=simulationKey(state);
@@ -11,7 +11,12 @@ async function loadProfileSeed(state,rev){
  if(!seed||generation!==seedGeneration||rev!==revision||queued||!simulation||simulationKey(simulation.state)!==key||!preparing)return;
  if(simulation.useCache(seed)){cache.set(key,seed);complete();schedule();}
 }
-function sendFrame(setup=false){const m=simulation.frame(setup,wind);self.postMessage(m,[m.positions.buffer,...(m.shorts?[m.shorts.positions.buffer]:[])]);lastSend=performance.now();}
+function sendFrame(setup=false){
+ setupPending ||= setup;
+ // Keep the last complete outfit visible while the arm-safe dressing pose is swept.
+ // Never publish cloth simulated against a different body pose.
+ if(!simulation.readyToPresent){self.postMessage(simulation.progress());lastSend=performance.now();return;}
+ const m=simulation.frame(setupPending,wind);setupPending=false;self.postMessage(m,[m.positions.buffer,...(m.shorts?[m.shorts.positions.buffer]:[])]);lastSend=performance.now();}
 function complete(){if(preparing){cache.set(simulationKey(simulation.state),simulation.cacheEntry());preparing=false;}sendFrame(true);}
 function schedule(){if(!timer&&simulation&&(!paused||preparing)&&(simulation.remaining>0||wind))timer=setTimeout(tick,0);}
 function tick(){

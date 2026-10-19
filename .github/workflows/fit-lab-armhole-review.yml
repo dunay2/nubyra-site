@@ -1,0 +1,53 @@
+name: NUBYRA - Armhole contact regression
+on:
+  push:
+    branches: [fix/fit-lab-armhole-contact-20261019]
+permissions:
+  contents: read
+concurrency:
+  group: armhole-review-${{ github.ref_name }}
+  cancel-in-progress: true
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Regression suite
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/armhole
+          npm run test:fit-lab | tee artifacts/armhole/unit-tests.txt
+      - run: npx playwright install --with-deps chromium
+      - run: NUBYRA_SOURCE_COMMIT=$(git rev-parse HEAD) npm run build:fit-lab
+      - name: Before - published solver, matched body and camera
+        run: |
+          git show 2f49ad98867f85070f863ade8a694f1116aea018:configurador-3d/fit-lab/human-simulation.mjs > configurador-3d/fit-lab/human-simulation-baseline.mjs
+          SIMULATION_MODULE=../configurador-3d/fit-lab/human-simulation-baseline.mjs EVIDENCE_DIR=artifacts/armhole/before node scripts/fit-lab-armhole-review.mjs
+          rm configurador-3d/fit-lab/human-simulation-baseline.mjs
+      - name: After - actual solver and rendered garments
+        run: node scripts/fit-lab-armhole-review.mjs
+      - name: Full application, worker publication and cache regression
+        run: node scripts/fit-lab-armhole-e2e.mjs
+      - name: General Lab regression
+        run: EVIDENCE_DIR=artifacts/armhole/general node scripts/fit-lab-human-e2e.mjs
+      - name: Source snapshot
+        if: always()
+        run: |
+          mkdir -p artifacts/armhole
+          git archive --format=tar.gz -o artifacts/armhole/source.tar.gz HEAD
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nubyra-armhole-review
+          path: |
+            artifacts/armhole
+            fit-dist
+          retention-days: 7
