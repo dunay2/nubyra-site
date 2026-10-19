@@ -1,61 +1,90 @@
-name: NUBYRA · Exact collision performance
+name: NUBYRA - Exact physics performance
 on:
   push:
-    branches: [perf/fit-lab-exact-collision-queries]
-  workflow_dispatch:
+    branches: [perf/fit-lab-exact-pipeline-20261019]
 permissions:
   contents: read
 concurrency:
-  group: fit-lab-performance-${{ github.ref }}
+  group: fit-lab-performance-${{ github.ref_name }}
   cancel-in-progress: true
 jobs:
-  performance:
+  numerical:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: All Node tests, including exact Float64 reuse and wind
+        env:
+          THREE_TEST_DIR: ${{ github.workspace }}
+          NUBYRA_EXPORT_GLB: artifacts/performance/test-jersey.glb
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/performance
+          npm test | tee artifacts/performance/unit-tests.txt
+      - name: Matched published baseline
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/nubyra-performance-baseline fit-dist/fit-lab
+          git archive 16b7d41cca37357ebde2a3afc621ba33f8ca813f | tar -x -C /tmp/nubyra-performance-baseline
+          ln -s "$GITHUB_WORKSPACE/node_modules" /tmp/nubyra-performance-baseline/node_modules
+          node --input-type=module -e "import {buildFixedShorts} from './scripts/build-fixed-shorts.mjs'; await buildFixedShorts('fit-dist/fit-lab/fixed-shorts.json');"
+      - name: Three alternating paired runs and serial fallback
+        env:
+          BASELINE_ROOT: /tmp/nubyra-performance-baseline
+          BENCH_REPEATS: '3'
+        run: |
+          set -euo pipefail
+          node scripts/fit-lab-performance-benchmark.mjs | tee artifacts/performance/benchmark.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nubyra-performance-numerical
+          path: artifacts/performance
+          retention-days: 7
+          if-no-files-found: error
+  browser:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Complete unit regressions and exact-output comparison
-        run: |
-          set -euo pipefail
-          mkdir -p artifacts/performance
-          THREE_TEST_DIR="$PWD" npm test | tee artifacts/performance/tests.txt
-      - name: Serial cold CPU benchmark against canonical solver
-        run: node scripts/fit-lab-collision-benchmark.mjs | tee artifacts/performance/cpu-log.txt
-      - name: Build published v1 and candidate with identical pinned dependencies
-        env:
-          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
-        run: |
-          set -euo pipefail
-          npm run build:fit-lab
-          git worktree add --detach /tmp/nubyra-before fcc7e5ac59c754179902e0d51c476ad738c17db0
-          ln -s "$PWD/node_modules" /tmp/nubyra-before/node_modules
-          (cd /tmp/nubyra-before && VERCEL_GIT_COMMIT_SHA=fcc7e5ac59c754179902e0d51c476ad738c17db0 npm run build:fit-lab)
-          mkdir -p /tmp/nubyra-comparison
-          ln -s /tmp/nubyra-before/fit-dist /tmp/nubyra-comparison/before
-          ln -s "$PWD/fit-dist" /tmp/nubyra-comparison/after
-          printf '{"browserBefore":"fcc7e5ac59c754179902e0d51c476ad738c17db0","browserAfter":"%s","cpuBefore":"canonical-createHumanCollider","steps":360}\n' "$VERCEL_GIT_COMMIT_SHA" > artifacts/performance/versions.json
+      - run: NUBYRA_SOURCE_COMMIT=$(git rev-parse HEAD) npm run build:fit-lab
       - run: npx playwright install --with-deps chromium
-      - name: Matched real browser latency and responsive regressions
+      - name: Bundled nested workers, reuse, cancellation and atomic outfit
+        run: node scripts/fit-lab-performance-e2e.mjs
+      - name: Preserve the corrected armhole, full application and cache
+        run: node scripts/fit-lab-armhole-e2e.mjs
+      - name: Actual meshes and triangle intersection regression
+        run: node scripts/fit-lab-armhole-review.mjs
+      - name: General Lab regression
+        env:
+          EVIDENCE_DIR: artifacts/performance-general
+        run: node scripts/fit-lab-human-e2e.mjs
+      - name: Source snapshot
+        if: always()
         run: |
-          set -euo pipefail
-          python3 -m http.server 8091 --bind 127.0.0.1 --directory /tmp/nubyra-comparison >/tmp/fit-perf-http.log 2>&1 &
-          sleep 2
-          node scripts/fit-lab-perf-browser.mjs
-          FIT_LAB_URL=http://127.0.0.1:8091/after/fit-lab/ EVIDENCE_DIR=artifacts/performance/responsive node scripts/fit-lab-responsive-review.mjs
+          mkdir -p artifacts/performance-browser
+          git archive --format=tar.gz -o artifacts/performance-browser/source.tar.gz HEAD
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: nubyra-exact-collision-performance
+          name: nubyra-performance-browser
           path: |
-            artifacts/performance/
+            artifacts/
             fit-dist/
-          if-no-files-found: error
           retention-days: 7
+          if-no-files-found: error
